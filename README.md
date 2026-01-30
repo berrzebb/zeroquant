@@ -303,6 +303,7 @@ ENCRYPTION_KEY=your-32-byte-key-base64
 | 문서 | 설명 |
 |------|------|
 | [아키텍처](docs/architecture.md) | 시스템 아키텍처 및 기술 스택 |
+| [구조 개선 분석](docs/structural_improvement_analysis.md) | 아키텍처 패턴 및 구조 개선 제안 🏗️ |
 | [코드 최적화 분석](docs/code_optimization_analysis.md) | 코드 최적화 기회 및 성능 개선 제안 🔥 |
 | [개선 제안서](docs/improvement_suggestions.md) | 프로젝트 개선 제안 및 로드맵 (상세, 한국어) ⭐ |
 | [Improvement Suggestions](docs/IMPROVEMENTS_EN.md) | Project improvement suggestions (Summary, English) ⭐ |
