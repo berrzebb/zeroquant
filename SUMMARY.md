@@ -1,176 +1,307 @@
 # 개선 제안 요약 / Improvement Suggestions Summary
 
-## 📝 작업 완료 / Work Completed
+## 📝 작업 업데이트 / Work Update (v2.0)
 
-이 PR에서는 ZeroQuant 프로젝트에 대한 **포괄적인 개선 제안서**를 작성했습니다.
-코드 수정은 하지 않고, 순수하게 개선 방향을 제시하는 문서만 추가했습니다.
+**중요 변경사항**: 사용자 피드백에 따라 **개인 프로젝트에 최적화**된 버전으로 수정했습니다.
 
-This PR adds **comprehensive improvement suggestions** for the ZeroQuant project.
-No code changes were made - only documentation suggesting improvement directions.
+**Important Change**: Based on user feedback, revised to be **optimized for personal use**.
 
 ---
 
-## 📚 생성된 문서 / Created Documents
+## 🎯 핵심 메시지 / Key Message
 
-### 1. [개선 제안서 (한국어 상세)](docs/improvement_suggestions.md) - 1,263줄
-전체 개선 제안을 상세하게 다룬 주 문서입니다.
+### ❌ 제외된 항목 (과도한 복잡성)
 
-### 2. [Improvement Suggestions (English Summary)](docs/IMPROVEMENTS_EN.md)
-영문 요약 버전입니다.
+**개인 프로젝트에 적합하지 않음**:
+- ❌ 마이크로서비스 아키텍처 - 운영 부담 과다
+- ❌ Kafka, RabbitMQ - 개인 사용에 불필요
+- ❌ 서비스 디스커버리 (Consul, etcd) - 단일 서버면 충분
+- ❌ 복잡한 분산 시스템 - 유지보수 부담
+- ❌ 팀 협업 도구 - 혼자 사용
 
----
+### ✅ 유지할 항목 (현재 구조 최적)
 
-## 🎯 주요 개선 영역 / Key Improvement Areas
-
-### 1. 아키텍처 개선 / Architecture
-- 🔴 **마이크로서비스 분리** - 독립적 스케일링 및 장애 격리
-- 🟡 **이벤트 기반 아키텍처** - 비동기 처리 및 결합도 감소
-- 🟡 **플러그인 시스템 강화** - WASM 기반 동적 전략 로딩
-- 🟢 **CQRS 패턴** - 읽기/쓰기 최적화
-
-### 2. 코드 품질 / Code Quality
-- 🔴 **대형 파일 리팩토링** - 1000줄+ 파일 모듈화
-  - backtest.rs (3,323줄)
-  - analytics.rs (2,325줄)
-  - credentials.rs (1,615줄)
-- 🟡 **에러 처리 일관성** - 도메인별 에러 타입 정의
-- 🔴 **테스트 커버리지 향상** - 목표 80%+
-- 🟢 **린터/포맷터 적용** - Clippy, Rustfmt
-
-### 3. 기능 개선 / Features
-- 🔴 **전략별 리스크 설정** (TODO 명시) - 전략마다 리스크 모듈 선택
-- 🔴 **백테스트 UI 개선** (TODO 명시) - 등록된 전략 재사용
-- 🟡 **매매 일지** (TODO 명시) - 거래 내역 관리 및 분석
-- 🟡 **다중 자산 백테스트** - 자산배분 전략 지원
-- 🟢 **전략 복사 기능** - 파생 전략 생성
-- 🟢 **알림 강화** - 텔레그램 명령어, 다채널 지원
-
-### 4. 운영 & 모니터링 / Operations & Monitoring
-- 🔴 **APM 통합** - Jaeger, Zipkin, Datadog
-- 🟡 **Grafana 대시보드** - 시스템/트레이딩/거래소 모니터링
-- 🟡 **헬스 체크 강화** - 컴포넌트별 상태 체크
-- 🔴 **장애 복구** - Circuit Breaker, Retry 전략
-- 🟢 **로깅 전략** - 구조화된 로그, 중앙 수집
-
-### 5. 보안 / Security
-- 🔴 **API 인증 강화** - MFA, API 키, IP 화이트리스트
-- 🟡 **Rate Limiting** - 사용자/엔드포인트별 제한
-- 🟡 **감사 로그 강화** - 모든 중요 작업 추적
-- 🔴 **민감 정보 보호** - Vault 통합, 메모리 보호
-- 🟡 **입력 검증** - validator 크레이트 활용
-
-### 6. 성능 최적화 / Performance
-- 🟡 **데이터베이스 최적화** - 인덱스, 압축, Materialized View
-- 🟡 **Redis 캐싱** - 다층 캐싱, TTL 전략
-- 🟢 **비동기 작업 큐** - 백테스트, ML 훈련
-- 🟢 **WebSocket 최적화** - 압축, 배치 전송
-- 🟡 **병렬 처리** - 전략 병렬 실행, 백테스트 병렬화
-
-### 7. 테스트 / Testing
-- 🔴 **통합 테스트** - API, 거래소, 전략 시나리오
-- 🟡 **성능 벤치마크** - Criterion 기반 측정
-- 🟢 **모킹 테스트** - 거래소 커넥터 모킹
-
-### 8. 문서화 / Documentation
-- 🟢 **API 문서 자동 생성** - Swagger/OpenAPI
-- 🟡 **사용자 가이드 확장** - 튜토리얼, FAQ
-- 🟢 **코드 주석** - Rustdoc 활용
+**현재 모놀리식 구조가 개인 프로젝트에 완벽**:
+- 배포 간단 (Docker 컨테이너 하나)
+- 디버깅 쉬움
+- 운영 부담 최소
+- 성능 충분
+- 복잡성 낮음
 
 ---
 
-## 📊 우선순위 요약 / Priority Summary
+## 📚 문서 구조 / Document Structure
 
-### 🔴 높음 (9개) - 즉시 구현 권장
-1. 전략별 리스크 설정 선택
-2. 백테스트 UI 플로우 개선
-3. 대형 파일 리팩토링
-4. 유닛 테스트 커버리지 향상
-5. APM 도입
-6. 장애 복구 메커니즘
-7. API 인증 강화
-8. 민감 정보 보호
-9. 통합 테스트 추가
+### 주요 문서 / Main Documents
 
-### 🟡 중간 (15개) - 계획 수립 권장
-이벤트 기반 아키텍처, 플러그인 강화, 매매 일지, 다중 자산 백테스트, Grafana, 헬스체크, Rate Limiting, 감사 로그, DB 최적화, Redis 캐싱, 병렬 처리, 성능 벤치마크, 사용자 가이드 등
+1. **[improvement_suggestions.md](docs/improvement_suggestions.md)** (16KB, 714줄)
+   - 🎯 **개인 사용 최적화 버전** (v2.0)
+   - 실용적이고 실행 가능한 제안만 포함
+   - 과도한 엔터프라이즈 패턴 제외
 
-### 🟢 낮음 (9개) - 여유 시 구현
-CQRS, 린터/포맷터, 전략 복사, 알림 강화, 로깅, 비동기 큐, WebSocket 최적화, API 문서 자동 생성, 코드 주석
+2. **[IMPROVEMENTS_EN.md](docs/IMPROVEMENTS_EN.md)**
+   - 영문 요약 (개인 사용 버전)
+
+3. **[improvement_suggestions_v1_enterprise.md](docs/improvement_suggestions_v1_enterprise.md)** (30KB)
+   - 참고용 엔터프라이즈 버전
+   - 팀/회사 프로젝트로 확장 시 참고
 
 ---
 
-## 🗓️ 추천 로드맵 / Recommended Roadmap (6개월)
+## 🎯 실용적 우선순위 / Practical Priorities
 
-### Month 1-2
-- 전략별 리스크 설정 선택
-- 백테스트 UI 플로우 개선
-- 유닛 테스트 커버리지 향상
-- APM 도입
+### 🔴 즉시 구현 (6-7시간) - 하루면 끝!
 
-### Month 3-4
-- 대형 파일 리팩토링
-- 매매 일지 구현
-- 장애 복구 메커니즘
-- Grafana 대시보드 구성
+| 항목 | 시간 | 효과 | 비고 |
+|------|------|------|------|
+| 전략별 리스크 설정 | 2-3시간 | ⭐⭐⭐⭐⭐ | TODO 명시 |
+| 백테스트 UI 개선 | 2-3시간 | ⭐⭐⭐⭐ | TODO 명시 |
+| DB 인덱스 추가 | 30분 | ⭐⭐⭐⭐ | 즉시 효과 |
+| Clippy/Rustfmt | 5분 | ⭐⭐⭐ | 실수 방지 |
 
-### Month 5-6
-- 이벤트 기반 아키텍처 도입
-- 다중 자산 백테스트 지원
-- 성능 최적화
-- 문서화 강화
+**토요일 하루면 완료 가능**
 
 ---
 
-## 💡 추가 고려사항 / Additional Considerations
+### 🟡 다음에 구현 (14-18시간) - 주말 2-3일
 
-### 법률 & 규제 / Legal & Compliance
-- 금융 데이터 보관 의무
-- GDPR / 개인정보보호법
-- 거래 기록 보관 기간
+| 항목 | 시간 | 효과 |
+|------|------|------|
+| 매매 일지 | 4-5시간 | ⭐⭐⭐⭐ |
+| backtest.rs 리팩토링 | 4-5시간 | ⭐⭐⭐ |
+| Grafana 대시보드 | 2-3시간 | ⭐⭐⭐ |
+| API 키 관리 개선 | 1-2시간 | ⭐⭐⭐ |
+| 백업 자동화 | 30분 | ⭐⭐⭐ |
+| 기본 테스트 추가 | 2-3시간 | ⭐⭐⭐ |
 
-### 재해 복구 / Disaster Recovery
-- 백업 전략 (RTO/RPO)
-- 재해 복구 시나리오 테스트
-- 다중 리전 배포
+---
 
-### 커뮤니티 / Community
-- Discord/Slack 커뮤니티
-- GitHub Discussions
-- 기술 블로그
+### 🟢 여유있을 때 (8-10시간)
 
-### 오픈소스 / Open Source
-- 기여 가이드라인 (CONTRIBUTING.md)
-- 행동 강령 (CODE_OF_CONDUCT.md)
+- 전략 복사 기능 (1-2시간)
+- Rate Limiting (1시간)
+- Redis 캐싱 (2시간, 필요시)
+- 병렬 백테스트 (1시간)
+- 헬스 체크 개선 (30분)
+- 로깅 개선 (30분)
+- 이벤트 로깅 (2시간)
+
+---
+
+## 🗓️ 현실적인 로드맵 / Realistic Roadmap
+
+### Week 1: 핵심 개선 ⚡
+```
+토요일 (6-7시간):
+  ✓ 전략별 리스크 설정
+  ✓ 백테스트 UI 개선
+  ✓ DB 인덱스
+  ✓ 린터 설정
+  
+→ 사용성 대폭 향상!
+```
+
+### Week 2-3: 유용한 기능 🛠️
+```
+주말 1 (7-8시간):
+  ✓ 매매 일지 구현
+  ✓ Grafana 대시보드
+  ✓ 백업 자동화
+
+주말 2 (7-10시간):
+  ✓ backtest.rs 리팩토링
+  ✓ API 키 관리 개선
+  ✓ 기본 테스트 추가
+  
+→ 안정성 및 유지보수성 향상!
+```
+
+### 이후: 천천히
+```
+여유있을 때 하나씩:
+  - 편의 기능들
+  - 추가 최적화
+```
+
+---
+
+## 💡 주요 개선 영역 / Key Improvement Areas
+
+### 1. 아키텍처: 단순하게! 🏗️
+
+**결론**: 현재 모놀리식 구조 유지 ✅
+
+```
+trader-api (단일 프로세스)
+  ├── Strategy Engine
+  ├── Risk Manager
+  ├── Order Executor
+  └── Data Manager
+  
+→ 이대로 완벽합니다!
+```
+
+**필요시에만**: tokio::spawn으로 무거운 작업 분리
+
+---
+
+### 2. 코드 품질: 점진적 개선 📝
+
+**대형 파일 리팩토링**:
+- backtest.rs (3,323줄) → 4-5개 모듈
+- 급하지 않음, 천천히 하나씩
+- 버그 수정하면서 같이 진행
+
+**테스트**:
+- 완벽한 커버리지 추구 ❌
+- 핵심 기능만 테스트 ✅
+- 107개 전략 테스트 이미 있음 ✅
+
+---
+
+### 3. 필수 기능: 사용성 향상 ⚡
+
+**전략별 리스크 설정** (최우선):
+```rust
+pub struct StrategyConfig {
+    risk_config: RiskConfig, // 전략마다 다르게!
+}
+```
+시간: 2-3시간, 효과: 엄청남
+
+**백테스트 UI 개선** (최우선):
+- 전략 한 번 등록
+- 심볼/기간만 입력하고 테스트
+시간: 2-3시간, 효과: 편리함 대폭 향상
+
+**매매 일지**:
+- 거래 내역 추적
+- 손익 분석
+시간: 4-5시간
+
+---
+
+### 4. 모니터링: 간단하게! 📊
+
+**복잡한 APM 대신** → Prometheus + Grafana
+
+**기본 메트릭**:
+- 일일 수익률
+- 전략별 승률
+- API 응답 시간
+
+설정 시간: 2-3시간
+효과: 시스템 상태 한눈에 파악
+
+---
+
+### 5. 보안: 기본만 🔒
+
+**현재 좋음**: AES-256-GCM ✅
+
+**추가**:
+- API 키 만료 추적 (1-2시간)
+- 간단한 Rate Limiting (1시간)
+- 백업 자동화 (30분)
+
+---
+
+### 6. 성능: 즉시 효과 🚀
+
+**DB 인덱스** (30분):
+```sql
+CREATE INDEX idx_orders_symbol_created 
+ON orders(symbol, created_at DESC);
+```
+효과: 쿼리 10배 빠름
+
+**Redis 캐싱** (선택적, 2시간):
+- 필요한 경우에만
+- 실시간 시세, 포트폴리오 정보
+
+---
+
+## 📊 버전 비교 / Version Comparison
+
+| 항목 | v1.0 (Enterprise) | v2.0 (Personal) |
+|------|-------------------|-----------------|
+| 대상 | 팀/회사 | 개인 |
+| 아키텍처 | 마이크로서비스 | 모놀리스 ✅ |
+| 메시징 | Kafka/RabbitMQ | 간단한 로깅 |
+| 모니터링 | 풀스택 APM | 기본 Grafana |
+| 테스트 | 80% 커버리지 | 핵심만 |
+| 복잡도 | 높음 | 낮음 ✅ |
+| 구현 시간 | 수개월 | 수주 |
+| 운영 부담 | 높음 | 낮음 ✅ |
+
+---
+
+## ✨ 기대 효과 / Expected Results
+
+### 즉시 (Week 1)
+- ✅ 전략 관리 훨씬 편리
+- ✅ 백테스트 시간 단축
+- ✅ 쿼리 속도 10배 향상
+- ✅ 코드 품질 자동 체크
+
+### 중기 (Week 2-3)
+- ✅ 거래 내역 체계적 관리
+- ✅ 시스템 상태 실시간 모니터링
+- ✅ 데이터 백업으로 안심
+- ✅ 코드 유지보수 쉬움
+
+### 장기
+- ✅ 안정적인 자동 트레이딩
+- ✅ 낮은 운영 부담
+- ✅ 지속 가능한 개발
+
+---
+
+## 🎯 핵심 원칙 / Core Principles
+
+### 1. **단순함이 최고** 
+과도한 엔지니어링 지양 → 현재 구조 유지
+
+### 2. **점진적 개선**
+한 번에 하나씩 → 주말마다 하나씩
+
+### 3. **실용성 우선**
+이론보다 실제 효과 → 빠른 개선 집중
+
+### 4. **낮은 운영 부담**
+복잡한 시스템 지양 → 간단한 솔루션
 
 ---
 
 ## 📖 관련 문서 / Related Documents
 
-- [아키텍처](docs/architecture.md)
-- [개선 제안서 (상세)](docs/improvement_suggestions.md) - 1,263줄
-- [Improvement Suggestions (Summary)](docs/IMPROVEMENTS_EN.md)
-- [TODO 목록](docs/todo.md)
-- [전략 비교](docs/STRATEGY_COMPARISON.md)
+- 📖 [개선 제안서 v2.0 (상세, 한국어)](docs/improvement_suggestions.md) - **메인 문서**
+- 📖 [Improvement Suggestions v2.0 (Summary, English)](docs/IMPROVEMENTS_EN.md)
+- 📖 [개선 제안서 v1.0 (엔터프라이즈 참고용)](docs/improvement_suggestions_v1_enterprise.md)
+- 📖 [아키텍처 문서](docs/architecture.md)
+- 📖 [TODO 목록](docs/todo.md)
 
 ---
 
-## ✨ 결론 / Conclusion
+## 🎉 결론 / Conclusion
 
-ZeroQuant는 이미 **견고한 기반**을 갖춘 훌륭한 프로젝트입니다.
+### 개인 프로젝트는 단순하게!
 
-- ✅ 27개 검증된 전략
-- ✅ ML 패턴 인식 (47개)
-- ✅ 강력한 리스크 관리
-- ✅ 다중 거래소 지원
-- ✅ 실시간 모니터링
+**현재 상태**: 이미 훌륭한 시스템 ✅
+- 27개 검증된 전략
+- ML 패턴 인식
+- 강력한 리스크 관리
+- 다중 거래소 지원
 
-이 개선 제안들은 프로젝트를 **더욱 강력하고 확장 가능하며 운영 가능한** 시스템으로 발전시키는 데 도움이 될 것입니다.
+**개선 방향**: 작은 투자로 큰 효과
+- Week 1: 핵심 개선 (6-7시간)
+- Week 2-3: 유용한 기능 (14-18시간)
+- 이후: 천천히 하나씩
 
-The improvement suggestions in this document will help evolve ZeroQuant into an even more **robust, scalable, and production-ready** system.
-
-프로젝트의 지속적인 발전을 기원합니다! 🚀
+**목표**: 실용적이고 지속 가능한 자동 트레이딩 시스템 🚀
 
 ---
 
 *생성일 / Date: 2026-01-30*
+*버전 / Version: 2.0 - 개인 사용 최적화*
 *작성자 / Author: GitHub Copilot Agent*
