@@ -150,7 +150,7 @@ jobs:
           DATABASE_URL: postgresql://test:test@localhost:5432/test
           REDIS_URL: redis://localhost:6379
           JWT_SECRET: test-jwt-secret-for-ci-only-not-production
-          ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS1mb3ItY2ktb25seQ==
+          ENCRYPTION_MASTER_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS1mb3ItY2ktb25seQ==
 
   # Frontend 린트 및 빌드
   frontend:

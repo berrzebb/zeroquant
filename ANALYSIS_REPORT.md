@@ -114,11 +114,11 @@ Infra:    Docker Compose + Prometheus + Grafana
 ```env
 # Before (위험)
 JWT_SECRET=your-jwt-secret-key-change-this-in-production
-ENCRYPTION_KEY=your-32-byte-encryption-key-here-base64
+ENCRYPTION_MASTER_KEY=your-32-byte-encryption-key-here-base64
 
 # After (안전)
 JWT_SECRET=
-ENCRYPTION_KEY=
+ENCRYPTION_MASTER_KEY=
 # 주석에 생성 방법 명시
 ```
 **효과**: 기본값 제공 안 함으로써 실수 방지
@@ -127,7 +127,7 @@ ENCRYPTION_KEY=
 ```bash
 # 보안 키 생성 가이드 추가
 openssl rand -hex 32        # JWT_SECRET
-openssl rand -base64 32     # ENCRYPTION_KEY
+openssl rand -base64 32     # ENCRYPTION_MASTER_KEY
 ```
 **효과**: 사용자가 보안 설정을 쉽게 따라할 수 있음
 

@@ -33,7 +33,7 @@ openssl rand -base64 32
 
 **설정 위치**: `.env` 파일
 ```env
-ENCRYPTION_KEY=<생성된_키_입력>
+ENCRYPTION_MASTER_KEY=<생성된_키_입력>
 ```
 
 ### ⚠️ 주의사항
@@ -293,7 +293,7 @@ docker-compose restart trader-api
 # 4. 사용자에게 재로그인 안내
 ```
 
-### 3. Encryption Key 유출 시
+### 3. Encryption Master Key 유출 시
 
 ⚠️ **매우 심각** - 모든 암호화된 자격증명이 노출됨
 
