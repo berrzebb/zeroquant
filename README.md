@@ -303,7 +303,8 @@ ENCRYPTION_KEY=your-32-byte-key-base64
 | 문서 | 설명 |
 |------|------|
 | [아키텍처](docs/architecture.md) | 시스템 아키텍처 및 기술 스택 |
-| [개선 제안서](docs/improvement_suggestions.md) | 프로젝트 개선 제안 및 로드맵 (v1.0) ⭐ |
+| [개선 제안서](docs/improvement_suggestions.md) | 프로젝트 개선 제안 및 로드맵 (상세, 한국어) ⭐ |
+| [Improvement Suggestions](docs/IMPROVEMENTS_EN.md) | Project improvement suggestions (Summary, English) ⭐ |
 | [API 문서](docs/api.md) | REST/WebSocket API 레퍼런스 |
 | [배포 가이드](docs/deployment.md) | 프로덕션 배포 방법 |
 | [모니터링](docs/monitoring.md) | Prometheus/Grafana 설정 |
