@@ -302,12 +302,15 @@ ENCRYPTION_KEY=your-32-byte-key-base64
 
 | 문서 | 설명 |
 |------|------|
+| [아키텍처](docs/architecture.md) | 시스템 아키텍처 및 기술 스택 |
+| [개선 제안서](docs/improvement_suggestions.md) | 프로젝트 개선 제안 및 로드맵 (v1.0) ⭐ |
 | [API 문서](docs/api.md) | REST/WebSocket API 레퍼런스 |
 | [배포 가이드](docs/deployment.md) | 프로덕션 배포 방법 |
 | [모니터링](docs/monitoring.md) | Prometheus/Grafana 설정 |
 | [운영 가이드](docs/operations.md) | 일상 운영 및 관리 |
 | [트러블슈팅](docs/troubleshooting.md) | 문제 해결 가이드 |
 | [전략 비교](docs/STRATEGY_COMPARISON.md) | 전략별 상세 파라미터 |
+| [TODO](docs/todo.md) | 작업 현황 및 계획 |
 
 ## 라이선스
 
