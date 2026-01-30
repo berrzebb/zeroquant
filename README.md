@@ -282,7 +282,7 @@ REDIS_URL=redis://localhost:6379
 JWT_SECRET=<your-generated-jwt-secret-here>
 
 # 생성: openssl rand -base64 32
-ENCRYPTION_MASTER_KEY=<your-generated-encryption-master-key-here>
+ENCRYPTION_KEY=<your-generated-encryption-key-here>
 ```
 
 ### 거래소 API 키
