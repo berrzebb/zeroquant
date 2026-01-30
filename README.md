@@ -303,6 +303,7 @@ ENCRYPTION_KEY=your-32-byte-key-base64
 | 문서 | 설명 |
 |------|------|
 | [아키텍처](docs/architecture.md) | 시스템 아키텍처 및 기술 스택 |
+| [Docker 스택 단순화](docs/docker_stack_simplification.md) | Docker 기술 스택 제거/대체 제안 🐳 |
 | [구조 개선 분석](docs/structural_improvement_analysis.md) | 아키텍처 패턴 및 구조 개선 제안 🏗️ |
 | [코드 최적화 분석](docs/code_optimization_analysis.md) | 코드 최적화 기회 및 성능 개선 제안 🔥 |
 | [개선 제안서](docs/improvement_suggestions.md) | 프로젝트 개선 제안 및 로드맵 (상세, 한국어) ⭐ |
