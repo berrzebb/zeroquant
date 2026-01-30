@@ -57,9 +57,11 @@ services:
       - API_PORT=3000
       - DATABASE_URL=postgresql://trader:trader_secret@timescaledb:5432/trader
       - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
-      # Credential Encryption (Base64 encoded 32-byte key)
-      - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY:-MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=}
+      # REQUIRED: Generate with: openssl rand -hex 32
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET environment variable is required - generate with 'openssl rand -hex 32'}
+      # REQUIRED: Credential Encryption (Base64 encoded 32-byte key)
+      # Generate with: openssl rand -base64 32
+      - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY:?ENCRYPTION_MASTER_KEY is required - generate with 'openssl rand -base64 32'}
       # Telegram settings
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}

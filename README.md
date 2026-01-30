@@ -236,9 +236,18 @@ zeroquant/
 git clone https://github.com/berrzebb/zeroquant.git
 cd zeroquant
 
-# 환경 설정
+# 환경 설정 파일 생성
 cp .env.example .env
-# .env 파일에서 DB 연결 정보 설정
+
+# 🔐 보안 키 생성 (필수!)
+# JWT Secret 생성 (32바이트 hex)
+openssl rand -hex 32
+
+# 암호화 마스터 키 생성 (32바이트 Base64)
+openssl rand -base64 32
+
+# .env 파일 편집하여 위에서 생성한 키를 JWT_SECRET과 ENCRYPTION_KEY에 입력
+# 주의: 절대 기본값이나 예제 값을 그대로 사용하지 마세요!
 
 # Docker로 실행 (권장)
 docker-compose up -d
@@ -260,11 +269,20 @@ npm run dev
 ## 설정
 
 ### 환경 변수
+
+⚠️ **보안 주의사항**: 프로덕션 환경에서는 반드시 고유한 키를 생성하여 사용하세요!
+
 ```env
+# 데이터베이스
 DATABASE_URL=postgresql://trader:password@localhost:5432/trader
 REDIS_URL=redis://localhost:6379
-JWT_SECRET=your-secret-key
-ENCRYPTION_KEY=your-32-byte-key-base64
+
+# 보안 키 (REQUIRED - 반드시 생성하여 설정)
+# 생성: openssl rand -hex 32
+JWT_SECRET=<your-generated-jwt-secret-here>
+
+# 생성: openssl rand -base64 32
+ENCRYPTION_KEY=<your-generated-encryption-key-here>
 ```
 
 ### 거래소 API 키
