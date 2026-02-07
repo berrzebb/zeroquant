@@ -1,0 +1,19 @@
+[Unit]
+Description=ZeroQuant Daily Data Collection
+After=postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=oneshot
+User=trader
+WorkingDirectory=/opt/zeroquant
+EnvironmentFile=/opt/zeroquant/.env.collector.optimized
+ExecStart=/opt/zeroquant/bin/trader-collector run-all
+StandardOutput=journal
+StandardError=journal
+
+# Timeout (1.5시간으로 충분)
+TimeoutStartSec=5400
+
+[Install]
+WantedBy=multi-user.target

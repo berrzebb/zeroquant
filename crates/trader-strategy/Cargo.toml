@@ -1,0 +1,51 @@
+[package]
+name = "trader-strategy"
+description = "Strategy engine with plugin system"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+trader-core = { path = "../trader-core" }
+trader-strategy-macro = { path = "../trader-strategy-macro" }
+
+# Async runtime
+tokio = { workspace = true }
+futures = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+
+# Numeric types
+rust_decimal = { workspace = true }
+rust_decimal_macros = { workspace = true }
+
+# Date/Time
+chrono = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Async traits
+async-trait = { workspace = true }
+
+# Technical Analysis
+ta = { workspace = true }
+
+# Plugin loading
+libloading = { workspace = true }
+
+# Strategy registry
+inventory = "0.3"
+
+# Logging
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+uuid = { workspace = true }
+rust_decimal_macros = { workspace = true }

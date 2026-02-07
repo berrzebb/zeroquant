@@ -1,0 +1,132 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/trader-core",
+    "crates/trader-exchange",
+    "crates/trader-strategy",
+    "crates/trader-strategy-macro",
+    "crates/trader-risk",
+    "crates/trader-execution",
+    "crates/trader-data",
+    "crates/trader-analytics",
+    "crates/trader-api",
+    "crates/trader-cli",
+    "crates/trader-collector",
+    "crates/trader-notification",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Trading Bot Team"]
+license = "MIT"
+repository = "https://github.com/user/trader"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = "0.24"
+tokio-util = "0.7"
+futures = "0.3"
+
+# Web framework
+axum = { version = "0.8", features = ["ws", "macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace", "timeout"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "chrono", "uuid", "rust_decimal"] }
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+
+# Numeric types
+rust_decimal = { version = "1.36", features = ["serde", "serde-with-str", "serde-float"] }
+rust_decimal_macros = "1.36"
+
+# Date/Time
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+
+# UUID
+uuid = { version = "1.11", features = ["v4", "serde"] }
+
+# Cryptography (API signing)
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+
+# Authentication
+jsonwebtoken = "9"
+argon2 = "0.5"
+
+# Security
+secrecy = { version = "0.10", features = ["serde"] }
+
+# Encryption (AES-256-GCM)
+aes-gcm = "0.10"
+base64 = "0.22"
+
+# Configuration
+config = "0.14"
+dotenvy = "0.15"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Error handling
+thiserror = "2"
+anyhow = "1.0"
+
+# Async traits
+async-trait = "0.1"
+
+# Technical Analysis
+ta = "0.5"
+
+# Data processing
+polars = { version = "0.44", features = ["lazy"] }
+
+# ML Runtime (using RC until stable 2.0 release)
+ort = "2.0.0-rc.11"
+
+# Plugin loading
+libloading = "0.8"
+
+# Random number generation
+rand = "0.8"
+
+# Testing
+mockito = "1.6"
+proptest = "1.5"
+criterion = "0.5"
+
+# TypeScript 타입 생성
+ts-rs = { version = "10", features = ["serde-compat", "chrono-impl", "uuid-impl"] }
+
+# API Documentation
+utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid", "decimal"] }
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
+
+# Validation
+validator = { version = "0.19", features = ["derive"] }
+
+# Notifications
+teloxide = { version = "0.13", features = ["macros"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true

@@ -1,0 +1,58 @@
+{
+  "description": "스크리닝 기반 전략 회귀 테스트 - 동적 유니버스 기반 종목 선택",
+  "strategies": [
+    {
+      "strategy_id": "small_cap_quant_v2",
+      "name": "소형주 퀀트 (스크리닝 기반)",
+      "symbols": ["005930", "000660", "035720", "051910", "006400"],
+      "market": "KR",
+      "config": {
+        "min_score": "50",
+        "top_n": 3,
+        "total_amount": "10000000"
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 0
+      }
+    },
+    {
+      "strategy_id": "pension_bot_v2",
+      "name": "연금 자동화 (스크리닝 기반)",
+      "symbols": ["005930", "000660", "035720", "051910", "006400"],
+      "market": "KR",
+      "config": {
+        "min_score": "50",
+        "top_n": 3,
+        "total_amount": "10000000",
+        "use_route_filter": false
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 0
+      }
+    },
+    {
+      "strategy_id": "dynamic_universe",
+      "name": "동적 유니버스",
+      "symbols": ["005930", "000660", "035720", "051910", "006400"],
+      "market": "KR",
+      "config": {
+        "variant": "DynamicUniverse",
+        "market": "KR",
+        "preset_name": "dynamic_test",
+        "min_score": "50",
+        "top_n": 5,
+        "weighting_method": "Equal",
+        "rebalance_frequency": "Monthly",
+        "rebalance_threshold": "0.05",
+        "total_amount": "10000000",
+        "use_route_filter": false
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 0
+      }
+    }
+  ]
+}

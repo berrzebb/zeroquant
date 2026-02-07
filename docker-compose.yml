@@ -1,0 +1,111 @@
+# =============================================================================
+# Podman/Docker Compose - Infrastructure Only
+# =============================================================================
+#
+# 이 구성은 인프라(DB, Redis)만 컨테이너로 관리하고,
+# 애플리케이션(API, Frontend)은 로컬에서 실행합니다.
+#
+# Podman과 Docker 모두 100% 호환됩니다.
+#
+# 사용법 (Podman 권장):
+#   podman compose up -d              # 인프라 시작
+#   podman compose --profile ml up    # ML 포함 시작
+#   podman compose down               # 중지
+#
+# Docker 사용 시:
+#   docker-compose up -d              # 인프라 시작
+#   docker-compose down               # 중지
+#
+# 로컬 개발:
+#   # 백엔드
+#   export DATABASE_URL=postgresql://trader:trader_secret@localhost:5432/trader
+#   export REDIS_URL=redis://localhost:6379
+#   cargo run --bin trader-api
+#
+#   # 프론트엔드
+#   cd frontend && npm run dev
+#
+# DB/Redis CLI:
+#   psql: podman exec -it trader-timescaledb psql -U trader -d trader
+#   redis: podman exec -it trader-redis redis-cli
+#
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # Infrastructure Services
+  # ===========================================================================
+
+  # TimescaleDB (PostgreSQL with time-series extension)
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: trader-timescaledb
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: trader_secret
+      POSTGRES_DB: trader
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trader -d trader"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and session management
+  redis:
+    image: redis:7-alpine
+    container_name: trader-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================================================
+  # ML Training Service (use with --profile ml)
+  # ===========================================================================
+  #
+  # 사용법:
+  #   docker-compose --profile ml run --rm trader-ml python scripts/train_ml_model.py --symbol SPY
+  #   docker-compose --profile ml run --rm trader-ml python scripts/train_ml_model.py --list-symbols
+  #
+  trader-ml:
+    build:
+      context: .
+      dockerfile: Dockerfile.ml
+    container_name: trader-ml
+    volumes:
+      - ./scripts:/app/scripts
+      - ./models:/app/models
+      - ml_models:/app/data/ml_models
+    environment:
+      - DATABASE_URL=postgresql://trader:trader_secret@timescaledb:5432/trader
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    profiles:
+      - ml
+
+volumes:
+  timescaledb_data:
+    driver: local
+  redis_data:
+    driver: local
+  ml_models:
+    driver: local
+
+networks:
+  default:
+    name: trader-network

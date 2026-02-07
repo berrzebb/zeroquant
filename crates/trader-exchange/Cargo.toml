@@ -1,0 +1,66 @@
+[package]
+name = "trader-exchange"
+description = "Exchange connectors for multiple trading platforms"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+trader-core = { path = "../trader-core" }
+trader-execution = { path = "../trader-execution" }
+
+# Async runtime
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
+futures = { workspace = true }
+
+# HTTP client
+reqwest = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Numeric types
+rust_decimal = { workspace = true }
+rust_decimal_macros = { workspace = true }
+
+# Date/Time
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+
+# Cryptography (API signing)
+hmac = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+
+# Security
+secrecy = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Async traits
+async-trait = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# UUID generation
+uuid = { workspace = true }
+
+# Random generation (for simulated data)
+rand = { workspace = true }
+
+# Database (for MockExchangeProvider)
+sqlx = { workspace = true }
+
+# Yahoo Finance data provider
+yahoo_finance_api = "4.1"
+time = "0.3"
+
+[dev-dependencies]
+mockito = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }

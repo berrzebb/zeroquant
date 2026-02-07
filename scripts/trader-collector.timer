@@ -1,0 +1,12 @@
+[Unit]
+Description=ZeroQuant Daily Collection Timer
+Requires=trader-collector.service
+
+[Timer]
+# 매일 15:40 (월-금)
+OnCalendar=Mon-Fri 15:40
+Persistent=true
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

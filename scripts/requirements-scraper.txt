@@ -1,0 +1,5 @@
+# EODData 스크래퍼 의존성
+# 설치: pip install -r scripts/requirements-scraper.txt
+
+requests>=2.31.0
+beautifulsoup4>=4.12.0

@@ -1,0 +1,9 @@
+# 변동성 돌파 전략 백테스트 설정
+name = "Volatility Breakout Backtest"
+strategy_type = "volatility"
+
+[parameters]
+ticker = "005930"                  # 삼성전자
+k_value = 0.5                      # K값 (변동성 배수)
+position_size_pct = 0.2            # 포지션 크기 (20%)
+hold_days = 1                      # 홀딩 일수

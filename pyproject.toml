@@ -1,0 +1,80 @@
+[project]
+name = "trader-ml"
+version = "0.1.0"
+description = "ML training pipeline for ZeroQuant Trading Bot"
+requires-python = ">=3.10"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "ZeroQuant Team" }]
+
+dependencies = [
+    # Data handling
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "polars>=0.20.0",
+
+    # Database
+    "psycopg2-binary>=2.9.0",
+    "sqlalchemy>=2.0.0",
+
+    # ML frameworks
+    "xgboost>=2.0.0",
+    "lightgbm>=4.0.0",
+    "scikit-learn>=1.4.0",
+
+    # ONNX conversion
+    "onnx>=1.15.0",
+    "onnxmltools>=1.12.0",
+    "skl2onnx>=1.16.0",
+    "onnxruntime>=1.17.0",
+
+    # Technical analysis
+    "ta>=0.11.0",
+
+    # CLI
+    "click>=8.1.0",
+    "rich>=13.0.0",
+
+    # API calls (for validation)
+    "requests>=2.31.0",
+    "httpx>=0.26.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=24.0.0",
+    "ruff>=0.2.0",
+    "mypy>=1.8.0",
+]
+
+gpu = [
+    "onnxruntime-gpu>=1.17.0",
+]
+
+[project.scripts]
+train-ml = "scripts.train_ml_model:main"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+ignore_missing_imports = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["scripts"]

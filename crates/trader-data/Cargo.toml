@@ -1,0 +1,55 @@
+[package]
+name = "trader-data"
+description = "Data management - real-time and historical"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+trader-core = { path = "../trader-core" }
+
+# Async runtime
+tokio = { workspace = true }
+futures = { workspace = true }
+
+# Database
+sqlx = { workspace = true }
+redis = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Numeric types
+rust_decimal = { workspace = true }
+
+# Date/Time
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+
+# UUID
+uuid = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Async traits
+async-trait = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# HTTP Client (for KRX API)
+reqwest = { workspace = true }
+
+# Yahoo Finance API
+yahoo_finance_api = "4.1"
+time = "0.3"
+
+# HTML Parsing (for Naver Finance)
+scraper = "0.22"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }

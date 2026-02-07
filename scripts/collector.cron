@@ -1,0 +1,11 @@
+# ZeroQuant Collector Cron Schedule
+# ====================================
+
+# 심볼 동기화: 매주 월요일 09:00 (장 시작 전)
+0 9 * * 1 cd /opt/zeroquant && ./trader-collector sync-symbols >> /var/log/trader/sync.log 2>&1
+
+# OHLCV 수집: 매일 15:40 (장 마감 후 10분)
+40 15 * * 1-5 cd /opt/zeroquant && ./trader-collector collect-ohlcv >> /var/log/trader/ohlcv.log 2>&1
+
+# 전체 워크플로우: 매일 16:00 (안전하게)
+# 0 16 * * 1-5 cd /opt/zeroquant && ./trader-collector run-all >> /var/log/trader/collector.log 2>&1

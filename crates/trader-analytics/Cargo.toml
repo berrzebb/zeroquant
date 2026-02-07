@@ -1,0 +1,70 @@
+[package]
+name = "trader-analytics"
+description = "Performance analytics and backtesting"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+trader-core = { path = "../trader-core" }
+trader-strategy = { path = "../trader-strategy", optional = true }
+trader-data = { path = "../trader-data" }
+trader-execution = { path = "../trader-execution" }
+
+# Unique identifiers
+uuid = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+futures = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Numeric types
+rust_decimal = { workspace = true }
+rust_decimal_macros = { workspace = true }
+
+# Date/Time
+chrono = { workspace = true }
+
+# Data processing
+polars = { workspace = true }
+
+# Technical Analysis
+ta = "0.5"
+
+# ML Runtime (optional - requires ONNX Runtime)
+ort = { workspace = true, optional = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Async traits
+async-trait = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# OpenAPI (optional)
+utoipa = { workspace = true, optional = true }
+
+[features]
+default = []
+backtest = ["trader-strategy"]  # Backtest 기능 (Strategy 의존성 필요)
+ml = ["ort"]  # ML 추론 기능 (ONNX Runtime 필요)
+utoipa-support = ["utoipa"]  # OpenAPI 스키마 생성
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+trader-exchange = { path = "../trader-exchange" }
+sqlx = { workspace = true }
+
+# Benchmark will be added in Phase 7
+# criterion = { workspace = true }
+# [[bench]]
+# name = "performance"
+# harness = false

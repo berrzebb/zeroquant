@@ -1,0 +1,101 @@
+{
+  "description": "평균회귀 전략 회귀 테스트 - 기술적 지표(RSI/볼린저) 기반 진입, GlobalScore 불필요",
+  "strategies": [
+    {
+      "strategy_id": "rsi",
+      "name": "RSI 평균회귀",
+      "symbols": ["005930"],
+      "market": "KR",
+      "config": {
+        "ticker": "005930",
+        "amount": "10000000",
+        "rsi_period": 7,
+        "overbought": "55",
+        "oversold": "45",
+        "exit_config": {
+          "stop_loss_pct": "10.0",
+          "take_profit_pct": "5.0"
+        },
+        "max_positions": 5
+      },
+      "expected": {
+        "initialization": "success",
+        "min_candles_required": 10,
+        "min_trades": 1
+      }
+    },
+    {
+      "strategy_id": "bollinger",
+      "name": "볼린저 밴드",
+      "symbols": ["005930"],
+      "market": "KR",
+      "config": {
+        "ticker": "005930",
+        "amount": "10000000",
+        "period": 10,
+        "std_multiplier": "1.5",
+        "use_rsi_confirmation": false,
+        "min_bandwidth_pct": "0.0",
+        "exit_config": {
+          "stop_loss_pct": "10.0",
+          "take_profit_pct": "5.0"
+        },
+        "max_positions": 5
+      },
+      "expected": {
+        "initialization": "success",
+        "min_candles_required": 15,
+        "min_trades": 1
+      }
+    },
+    {
+      "strategy_id": "grid",
+      "name": "그리드 트레이딩",
+      "symbols": ["005930"],
+      "market": "KR",
+      "config": {
+        "variant": "grid",
+        "ticker": "005930",
+        "amount": "1000000",
+        "spacing_pct": "0.5",
+        "levels": 10,
+        "use_atr": false,
+        "cooldown_candles": 5,
+        "exit_config": {
+          "stop_loss_pct": "2.0",
+          "take_profit_pct": "4.0"
+        },
+        "max_positions": 10
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 1
+      }
+    },
+    {
+      "strategy_id": "magic_split",
+      "name": "매직 분할매수",
+      "symbols": ["005930"],
+      "market": "KR",
+      "config": {
+        "variant": "magic_split",
+        "ticker": "005930",
+        "levels": [
+          {"trigger_rate": "-0.3", "target_rate": "0.3", "amount": "2000000"},
+          {"trigger_rate": "-0.6", "target_rate": "0.6", "amount": "2000000"},
+          {"trigger_rate": "-0.9", "target_rate": "0.9", "amount": "2000000"},
+          {"trigger_rate": "-1.2", "target_rate": "1.2", "amount": "2000000"},
+          {"trigger_rate": "-1.5", "target_rate": "1.5", "amount": "2000000"}
+        ],
+        "exit_config": {
+          "stop_loss_pct": "10.0",
+          "take_profit_pct": "0.0"
+        }
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 5
+      }
+    }
+  ]
+}

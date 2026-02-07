@@ -1,0 +1,39 @@
+# Rustfmt 설정 파일
+# 프로젝트 전체에 일관된 코드 포맷팅 적용
+
+edition = "2021"
+max_width = 100
+tab_spaces = 4
+newline_style = "Auto"
+
+# Import 그룹화
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+reorder_imports = true
+reorder_modules = true
+
+# 함수/메서드 인자
+fn_args_layout = "Tall"
+fn_single_line = false
+
+# 구조체/열거형
+struct_lit_single_line = true
+enum_discrim_align_threshold = 20
+
+# 주석
+wrap_comments = false
+comment_width = 100
+normalize_comments = false
+
+# 체인 메서드
+chain_width = 60
+
+# 매크로
+format_macro_matchers = true
+format_macro_bodies = true
+
+# 기타
+use_small_heuristics = "Default"
+use_field_init_shorthand = true
+use_try_shorthand = true
+force_multiline_blocks = false

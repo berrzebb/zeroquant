@@ -1,0 +1,73 @@
+[package]
+name = "trader-cli"
+description = "CLI tools for the trading bot"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "trader"
+path = "src/main.rs"
+
+[dependencies]
+trader-core = { path = "../trader-core" }
+trader-strategy = { path = "../trader-strategy" }
+trader-data = { path = "../trader-data" }
+trader-analytics = { path = "../trader-analytics" }
+trader-api = { path = "../trader-api" }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Database
+sqlx = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+csv = "1.3"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Configuration
+config = { workspace = true }
+dotenvy = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# HTTP client (for data download)
+reqwest = { workspace = true }
+
+# Date/Time
+chrono = { workspace = true }
+
+# Numeric types
+rust_decimal = { workspace = true }
+rust_decimal_macros = { workspace = true }
+
+# UUID
+uuid = { workspace = true }
+
+# Progress indication
+indicatif = "0.17"
+
+# Chart generation for regression tests
+plotters = "0.3"
+
+# ML Runtime (optional)
+ort = { workspace = true, optional = true }
+
+[features]
+default = []
+ml = ["ort", "trader-analytics/ml"]  # ML 추론 기능
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }

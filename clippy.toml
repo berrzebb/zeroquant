@@ -1,0 +1,38 @@
+# Clippy 설정 파일
+# 코드 품질 및 스타일 린트 설정
+
+# 함수의 최대 인자 수 (초과 시 경고)
+too-many-arguments-threshold = 8
+
+# 함수의 최대 복잡도 (cognitive complexity)
+cognitive-complexity-threshold = 25
+
+# 타입의 최대 크기 (스택에 할당되는 크기)
+trivial-copy-size-limit = 16
+
+# 너무 긴 함수 경고 임계값 (라인 수)
+too-many-lines-threshold = 150
+
+# 컬렉션 리터럴의 최대 요소 수 (단일 라인 유지)
+single-char-binding-names-threshold = 5
+
+# 문서화 필요 여부 (크레이트 레벨)
+missing-docs-in-crate-items = false
+
+# unwrap() 사용 허용 여부 (테스트 코드에서만)
+allow-unwrap-in-tests = true
+
+# expect() 사용 허용 여부
+allow-expect-in-tests = true
+
+# 산술 연산 부작용 허용 (금융 계산에서 필요)
+arithmetic-side-effects-allowed = ["rust_decimal::Decimal", "chrono::Duration"]
+
+# 대형 enum variant 경고 임계값
+enum-variant-size-threshold = 200
+
+# 대형 구조체 패스 경고 임계값
+pass-by-value-size-limit = 256
+
+# 표준 라이브러리 비권장 패턴 허용
+msrv = "1.75.0"

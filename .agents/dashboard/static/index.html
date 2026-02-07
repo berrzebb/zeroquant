@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Agent Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+        }
+
+        .status-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        .status-dot.disconnected {
+            background: #ef4444;
+            animation: none;
+            box-shadow: 0 0 10px #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.9); }
+        }
+
+        .status-text {
+            color: white;
+            font-weight: 600;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel {
+            background: #1e293b;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border: 1px solid #334155;
+        }
+
+        .panel h2 {
+            color: #667eea;
+            margin-bottom: 18px;
+            font-size: 20px;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .stat-card {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #e2e8f0;
+        }
+
+        .stat-card.error {
+            border-left-color: #ef4444;
+        }
+
+        .stat-card.error .stat-value {
+            color: #ef4444;
+        }
+
+        .stat-card.warning {
+            border-left-color: #f59e0b;
+        }
+
+        .stat-card.warning .stat-value {
+            color: #f59e0b;
+        }
+
+        .agents-container {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .agent-card {
+            background: #0f172a;
+            padding: 18px;
+            border-radius: 10px;
+            border-left: 4px solid #64748b;
+            transition: all 0.3s ease;
+        }
+
+        .agent-card.running {
+            border-left-color: #667eea;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .agent-card.completed {
+            border-left-color: #10b981;
+        }
+
+        .agent-card.failed {
+            border-left-color: #ef4444;
+        }
+
+        .agent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .agent-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #e2e8f0;
+        }
+
+        .agent-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .agent-status.idle {
+            background: #334155;
+            color: #94a3b8;
+        }
+
+        .agent-status.running {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+        }
+
+        .agent-status.completed {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .agent-status.failed {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .agent-progress {
+            margin-top: 10px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #334155;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .agent-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .log-container {
+            height: calc(100vh - 220px);
+            overflow-y: auto;
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            border: 1px solid #334155;
+        }
+
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        .log-line {
+            padding: 6px 10px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            line-height: 1.5;
+            border-left: 3px solid transparent;
+        }
+
+        .log-line.info {
+            color: #cbd5e1;
+        }
+
+        .log-line.start {
+            background: rgba(16, 185, 129, 0.1);
+            border-left-color: #10b981;
+            color: #10b981;
+        }
+
+        .log-line.success {
+            background: rgba(34, 197, 94, 0.1);
+            border-left-color: #22c55e;
+            color: #22c55e;
+        }
+
+        .log-line.error {
+            background: rgba(239, 68, 68, 0.1);
+            border-left-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .log-line.warning {
+            background: rgba(251, 191, 36, 0.1);
+            border-left-color: #fbbf24;
+            color: #fbbf24;
+        }
+
+        .log-line.progress {
+            background: rgba(102, 126, 234, 0.1);
+            border-left-color: #667eea;
+            color: #a5b4fc;
+        }
+
+        .log-time {
+            color: #64748b;
+            margin-right: 10px;
+            font-weight: 600;
+        }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+            transform: translateY(-1px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+        }
+
+        .empty-state .emoji {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                order: 2;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <span>🤖</span>
+                <span>MCP Agent Dashboard</span>
+            </h1>
+            <div class="status">
+                <div class="status-dot" id="statusDot"></div>
+                <span class="status-text" id="statusText">연결 중...</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="panel">
+                    <h2>📊 Statistics</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">총 로그</div>
+                            <div class="stat-value" id="totalLogs">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">활성 작업</div>
+                            <div class="stat-value" id="activeAgents">0</div>
+                        </div>
+                        <div class="stat-card error">
+                            <div class="stat-label">에러</div>
+                            <div class="stat-value" id="errorCount">0</div>
+                        </div>
+                        <div class="stat-card warning">
+                            <div class="stat-label">경고</div>
+                            <div class="stat-value" id="warningCount">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2>⚡ Active Agents</h2>
+                    <div class="agents-container" id="agentsContainer">
+                        <div class="empty-state">
+                            <div class="emoji">💤</div>
+                            <div>에이전트 실행 대기 중...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>📝 Live Logs</h2>
+                <div class="log-container" id="logContainer"></div>
+                <div class="controls">
+                    <button class="btn btn-secondary" onclick="clearLogs()">
+                        🗑️ Clear
+                    </button>
+                    <button class="btn btn-secondary" onclick="toggleAutoScroll()">
+                        <span id="autoScrollText">📜 Auto-scroll: ON</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="clearAgents()">
+                        🔄 Reset Agents
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let autoScroll = true;
+        let stats = {
+            total: 0,
+            errors: 0,
+            warnings: 0
+        };
+        let agents = {}; // agent_name: { status, progress, startTime, lastUpdate }
+
+        function connect() {
+            ws = new WebSocket('ws://localhost:8766/ws');
+
+            ws.onopen = () => {
+                document.getElementById('statusDot').classList.remove('disconnected');
+                document.getElementById('statusText').textContent = '연결됨';
+                console.log('✅ Connected to dashboard server');
+            };
+
+            ws.onclose = () => {
+                document.getElementById('statusDot').classList.add('disconnected');
+                document.getElementById('statusText').textContent = '연결 끊김';
+                console.log('❌ Disconnected from dashboard server');
+                setTimeout(connect, 3000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                addLogLine(data);
+                updateStats(data);
+                updateAgents(data);
+            };
+        }
+
+        function detectAgentName(message) {
+            // 에이전트 이름 추출
+            const patterns = [
+                /빌드 검증/,
+                /코드 리뷰/,
+                /보안 검토|보안 체크/,
+                /릴리즈 매니저/,
+                /테스트 작성/,
+                /아키텍처 설계/,
+                /코드 단순화/,
+                /UX 평가/
+            ];
+
+            const names = [
+                'build_validator',
+                'code_reviewer',
+                'security_reviewer',
+                'release_manager',
+                'test_writer',
+                'code_architect',
+                'code_simplifier',
+                'ux_reviewer'
+            ];
+
+            for (let i = 0; i < patterns.length; i++) {
+                if (patterns[i].test(message)) {
+                    return names[i];
+                }
+            }
+            return null;
+        }
+
+        function updateAgents(data) {
+            const agentName = detectAgentName(data.message);
+            if (!agentName) return;
+
+            if (!agents[agentName]) {
+                agents[agentName] = {
+                    status: 'idle',
+                    progress: { current: 0, total: 0 },
+                    startTime: null,
+                    lastUpdate: Date.now()
+                };
+            }
+
+            const agent = agents[agentName];
+            agent.lastUpdate = Date.now();
+
+            // 상태 업데이트
+            if (data.level === 'start' || /시작/.test(data.message)) {
+                agent.status = 'running';
+                agent.startTime = Date.now();
+            } else if (data.level === 'success' || /완료/.test(data.message)) {
+                agent.status = 'completed';
+            } else if (data.level === 'error' || /실패/.test(data.message)) {
+                agent.status = 'failed';
+            } else if (data.progress) {
+                agent.status = 'running';
+                agent.progress = data.progress;
+            }
+
+            renderAgents();
+        }
+
+        function renderAgents() {
+            const container = document.getElementById('agentsContainer');
+            const agentNames = Object.keys(agents);
+
+            if (agentNames.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="emoji">💤</div>
+                        <div>에이전트 실행 대기 중...</div>
+                    </div>
+                `;
+                document.getElementById('activeAgents').textContent = '0';
+                return;
+            }
+
+            const activeCount = agentNames.filter(name => agents[name].status === 'running').length;
+            document.getElementById('activeAgents').textContent = activeCount;
+
+            container.innerHTML = agentNames.map(name => {
+                const agent = agents[name];
+                const displayName = name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const elapsed = agent.startTime ? formatDuration(Date.now() - agent.startTime) : '-';
+                const progress = agent.progress.total > 0
+                    ? Math.round((agent.progress.current / agent.progress.total) * 100)
+                    : 0;
+
+                return `
+                    <div class="agent-card ${agent.status}">
+                        <div class="agent-header">
+                            <div class="agent-name">${displayName}</div>
+                            <div class="agent-status ${agent.status}">${getStatusText(agent.status)}</div>
+                        </div>
+                        ${agent.progress.total > 0 ? `
+                        <div class="agent-progress">
+                            <div class="progress-info">
+                                <span>${agent.progress.current} / ${agent.progress.total} 단계</span>
+                                <span>${progress}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progress}%"></div>
+                            </div>
+                        </div>
+                        ` : ''}
+                        <div class="agent-meta">
+                            <span>⏱️ ${elapsed}</span>
+                            <span>🕐 ${data.timestamp || formatTime(agent.lastUpdate)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                idle: 'Idle',
+                running: 'Running',
+                completed: 'Completed',
+                failed: 'Failed'
+            };
+            return texts[status] || 'Unknown';
+        }
+
+        function formatDuration(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+
+            if (hours > 0) return `${hours}h ${minutes % 60}m`;
+            if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+            return `${seconds}s`;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        function addLogLine(data) {
+            const container = document.getElementById('logContainer');
+            const line = document.createElement('div');
+            line.className = `log-line ${data.level}`;
+            line.innerHTML = `<span class="log-time">[${data.timestamp}]</span>${escapeHtml(data.message)}`;
+            container.appendChild(line);
+
+            if (autoScroll) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        function updateStats(data) {
+            stats.total++;
+            if (data.level === 'error') stats.errors++;
+            if (data.level === 'warning') stats.warnings++;
+
+            document.getElementById('totalLogs').textContent = stats.total;
+            document.getElementById('errorCount').textContent = stats.errors;
+            document.getElementById('warningCount').textContent = stats.warnings;
+        }
+
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '';
+            stats = { total: 0, errors: 0, warnings: 0 };
+            document.getElementById('totalLogs').textContent = '0';
+            document.getElementById('errorCount').textContent = '0';
+            document.getElementById('warningCount').textContent = '0';
+        }
+
+        function clearAgents() {
+            agents = {};
+            renderAgents();
+        }
+
+        function toggleAutoScroll() {
+            autoScroll = !autoScroll;
+            document.getElementById('autoScrollText').textContent =
+                `📜 Auto-scroll: ${autoScroll ? 'ON' : 'OFF'}`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 초기 연결
+        connect();
+    </script>
+</body>
+</html>

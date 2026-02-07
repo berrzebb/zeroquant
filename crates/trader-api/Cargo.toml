@@ -1,0 +1,110 @@
+[package]
+name = "trader-api"
+description = "REST API and WebSocket server"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "trader-api"
+path = "src/main.rs"
+
+[dependencies]
+trader-core = { path = "../trader-core", features = ["sqlx-support", "utoipa-support", "ts-rs-support"] }
+trader-exchange = { path = "../trader-exchange" }
+trader-strategy = { path = "../trader-strategy" }
+trader-risk = { path = "../trader-risk" }
+trader-execution = { path = "../trader-execution" }
+trader-data = { path = "../trader-data" }
+trader-analytics = { path = "../trader-analytics", features = ["backtest", "ml", "utoipa-support"] }
+
+# Optional dependencies (Feature Flags)
+trader-notification = { path = "../trader-notification", optional = true }
+
+# Async runtime
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+futures = { workspace = true }
+
+# Web framework
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Database
+sqlx = { workspace = true }
+redis = { workspace = true }
+
+# Numeric types
+rust_decimal = { workspace = true }
+rust_decimal_macros = { workspace = true }
+
+# Date/Time
+chrono = { workspace = true }
+
+# UUID
+uuid = { workspace = true }
+
+# Authentication
+jsonwebtoken = { workspace = true }
+argon2 = { workspace = true }
+
+# Configuration
+config = { workspace = true }
+dotenvy = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# HTTP client (for data download)
+reqwest = { workspace = true }
+
+# Async traits
+async-trait = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Metrics
+metrics = "0.24"
+metrics-exporter-prometheus = "0.16"
+
+# Random (for simulator)
+rand = "0.8"
+
+# Lazy initialization
+lazy_static = "1.4"
+once_cell = "1.19"
+
+# API Documentation
+utoipa = { workspace = true }
+utoipa-swagger-ui = { workspace = true }
+
+# Validation
+validator = { workspace = true }
+
+# TypeScript 타입 생성
+ts-rs = { workspace = true }
+
+[features]
+# 기본 feature set - 핵심 기능 포함
+default = ["notifications"]
+
+# 개별 features
+notifications = ["trader-notification"]  # 텔레그램/이메일 알림 지원
+ml = ["trader-analytics/ml"]             # ONNX Runtime 기반 ML 추론
+test-utils = []                          # 테스트 유틸리티
+
+# Feature bundles
+full = ["notifications", "ml"]           # 모든 기능 활성화
+minimal = []                             # 핵심 기능만 (알림 없음)
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }

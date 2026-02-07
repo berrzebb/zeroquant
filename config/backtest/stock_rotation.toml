@@ -1,0 +1,21 @@
+# 종목 로테이션 전략 백테스트 설정
+# 미국 개별 종목 모멘텀 순위 기반 투자 전략
+name = "Stock Rotation Backtest"
+strategy_type = "stock_rotation"
+
+[parameters]
+# 종목 선택
+top_n = 5                       # 상위 N개 종목 선택
+
+# 투자 금액
+total_amount = "10000000"       # 총 투자 금액 (1천만원)
+
+# 리밸런싱 설정
+rebalance_threshold = 5         # 리밸런싱 허용 오차 (%)
+
+# 필터
+min_momentum = 0                # 최소 모멘텀 (음수 모멘텀 제외)
+cash_reserve_rate = 0           # 현금 보유 비율
+
+# GlobalScore 필터 비활성화 (백테스트)
+min_global_score = 0

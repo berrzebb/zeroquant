@@ -1,0 +1,306 @@
+{
+  "description": "기타 전략 회귀 테스트 - 각 전략별 핵심 컨셉에 맞는 파라미터만 사용",
+  "strategies": [
+    {
+      "strategy_id": "candle_pattern",
+      "name": "캔들 패턴",
+      "symbols": ["005930"],
+      "market": "KR",
+      "config": {
+        "ticker": "005930",
+        "trade_amount": "10000000",
+        "min_pattern_strength": "0.2",
+        "exit_config": {
+          "stop_loss_pct": "10.0",
+          "take_profit_pct": "5.0"
+        }
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 3
+      }
+    },
+    {
+      "strategy_id": "rsi_multi_tf",
+      "name": "다중 타임프레임 RSI",
+      "symbols": ["005930"],
+      "market": "KR",
+      "config": {
+        "ticker": "005930",
+        "amount": "10000000",
+        "rsi_period": 7,
+        "daily_trend_threshold": "50",
+        "h1_oversold_threshold": "35",
+        "m5_oversold_threshold": "35",
+        "overbought_threshold": "65",
+        "cooldown_candles": 3,
+        "min_global_score": "0",
+        "use_route_filter": false,
+        "exit_config": {
+          "stop_loss_pct": "10.0",
+          "take_profit_pct": "5.0"
+        }
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 0
+      }
+    },
+    {
+      "strategy_id": "infinity_bot",
+      "name": "인피니티봇",
+      "symbols": ["005930"],
+      "market": "KR",
+      "config": {
+        "variant": "infinity_bot",
+        "ticker": "005930",
+        "total_amount": "10000000",
+        "max_rounds": 20,
+        "round_pct": "5.0",
+        "dip_trigger_pct": "0.2",
+        "take_profit_pct": "0.5",
+        "ma_period": 3
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 3
+      }
+    },
+    {
+      "strategy_id": "pension_bot",
+      "name": "연금 자동화",
+      "symbols": ["448290", "379780", "294400", "200250", "283580", "195970", "161510", "445910", "305080", "148070", "385560", "304660", "114470", "329750", "319640", "276000", "261220", "139310", "137610", "130730"],
+      "market": "KR",
+      "config": {
+        "total_amount": "10000000",
+        "avg_momentum_period": 3,
+        "top_bonus_count": 3,
+        "cash_to_short_term_rate": "0.3",
+        "cash_to_bonus_rate": "0.2",
+        "rebalance_threshold": "0.01",
+        "min_trade_amount": "10000"
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 0
+      }
+    },
+    {
+      "strategy_id": "range_trading",
+      "name": "Range Trading",
+      "symbols": ["005930"],
+      "market": "KR",
+      "config": {
+        "ticker": "005930",
+        "div_num": 20,
+        "target_period": 5,
+        "use_ma_filter": false,
+        "buy_ma_period": 3,
+        "sell_ma_period": 3
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 3
+      }
+    },
+    {
+      "strategy_id": "small_cap_quant",
+      "name": "소형주 퀀트",
+      "symbols": ["229200", "005930", "000660", "035720"],
+      "market": "KR",
+      "config": {
+        "target_count": 3,
+        "ma_period": 5,
+        "total_amount": "10000000",
+        "min_market_cap": 50,
+        "min_roe": 5.0,
+        "min_pbr": 0.2,
+        "min_per": 2.0,
+        "index_ticker": "229200"
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 1
+      }
+    },
+    {
+      "strategy_id": "market_bothside",
+      "name": "Market Both Side",
+      "symbols": ["122630", "252670"],
+      "market": "KR",
+      "config": {
+        "leverage_ticker": "122630",
+        "inverse_ticker": "252670",
+        "ma3_period": 3,
+        "ma6_period": 6,
+        "ma19_period": 19,
+        "ma60_period": 60,
+        "min_global_score": "0",
+        "exit_config": {
+          "stop_loss_pct": "10.0",
+          "take_profit_pct": "5.0"
+        }
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 1
+      }
+    },
+    {
+      "strategy_id": "sector_vb",
+      "name": "섹터 변동성 돌파",
+      "symbols": ["091160", "091230", "305720", "305540", "091170", "091220", "102970", "117460", "091180"],
+      "market": "KR",
+      "config": {
+        "tickers": ["091160", "091230", "305720", "305540", "091170", "091220", "102970", "117460", "091180"],
+        "k_factor": 0.15,
+        "top_n": 2,
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 5.0,
+        "use_route_filter": false,
+        "use_regime_filter": false
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 1
+      }
+    },
+    {
+      "strategy_id": "momentum_surge",
+      "name": "Momentum Surge",
+      "symbols": ["122630", "233740", "252670", "251340"],
+      "market": "KR",
+      "config": {
+        "kospi_leverage": "122630",
+        "kosdaq_leverage": "233740",
+        "kospi_inverse": "252670",
+        "kosdaq_inverse": "251340",
+        "max_positions": 2,
+        "position_ratio": 0.5,
+        "obv_period": 10,
+        "ma_short": 5,
+        "ma_medium": 20,
+        "ma_long": 60,
+        "rsi_period": 14,
+        "stop_loss_pct": 3.0,
+        "take_profit_pct": 10.0
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 1
+      }
+    },
+    {
+      "strategy_id": "us_3x_leverage",
+      "name": "미국 3배 레버리지",
+      "symbols": ["TQQQ", "SOXL", "SQQQ", "SOXS"],
+      "market": "US",
+      "config": {
+        "rebalance_threshold": 5.0,
+        "rebalance_period_days": 7,
+        "ma_period": 20,
+        "max_inverse_ratio": 60.0,
+        "max_drawdown_pct": 30.0,
+        "min_global_score": 0,
+        "use_route_filter": false,
+        "use_regime_allocation": false,
+        "use_macro_risk": false,
+        "cash_out_on_crisis": false
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 0
+      }
+    },
+    {
+      "strategy_id": "compound_momentum",
+      "name": "Compound Momentum",
+      "symbols": ["TQQQ", "SCHD", "PFIX", "TMF"],
+      "market": "US",
+      "config": {
+        "market": "US",
+        "aggressive_asset": "TQQQ",
+        "aggressive_weight": "0.5",
+        "dividend_asset": "SCHD",
+        "dividend_weight": "0.2",
+        "rate_hedge_asset": "PFIX",
+        "rate_hedge_weight": "0.15",
+        "bond_leverage_asset": "TMF",
+        "bond_leverage_weight": "0.15",
+        "ma_period": 20,
+        "rebalance_interval_months": 1,
+        "invest_rate": "1.0",
+        "rebalance_threshold": "0.01"
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 0
+      }
+    },
+    {
+      "strategy_id": "momentum_power",
+      "name": "Momentum Power",
+      "symbols": ["TIP", "UPRO", "TLT", "BIL"],
+      "market": "US",
+      "config": {
+        "market": "US",
+        "tip_ma_period": 200,
+        "momentum_period": 5,
+        "rebalance_days": 7,
+        "use_route_filter": false
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 2
+      }
+    },
+    {
+      "strategy_id": "small_cap_quant_v2",
+      "name": "소형주 퀀트 V2 (스크리닝 기반)",
+      "symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AMD", "INTC", "AVGO"],
+      "market": "US",
+      "config": {
+        "min_score": "0",
+        "top_n": 5,
+        "total_amount": "10000000",
+        "use_route_filter": false
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 1
+      }
+    },
+    {
+      "strategy_id": "pension_bot_v2",
+      "name": "연금 자동화 V2 (스크리닝 기반)",
+      "symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AMD", "INTC", "AVGO"],
+      "market": "US",
+      "config": {
+        "min_score": "0",
+        "top_n": 5,
+        "total_amount": "10000000",
+        "use_route_filter": false
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 1
+      }
+    },
+    {
+      "strategy_id": "dynamic_universe",
+      "name": "동적 유니버스 (스크리닝 기반)",
+      "symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AMD", "INTC", "AVGO"],
+      "market": "US",
+      "config": {
+        "min_score": "0",
+        "top_n": 5,
+        "total_amount": "10000000",
+        "use_route_filter": false
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+# RSI 평균회귀 전략 백테스트 설정
+name = "RSI Mean Reversion Backtest"
+strategy_type = "rsi"
+
+[parameters]
+ticker = "005930"                  # 삼성전자
+rsi_period = 14                    # RSI 기간
+oversold = "30"                    # 과매도 임계값 (Decimal)
+overbought = "70"                  # 과매수 임계값 (Decimal)
+amount = "1000000"                 # 거래 금액 (Decimal)

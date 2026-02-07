@@ -1,0 +1,72 @@
+{
+  "description": "일간 트레이딩 전략 회귀 테스트 - 기술적 지표(변동성/MA/거래량) 기반 진입, GlobalScore 불필요",
+  "strategies": [
+    {
+      "strategy_id": "volatility_breakout",
+      "name": "변동성 돌파",
+      "symbols": ["005930"],
+      "market": "KR",
+      "config": {
+        "ticker": "005930",
+        "trade_amount": "10000000",
+        "k_factor": "0.1",
+        "use_atr": false,
+        "lookback_period": 1,
+        "trade_both_directions": true,
+        "exit_at_period_close": false,
+        "exit_config": {
+          "stop_loss_pct": "10.0",
+          "take_profit_pct": "5.0"
+        }
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 3
+      }
+    },
+    {
+      "strategy_id": "sma_crossover",
+      "name": "SMA 크로스오버",
+      "symbols": ["005930"],
+      "market": "KR",
+      "config": {
+        "ticker": "005930",
+        "trade_amount": "10000000",
+        "short_period": 3,
+        "long_period": 7,
+        "exit_config": {
+          "stop_loss_pct": "10.0",
+          "take_profit_pct": "5.0",
+          "exit_on_opposite_signal": true
+        }
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 5
+      }
+    },
+    {
+      "strategy_id": "volume_surge",
+      "name": "거래량 급증",
+      "symbols": ["005930"],
+      "market": "KR",
+      "config": {
+        "ticker": "005930",
+        "trade_amount": "10000000",
+        "volume_multiplier": "1.1",
+        "volume_period": 5,
+        "consecutive_up_candles": 1,
+        "rsi_overbought": "90",
+        "rsi_period": 5,
+        "exit_config": {
+          "stop_loss_pct": "10.0",
+          "take_profit_pct": "5.0"
+        }
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 3
+      }
+    }
+  ]
+}

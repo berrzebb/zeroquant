@@ -1,0 +1,90 @@
+{
+  "description": "자산배분 전략 회귀 테스트 - 자체 모멘텀/카나리아 로직이 핵심 (GlobalScore 불필요)",
+  "strategies": [
+    {
+      "strategy_id": "haa",
+      "name": "HAA 자산배분",
+      "symbols": ["SPY", "VEA", "VWO", "BND", "AGG", "SHY", "IEF", "LQD", "BIL"],
+      "market": "US",
+      "config": {
+        "cash_ticker": "BIL",
+        "offensive_top_n": 2,
+        "defensive_top_n": 2,
+        "invest_rate": "1.0",
+        "rebalance_threshold": "0.01",
+        "canary_threshold": "0.0"
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 1
+      }
+    },
+    {
+      "strategy_id": "xaa",
+      "name": "XAA 자산배분",
+      "symbols": ["SPY", "VEA", "VWO", "BND", "LQD", "HYG", "EMB", "SHY", "IEF", "TLT", "BIL"],
+      "market": "US",
+      "config": {
+        "cash_ticker": "BIL",
+        "offensive_top_n": 2,
+        "defensive_top_n": 2,
+        "invest_rate": "1.0",
+        "rebalance_threshold": "0.01",
+        "canary_threshold": "0.0",
+        "bond_momentum_months": 3
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 1
+      }
+    },
+    {
+      "strategy_id": "baa",
+      "name": "BAA 자산배분",
+      "symbols": ["SPY", "VEA", "VWO", "AGG", "QQQ", "SHY", "IEF", "LQD", "BIL"],
+      "market": "US",
+      "config": {
+        "cash_ticker": "BIL",
+        "offensive_top_n": 1,
+        "defensive_top_n": 2,
+        "invest_rate": "1.0",
+        "rebalance_threshold": "0.01",
+        "canary_threshold": "0.0"
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 1
+      }
+    },
+    {
+      "strategy_id": "all_weather",
+      "name": "All Weather",
+      "symbols": ["SPY", "TLT", "IEF", "GLD", "DBC", "BIL"],
+      "market": "US",
+      "config": {
+        "cash_ticker": "BIL",
+        "invest_rate": "1.0",
+        "rebalance_threshold": "0.01"
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 2
+      }
+    },
+    {
+      "strategy_id": "dual_momentum",
+      "name": "Dual Momentum",
+      "symbols": ["SPY", "VEU", "AGG", "BIL"],
+      "market": "US",
+      "config": {
+        "cash_ticker": "BIL",
+        "invest_rate": "1.0",
+        "rebalance_threshold": "0.01"
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 1
+      }
+    }
+  ]
+}

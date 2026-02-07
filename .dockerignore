@@ -1,0 +1,48 @@
+# Build artifacts
+target/
+*.rs.bk
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Tests
+tests/
+**/test_*
+**/*_test.rs
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.docker/
+
+# Monitoring (built separately)
+monitoring/
+
+# Misc
+.git/
+.gitignore
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+
+# Task manager
+.shrimp-task-manager/

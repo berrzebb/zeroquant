@@ -1,0 +1,44 @@
+[package]
+name = "trader-collector"
+version = "0.1.0"
+edition = "2021"
+authors = ["ZeroQuant Team"]
+description = "Standalone data collector for ZeroQuant trading system"
+
+[[bin]]
+name = "trader-collector"
+path = "src/main.rs"
+
+[dependencies]
+# Internal crates
+trader-core = { path = "../trader-core", features = ["sqlx-support"] }
+trader-data = { path = "../trader-data" }
+trader-analytics = { path = "../trader-analytics" }
+
+# Database
+sqlx = { workspace = true }
+rust_decimal = { workspace = true }
+rust_decimal_macros = "1"
+uuid = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+futures = "0.3"
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Configuration
+dotenvy = "0.15"
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Date/Time
+chrono = { workspace = true }
+chrono-tz = "0.10"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+[dev-dependencies]

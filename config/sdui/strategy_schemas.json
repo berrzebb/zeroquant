@@ -1,0 +1,1732 @@
+{
+  "version": "1.0.0",
+  "common": {
+    "risk_groups": [
+      {
+        "id": "stop_loss",
+        "label": "손절/익절 설정",
+        "description": "손실 제한 및 이익 실현 설정",
+        "order": 10,
+        "collapsed": false
+      },
+      {
+        "id": "trailing_stop",
+        "label": "트레일링 스톱",
+        "description": "최고점 대비 하락 시 자동 매도",
+        "order": 11,
+        "collapsed": true
+      },
+      {
+        "id": "position_sizing",
+        "label": "포지션 사이징",
+        "description": "투자 금액 및 포지션 크기 관리",
+        "order": 12,
+        "collapsed": false
+      },
+      {
+        "id": "daily_limit",
+        "label": "일일 한도",
+        "description": "일일 손실 한도 및 거래 횟수 제한",
+        "order": 13,
+        "collapsed": true
+      }
+    ],
+    "risk_fields": [
+      {
+        "key": "use_stop_loss",
+        "label": "손절 사용",
+        "field_type": "Boolean",
+        "default_value": true,
+        "help_text": "손절 기능을 활성화합니다",
+        "group": "stop_loss",
+        "order": 100
+      },
+      {
+        "key": "stop_loss_pct",
+        "label": "손절 비율",
+        "field_type": "Number",
+        "default_value": 3.0,
+        "help_text": "손실이 이 비율에 도달하면 자동 청산",
+        "validation": { "min": 0.5, "max": 30.0, "step": 0.5 },
+        "group": "stop_loss",
+        "order": 101,
+        "unit": "%",
+        "show_when": { "field": "use_stop_loss", "operator": "equals", "value": true }
+      },
+      {
+        "key": "use_take_profit",
+        "label": "익절 사용",
+        "field_type": "Boolean",
+        "default_value": true,
+        "help_text": "익절 기능을 활성화합니다",
+        "group": "stop_loss",
+        "order": 102
+      },
+      {
+        "key": "take_profit_pct",
+        "label": "익절 비율",
+        "field_type": "Number",
+        "default_value": 5.0,
+        "help_text": "이익이 이 비율에 도달하면 자동 청산",
+        "validation": { "min": 1.0, "max": 100.0, "step": 0.5 },
+        "group": "stop_loss",
+        "order": 103,
+        "unit": "%",
+        "show_when": { "field": "use_take_profit", "operator": "equals", "value": true }
+      },
+      {
+        "key": "use_trailing_stop",
+        "label": "트레일링 스톱 사용",
+        "field_type": "Boolean",
+        "default_value": false,
+        "help_text": "최고점 대비 하락 시 자동 매도",
+        "group": "trailing_stop",
+        "order": 110
+      },
+      {
+        "key": "trailing_stop_type",
+        "label": "트레일링 유형",
+        "field_type": "Select",
+        "default_value": "fixed_percent",
+        "help_text": "트레일링 스톱 계산 방식",
+        "options": [
+          { "label": "고정 비율", "value": "fixed_percent", "description": "고정된 비율로 추적" },
+          { "label": "ATR 기반", "value": "atr_based", "description": "변동성 기반 동적 추적" },
+          { "label": "단계별", "value": "step_based", "description": "이익 구간별 스톱 조정" }
+        ],
+        "group": "trailing_stop",
+        "order": 111,
+        "show_when": { "field": "use_trailing_stop", "operator": "equals", "value": true }
+      },
+      {
+        "key": "trailing_stop_pct",
+        "label": "트레일링 비율",
+        "field_type": "Number",
+        "default_value": 2.0,
+        "help_text": "최고점 대비 이 비율만큼 하락 시 매도",
+        "validation": { "min": 0.5, "max": 20.0, "step": 0.5 },
+        "group": "trailing_stop",
+        "order": 112,
+        "unit": "%",
+        "show_when": { "field": "use_trailing_stop", "operator": "equals", "value": true }
+      },
+      {
+        "key": "trailing_atr_multiplier",
+        "label": "ATR 배수",
+        "field_type": "Number",
+        "default_value": 2.0,
+        "help_text": "ATR 기반 모드에서 사용할 ATR 배수",
+        "validation": { "min": 0.5, "max": 5.0, "step": 0.5 },
+        "group": "trailing_stop",
+        "order": 113,
+        "show_when": { "field": "trailing_stop_type", "operator": "equals", "value": "atr_based" }
+      },
+      {
+        "key": "position_sizing_method",
+        "label": "포지션 사이징 방식",
+        "field_type": "Select",
+        "default_value": "fixed_amount",
+        "help_text": "투자 금액 결정 방식",
+        "options": [
+          { "label": "고정 금액", "value": "fixed_amount", "description": "매번 동일한 금액 투자" },
+          { "label": "자산 비율", "value": "percent_equity", "description": "총 자산의 일정 비율 투자" },
+          { "label": "리스크 기반", "value": "risk_based", "description": "손절가 기준 리스크 금액으로 계산" }
+        ],
+        "group": "position_sizing",
+        "order": 120,
+        "validation": { "required": true }
+      },
+      {
+        "key": "amount",
+        "label": "주문 금액",
+        "field_type": "Number",
+        "default_value": 1000000,
+        "placeholder": "1000000",
+        "help_text": "고정 금액 모드에서 한 번에 투자할 금액",
+        "validation": { "required": true, "min": 10000, "step": 10000 },
+        "group": "position_sizing",
+        "order": 121,
+        "unit": "원",
+        "show_when": { "field": "position_sizing_method", "operator": "equals", "value": "fixed_amount" }
+      },
+      {
+        "key": "max_position_pct",
+        "label": "최대 포지션 비율",
+        "field_type": "Number",
+        "default_value": 10.0,
+        "help_text": "단일 종목에 투자할 최대 자산 비율",
+        "validation": { "required": true, "min": 5.0, "max": 100.0, "step": 5.0 },
+        "group": "position_sizing",
+        "order": 122,
+        "unit": "%"
+      },
+      {
+        "key": "risk_per_trade_pct",
+        "label": "거래당 리스크",
+        "field_type": "Number",
+        "default_value": 1.0,
+        "help_text": "리스크 기반 모드에서 거래당 감수할 리스크 비율",
+        "validation": { "min": 0.5, "max": 5.0, "step": 0.5 },
+        "group": "position_sizing",
+        "order": 123,
+        "unit": "%",
+        "show_when": { "field": "position_sizing_method", "operator": "equals", "value": "risk_based" }
+      },
+      {
+        "key": "use_daily_loss_limit",
+        "label": "일일 손실 한도 사용",
+        "field_type": "Boolean",
+        "default_value": true,
+        "help_text": "일일 손실 한도 초과 시 거래 중지",
+        "group": "daily_limit",
+        "order": 130
+      },
+      {
+        "key": "daily_loss_limit_pct",
+        "label": "일일 손실 한도",
+        "field_type": "Number",
+        "default_value": 3.0,
+        "help_text": "이 비율 초과 손실 시 당일 거래 중지",
+        "validation": { "min": 1.0, "max": 20.0, "step": 0.5 },
+        "group": "daily_limit",
+        "order": 131,
+        "unit": "%",
+        "show_when": { "field": "use_daily_loss_limit", "operator": "equals", "value": true }
+      },
+      {
+        "key": "max_trades_per_day",
+        "label": "일일 최대 거래 횟수",
+        "field_type": "Number",
+        "default_value": 10,
+        "help_text": "하루에 실행할 수 있는 최대 거래 횟수",
+        "validation": { "min": 1, "max": 100, "step": 1 },
+        "group": "daily_limit",
+        "order": 132,
+        "unit": "회"
+      }
+    ]
+  },
+  "strategies": {
+    "rsi_mean_reversion": {
+      "name": "RSI 평균회귀",
+      "description": "RSI 지표 기반 평균회귀 전략",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 3.0,
+        "take_profit_pct": 5.0,
+        "use_trailing_stop": true,
+        "trailing_stop_pct": 2.0,
+        "max_position_pct": 10.0,
+        "daily_loss_limit_pct": 3.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "indicator", "label": "지표 설정", "description": "RSI 지표 관련 파라미터", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "symbol",
+          "label": "종목",
+          "field_type": "SymbolPicker",
+          "default_value": ["005930"],
+          "placeholder": "종목을 선택하세요",
+          "help_text": "전략을 적용할 종목을 선택합니다",
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "period",
+          "label": "RSI 기간",
+          "field_type": "Number",
+          "default_value": 14,
+          "help_text": "RSI 계산에 사용할 기간 (일반적으로 14)",
+          "validation": { "required": true, "min": 2, "max": 50, "step": 1 },
+          "group": "indicator",
+          "order": 2,
+          "unit": "일"
+        },
+        {
+          "key": "oversold_threshold",
+          "label": "과매도 기준",
+          "field_type": "Range",
+          "default_value": 30,
+          "help_text": "RSI가 이 값 아래로 떨어지면 매수 신호",
+          "validation": { "required": true, "min": 10, "max": 50, "step": 5 },
+          "group": "indicator",
+          "order": 3
+        },
+        {
+          "key": "overbought_threshold",
+          "label": "과매수 기준",
+          "field_type": "Range",
+          "default_value": 70,
+          "help_text": "RSI가 이 값 위로 올라가면 매도 신호",
+          "validation": { "required": true, "min": 50, "max": 90, "step": 5 },
+          "group": "indicator",
+          "order": 4
+        }
+      ]
+    },
+    "grid_trading": {
+      "name": "그리드 트레이딩",
+      "description": "가격 그리드 기반 자동매매 전략",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 5.0,
+        "take_profit_pct": 3.0,
+        "use_trailing_stop": false,
+        "trailing_stop_pct": 2.0,
+        "max_position_pct": 20.0,
+        "daily_loss_limit_pct": 5.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "grid", "label": "그리드 설정", "description": "그리드 간격 및 레벨 설정", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "symbol",
+          "label": "종목",
+          "field_type": "SymbolPicker",
+          "default_value": ["005930"],
+          "placeholder": "종목을 선택하세요",
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "grid_spacing_pct",
+          "label": "그리드 간격",
+          "field_type": "Number",
+          "default_value": 1.0,
+          "help_text": "그리드 레벨 간 가격 간격 (%)",
+          "validation": { "required": true, "min": 0.5, "max": 10.0, "step": 0.5 },
+          "group": "grid",
+          "order": 2,
+          "unit": "%"
+        },
+        {
+          "key": "grid_levels",
+          "label": "그리드 레벨 수",
+          "field_type": "Number",
+          "default_value": 10,
+          "help_text": "위/아래 각각의 그리드 레벨 수",
+          "validation": { "required": true, "min": 3, "max": 50, "step": 1 },
+          "group": "grid",
+          "order": 3,
+          "unit": "개"
+        },
+        {
+          "key": "amount_per_level",
+          "label": "레벨당 투자 금액",
+          "field_type": "Number",
+          "default_value": 100000,
+          "help_text": "각 그리드 레벨에서 투자할 금액",
+          "validation": { "required": true, "min": 10000, "step": 10000 },
+          "group": "grid",
+          "order": 4,
+          "unit": "원"
+        }
+      ]
+    },
+    "bollinger": {
+      "name": "볼린저 밴드",
+      "description": "볼린저 밴드 기반 매매 전략",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 4.0,
+        "take_profit_pct": 8.0,
+        "use_trailing_stop": true,
+        "trailing_stop_pct": 3.0,
+        "max_position_pct": 10.0,
+        "daily_loss_limit_pct": 3.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "indicator", "label": "지표 설정", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "symbol",
+          "label": "종목",
+          "field_type": "SymbolPicker",
+          "default_value": ["005930"],
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "period",
+          "label": "기간",
+          "field_type": "Number",
+          "default_value": 20,
+          "help_text": "볼린저 밴드 계산 기간",
+          "validation": { "required": true, "min": 10, "max": 50, "step": 1 },
+          "group": "indicator",
+          "order": 2,
+          "unit": "일"
+        },
+        {
+          "key": "std_multiplier",
+          "label": "표준편차 배수",
+          "field_type": "Number",
+          "default_value": 2.0,
+          "help_text": "밴드 폭 (일반적으로 2.0)",
+          "validation": { "required": true, "min": 1.0, "max": 3.0, "step": 0.1 },
+          "group": "indicator",
+          "order": 3,
+          "unit": "σ"
+        }
+      ]
+    },
+    "volatility_breakout": {
+      "name": "변동성 돌파",
+      "description": "Larry Williams 변동성 돌파 전략",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 2.0,
+        "take_profit_pct": 4.0,
+        "use_trailing_stop": true,
+        "trailing_stop_pct": 1.5,
+        "max_position_pct": 15.0,
+        "daily_loss_limit_pct": 3.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "breakout", "label": "돌파 설정", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "symbol",
+          "label": "종목",
+          "field_type": "SymbolPicker",
+          "default_value": ["005930"],
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "k_factor",
+          "label": "K 팩터",
+          "field_type": "Number",
+          "default_value": 0.5,
+          "help_text": "전일 변동폭 × K 만큼 상승 시 매수 (Larry Williams)",
+          "validation": { "required": true, "min": 0.1, "max": 1.0, "step": 0.1 },
+          "group": "breakout",
+          "order": 2
+        }
+      ]
+    },
+    "sma_crossover": {
+      "name": "이동평균 크로스오버",
+      "description": "단기/장기 이동평균 교차 전략",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 4.0,
+        "take_profit_pct": 8.0,
+        "use_trailing_stop": true,
+        "trailing_stop_pct": 3.0,
+        "max_position_pct": 10.0,
+        "daily_loss_limit_pct": 3.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "ma", "label": "이동평균 설정", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "symbol",
+          "label": "종목",
+          "field_type": "SymbolPicker",
+          "default_value": ["005930"],
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "short_period",
+          "label": "단기 이평선",
+          "field_type": "Number",
+          "default_value": 10,
+          "help_text": "빠른 이동평균 기간",
+          "validation": { "required": true, "min": 5, "max": 50, "step": 1 },
+          "group": "ma",
+          "order": 2,
+          "unit": "일"
+        },
+        {
+          "key": "long_period",
+          "label": "장기 이평선",
+          "field_type": "Number",
+          "default_value": 20,
+          "help_text": "느린 이동평균 기간",
+          "validation": { "required": true, "min": 10, "max": 200, "step": 5 },
+          "group": "ma",
+          "order": 3,
+          "unit": "일"
+        }
+      ]
+    },
+    "haa": {
+      "name": "HAA 자산배분",
+      "description": "계층적 자산배분 전략 (카나리아/공격/방어)",
+      "layout": { "columns": 1 },
+      "risk_defaults": {
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 20.0,
+        "use_trailing_stop": false,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 25.0,
+        "daily_loss_limit_pct": 5.0
+      },
+      "groups": [
+        { "id": "assets", "label": "자산 구성", "description": "카나리아, 공격적, 방어적 자산 설정", "order": 1, "collapsed": false },
+        { "id": "momentum", "label": "모멘텀 설정", "description": "1M, 3M, 6M, 12M 모멘텀 점수 기반 선택", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "canary_assets",
+          "label": "카나리아 자산",
+          "field_type": "SymbolPicker",
+          "default_value": ["TIP"],
+          "help_text": "위험 감지용 카나리아 자산 (TIP 모멘텀 > 0 확인)",
+          "validation": { "required": true, "min_items": 1 },
+          "group": "assets",
+          "order": 1
+        },
+        {
+          "key": "offensive_assets",
+          "label": "공격적 자산",
+          "field_type": "SymbolPicker",
+          "default_value": ["SPY", "IWM", "VEA", "VWO", "TLT", "IEF", "PDBC", "VNQ"],
+          "help_text": "모멘텀 기반 투자 자산",
+          "validation": { "required": true, "min_items": 1 },
+          "group": "assets",
+          "order": 2
+        },
+        {
+          "key": "defensive_assets",
+          "label": "방어적 자산",
+          "field_type": "SymbolPicker",
+          "default_value": ["IEF", "BIL"],
+          "help_text": "위험 시 투자할 방어 자산",
+          "validation": { "required": true, "min_items": 1 },
+          "group": "assets",
+          "order": 3
+        },
+        {
+          "key": "offensive_top_n",
+          "label": "공격적 자산 선택 수",
+          "field_type": "Number",
+          "default_value": 4,
+          "help_text": "카나리아 모멘텀 양호 시 선택할 공격적 자산 수",
+          "validation": { "required": true, "min": 1, "max": 8, "step": 1 },
+          "group": "momentum",
+          "order": 4,
+          "unit": "개"
+        },
+        {
+          "key": "defensive_top_n",
+          "label": "방어적 자산 선택 수",
+          "field_type": "Number",
+          "default_value": 1,
+          "help_text": "카나리아 모멘텀 음수 시 선택할 방어적 자산 수",
+          "validation": { "required": true, "min": 1, "max": 3, "step": 1 },
+          "group": "momentum",
+          "order": 5,
+          "unit": "개"
+        },
+        {
+          "key": "rebalance_threshold",
+          "label": "리밸런싱 임계값",
+          "field_type": "Number",
+          "default_value": 3.0,
+          "help_text": "목표 비중 대비 이 비율 이상 차이날 때 리밸런싱",
+          "validation": { "required": true, "min": 1.0, "max": 10.0, "step": 0.5 },
+          "group": "momentum",
+          "order": 6,
+          "unit": "%"
+        }
+      ]
+    },
+    "compound_momentum": {
+      "name": "복합 모멘텀",
+      "description": "TQQQ/SCHD/TMF/PFIX 기반 자산배분",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 20.0,
+        "use_trailing_stop": false,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 25.0,
+        "daily_loss_limit_pct": 5.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "momentum", "label": "모멘텀 설정", "description": "MA130 기준 모멘텀 필터", "order": 2, "collapsed": false },
+        { "id": "schedule", "label": "리밸런싱 스케줄", "order": 3, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "symbols",
+          "label": "투자 종목",
+          "field_type": "SymbolPicker",
+          "default_value": ["TQQQ", "SCHD", "TMF", "PFIX"],
+          "placeholder": "종목을 선택하세요",
+          "help_text": "TQQQ/SCHD/TMF/PFIX 기본 구성",
+          "validation": { "required": true, "min_items": 2, "max_items": 10 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "ma_period",
+          "label": "이동평균 기간",
+          "field_type": "Number",
+          "default_value": 130,
+          "help_text": "모멘텀 확인용 이동평균 기간 (MA130)",
+          "validation": { "required": true, "min": 20, "max": 200, "step": 10 },
+          "group": "momentum",
+          "order": 2,
+          "unit": "일"
+        },
+        {
+          "key": "rebalance_day",
+          "label": "리밸런싱 요일",
+          "field_type": "Select",
+          "default_value": "monday",
+          "help_text": "매주 리밸런싱을 실행할 요일",
+          "options": [
+            { "label": "월요일", "value": "monday" },
+            { "label": "수요일", "value": "wednesday" },
+            { "label": "금요일", "value": "friday" }
+          ],
+          "validation": { "required": true },
+          "group": "schedule",
+          "order": 3
+        },
+        {
+          "key": "rebalance_threshold",
+          "label": "리밸런싱 임계값",
+          "field_type": "Number",
+          "default_value": 3.0,
+          "help_text": "목표 비중 대비 이 비율 이상 차이날 때 리밸런싱",
+          "validation": { "required": true, "min": 1.0, "max": 10.0, "step": 0.5 },
+          "group": "schedule",
+          "order": 4,
+          "unit": "%"
+        }
+      ]
+    },
+    "magic_split": {
+      "name": "Magic Split",
+      "description": "10차수 분할 매수/매도 전략",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 20.0,
+        "take_profit_pct": 5.0,
+        "use_trailing_stop": false,
+        "trailing_stop_pct": 3.0,
+        "max_position_pct": 30.0,
+        "daily_loss_limit_pct": 10.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "split", "label": "분할 매수 설정", "description": "차수별 진입 조건 (1차: 10% 익절, 2-10차: 2-5% 익절)", "order": 2, "collapsed": false },
+        { "id": "amount", "label": "투자 금액", "order": 3, "collapsed": false },
+        { "id": "target", "label": "익절 설정", "description": "익절 시 해당 차수만 매도, 모든 차수 청산 후 1차수부터 재시작", "order": 4, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "symbol",
+          "label": "종목",
+          "field_type": "SymbolPicker",
+          "default_value": ["305540"],
+          "placeholder": "종목을 선택하세요",
+          "help_text": "분할 매수를 적용할 종목",
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "max_levels",
+          "label": "최대 분할 차수",
+          "field_type": "Number",
+          "default_value": 10,
+          "help_text": "최대 몇 차수까지 물타기 할 것인지 (10차수 권장)",
+          "validation": { "required": true, "min": 2, "max": 20, "step": 1 },
+          "group": "split",
+          "order": 2,
+          "unit": "차"
+        },
+        {
+          "key": "level_spacing_pct",
+          "label": "차수 간격",
+          "field_type": "Number",
+          "default_value": 3.0,
+          "help_text": "다음 차수 진입을 위한 하락 비율",
+          "validation": { "required": true, "min": 1.0, "max": 10.0, "step": 0.5 },
+          "group": "split",
+          "order": 3,
+          "unit": "%"
+        },
+        {
+          "key": "first_level_amount",
+          "label": "1차수 투자금",
+          "field_type": "Number",
+          "default_value": 200000,
+          "help_text": "1차수 진입 시 투자 금액 (10% 익절 목표)",
+          "validation": { "required": true, "min": 10000, "step": 10000 },
+          "group": "amount",
+          "order": 4,
+          "unit": "원"
+        },
+        {
+          "key": "additional_amount",
+          "label": "추가 차수 투자금",
+          "field_type": "Number",
+          "default_value": 100000,
+          "help_text": "2차수 이후 각 차수 투자 금액",
+          "validation": { "required": true, "min": 10000, "step": 10000 },
+          "group": "amount",
+          "order": 5,
+          "unit": "원"
+        },
+        {
+          "key": "target_profit_pct",
+          "label": "목표 수익률",
+          "field_type": "Number",
+          "default_value": 5.0,
+          "help_text": "이 수익률 달성 시 해당 차수만 매도",
+          "validation": { "required": true, "min": 1.0, "max": 30.0, "step": 0.5 },
+          "group": "target",
+          "order": 6,
+          "unit": "%"
+        },
+        {
+          "key": "allow_same_day_reentry",
+          "label": "당일 재진입 허용",
+          "field_type": "Boolean",
+          "default_value": false,
+          "help_text": "익절 후 당일 1차수 재진입 허용 여부",
+          "group": "target",
+          "order": 7
+        }
+      ]
+    },
+    "infinity_bot": {
+      "name": "무한매수봇",
+      "description": "50라운드 분할 매수 전략",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 20.0,
+        "take_profit_pct": 3.0,
+        "use_trailing_stop": true,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 30.0,
+        "daily_loss_limit_pct": 10.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "round", "label": "라운드 설정", "description": "라운드별 진입 조건 (1-5: 무조건, 6-20: MA 확인, 21-30: MA+양봉)", "order": 2, "collapsed": false },
+        { "id": "exit", "label": "청산 설정", "description": "트레일링 스톱 5%→10% 적용", "order": 3, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "symbol",
+          "label": "종목",
+          "field_type": "SymbolPicker",
+          "default_value": ["005930"],
+          "help_text": "무한매수를 적용할 종목",
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "max_rounds",
+          "label": "최대 라운드",
+          "field_type": "Number",
+          "default_value": 50,
+          "help_text": "최대 분할 매수 라운드 수",
+          "validation": { "required": true, "min": 10, "max": 100, "step": 5 },
+          "group": "round",
+          "order": 2,
+          "unit": "회"
+        },
+        {
+          "key": "round_amount_pct",
+          "label": "라운드당 투자 비율",
+          "field_type": "Number",
+          "default_value": 2.0,
+          "help_text": "라운드당 투자할 자산 비율",
+          "validation": { "required": true, "min": 1.0, "max": 10.0, "step": 0.5 },
+          "group": "round",
+          "order": 3,
+          "unit": "%"
+        },
+        {
+          "key": "dip_trigger_pct",
+          "label": "추가 매수 트리거",
+          "field_type": "Number",
+          "default_value": 2.0,
+          "help_text": "이 비율만큼 하락 시 추가 매수",
+          "validation": { "required": true, "min": 1.0, "max": 10.0, "step": 0.5 },
+          "group": "round",
+          "order": 4,
+          "unit": "%"
+        }
+      ]
+    },
+    "all_weather": {
+      "name": "올웨더",
+      "description": "레이 달리오 올웨더 포트폴리오",
+      "layout": { "columns": 1 },
+      "risk_defaults": {
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 20.0,
+        "use_trailing_stop": false,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 25.0,
+        "daily_loss_limit_pct": 5.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "allocation", "label": "배분 설정", "description": "계절성, MA 필터 기반 동적 비중 조정", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "market",
+          "label": "시장",
+          "field_type": "Select",
+          "default_value": "US",
+          "help_text": "US(미국 ETF) 또는 KR(국내 ETF) 선택",
+          "options": [
+            { "label": "미국 ETF", "value": "US", "description": "SPY, TLT, IEF, GLD, PDBC, IYK" },
+            { "label": "국내 ETF", "value": "KR", "description": "KODEX/TIGER ETF" }
+          ],
+          "validation": { "required": true },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "use_seasonality",
+          "label": "계절성 적용",
+          "field_type": "Boolean",
+          "default_value": true,
+          "help_text": "5-10월 지옥기간에 주식 비중 축소",
+          "group": "allocation",
+          "order": 2
+        },
+        {
+          "key": "use_ma_filter",
+          "label": "MA 필터 적용",
+          "field_type": "Boolean",
+          "default_value": true,
+          "help_text": "MA120, MA80 하회 시 비중 조정",
+          "group": "allocation",
+          "order": 3
+        },
+        {
+          "key": "rebalance_days",
+          "label": "리밸런싱 주기",
+          "field_type": "Number",
+          "default_value": 30,
+          "help_text": "리밸런싱 실행 주기 (일)",
+          "validation": { "required": true, "min": 7, "max": 90, "step": 7 },
+          "group": "allocation",
+          "order": 4,
+          "unit": "일"
+        }
+      ]
+    },
+    "momentum_power": {
+      "name": "모멘텀 파워",
+      "description": "TIP 모멘텀 기반 공격/안전 자산 전환",
+      "layout": { "columns": 1 },
+      "risk_defaults": {
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 20.0,
+        "use_trailing_stop": false,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 25.0,
+        "daily_loss_limit_pct": 5.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "momentum", "label": "모멘텀 설정", "description": "TIP 모멘텀 > 0 → 공격자산, 그 외 → 안전자산", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "market",
+          "label": "시장",
+          "field_type": "Select",
+          "default_value": "US",
+          "help_text": "US(미국 ETF) 또는 KR(국내 ETF) 선택",
+          "options": [
+            { "label": "미국 ETF", "value": "US", "description": "TIP/UPRO/TLT/BIL 기반" },
+            { "label": "국내 ETF", "value": "KR", "description": "KODEX 레버리지/채권 기반" }
+          ],
+          "validation": { "required": true },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "tip_ma_period",
+          "label": "TIP 이동평균 기간",
+          "field_type": "Number",
+          "default_value": 200,
+          "help_text": "TIP 모멘텀 판단용 이동평균 기간 (10개월=200일)",
+          "validation": { "required": true, "min": 100, "max": 252, "step": 20 },
+          "group": "momentum",
+          "order": 2,
+          "unit": "일"
+        },
+        {
+          "key": "attack_ma_period",
+          "label": "공격자산 이동평균",
+          "field_type": "Number",
+          "default_value": 5,
+          "help_text": "공격자산 단기 이동평균 기간",
+          "validation": { "required": true, "min": 3, "max": 20, "step": 1 },
+          "group": "momentum",
+          "order": 3,
+          "unit": "일"
+        }
+      ]
+    },
+    "trailing_stop": {
+      "name": "트레일링 스톱",
+      "description": "동적 트레일링 스톱 전략 (5%→10%)",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 15.0,
+        "use_trailing_stop": true,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 10.0,
+        "daily_loss_limit_pct": 3.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "trailing", "label": "트레일링 설정", "description": "5%→10% 동적 트레일링 스톱", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "symbol",
+          "label": "종목",
+          "field_type": "SymbolPicker",
+          "default_value": ["005930"],
+          "help_text": "트레일링 스톱을 적용할 종목",
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "initial_trailing_pct",
+          "label": "초기 트레일링 비율",
+          "field_type": "Number",
+          "default_value": 5.0,
+          "help_text": "진입 직후 적용되는 트레일링 스톱 비율",
+          "validation": { "required": true, "min": 1.0, "max": 20.0, "step": 0.5 },
+          "group": "trailing",
+          "order": 2,
+          "unit": "%"
+        },
+        {
+          "key": "max_trailing_pct",
+          "label": "최대 트레일링 비율",
+          "field_type": "Number",
+          "default_value": 10.0,
+          "help_text": "이익 실현 시 조정되는 최대 트레일링 비율",
+          "validation": { "required": true, "min": 5.0, "max": 30.0, "step": 1.0 },
+          "group": "trailing",
+          "order": 3,
+          "unit": "%"
+        },
+        {
+          "key": "profit_adjustment_threshold",
+          "label": "이익 조정 임계값",
+          "field_type": "Number",
+          "default_value": 2.0,
+          "help_text": "이 비율 이상 이익 시 트레일링 비율 조정",
+          "validation": { "required": true, "min": 1.0, "max": 10.0, "step": 0.5 },
+          "group": "trailing",
+          "order": 4,
+          "unit": "%"
+        }
+      ]
+    },
+    "market_interest_day": {
+      "name": "시장관심 단타",
+      "description": "거래량 급증 기반 단타 전략",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 2.0,
+        "take_profit_pct": 3.0,
+        "use_trailing_stop": true,
+        "trailing_stop_pct": 1.5,
+        "max_position_pct": 10.0,
+        "daily_loss_limit_pct": 3.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "entry", "label": "진입 조건", "description": "거래량 급증 + Stop Order 기반 진입", "order": 2, "collapsed": false },
+        { "id": "exit", "label": "청산 조건", "description": "트레일링 스톱 5%→10% 적용", "order": 3, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "symbol",
+          "label": "종목",
+          "field_type": "SymbolPicker",
+          "default_value": ["005930"],
+          "help_text": "단타 대상 종목",
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "volume_multiplier",
+          "label": "거래량 배수",
+          "field_type": "Number",
+          "default_value": 2.0,
+          "help_text": "평균 대비 거래량 급증 기준",
+          "validation": { "required": true, "min": 1.5, "max": 5.0, "step": 0.5 },
+          "group": "entry",
+          "order": 2,
+          "unit": "배"
+        },
+        {
+          "key": "consecutive_up_candles",
+          "label": "연속 상승봉",
+          "field_type": "Number",
+          "default_value": 3,
+          "help_text": "진입 조건으로 확인할 연속 상승봉 수",
+          "validation": { "required": true, "min": 2, "max": 5, "step": 1 },
+          "group": "entry",
+          "order": 3,
+          "unit": "개"
+        },
+        {
+          "key": "max_hold_minutes",
+          "label": "최대 보유 시간",
+          "field_type": "Number",
+          "default_value": 120,
+          "help_text": "최대 포지션 보유 시간",
+          "validation": { "required": true, "min": 30, "max": 480, "step": 30 },
+          "group": "exit",
+          "order": 4,
+          "unit": "분"
+        }
+      ]
+    },
+    "dual_momentum": {
+      "name": "듀얼 모멘텀",
+      "description": "상대/절대 모멘텀 복합 전략",
+      "layout": { "columns": 1 },
+      "risk_defaults": {
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 20.0,
+        "use_trailing_stop": false,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 25.0,
+        "daily_loss_limit_pct": 5.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "momentum_period",
+          "label": "모멘텀 기간",
+          "field_type": "Number",
+          "default_value": 63,
+          "help_text": "모멘텀 계산 기간 (거래일 기준, 63일 ≈ 3개월)",
+          "validation": { "required": true, "min": 20, "max": 252, "step": 1 },
+          "group": "basic",
+          "order": 1,
+          "unit": "일"
+        },
+        {
+          "key": "use_absolute_momentum",
+          "label": "절대 모멘텀 사용",
+          "field_type": "Boolean",
+          "default_value": true,
+          "help_text": "절대 모멘텀이 음수면 안전 자산(BIL)으로 전환",
+          "group": "basic",
+          "order": 2
+        }
+      ]
+    },
+    "candle_pattern": {
+      "name": "캔들 패턴",
+      "description": "35개 캔들스틱 패턴 인식 전략",
+      "layout": { "columns": 1 },
+      "risk_defaults": {
+        "stop_loss_pct": 3.0,
+        "take_profit_pct": 5.0,
+        "use_trailing_stop": true,
+        "trailing_stop_pct": 2.0,
+        "max_position_pct": 10.0,
+        "daily_loss_limit_pct": 3.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "symbol",
+          "label": "종목",
+          "field_type": "SymbolPicker",
+          "default_value": ["005930"],
+          "help_text": "캔들 패턴을 분석할 종목 (35개 패턴 인식)",
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "pattern_strength",
+          "label": "패턴 강도 필터",
+          "field_type": "Select",
+          "default_value": "medium",
+          "help_text": "인식할 패턴의 최소 강도",
+          "options": [
+            { "label": "약함", "value": "weak", "description": "모든 패턴 신호 사용" },
+            { "label": "중간", "value": "medium", "description": "중간 이상 강도의 패턴만 사용" },
+            { "label": "강함", "value": "strong", "description": "강한 패턴만 사용 (신호 감소)" }
+          ],
+          "validation": { "required": true },
+          "group": "basic",
+          "order": 2
+        }
+      ]
+    },
+    "market_cap_top": {
+      "name": "시총 TOP",
+      "description": "시가총액 상위 종목 투자 전략",
+      "layout": { "columns": 1 },
+      "risk_defaults": {
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 20.0,
+        "use_trailing_stop": false,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 25.0,
+        "daily_loss_limit_pct": 5.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "top_n",
+          "label": "상위 종목 수",
+          "field_type": "Number",
+          "default_value": 10,
+          "help_text": "투자할 시총 상위 종목 수",
+          "validation": { "required": true, "min": 5, "max": 30, "step": 1 },
+          "group": "basic",
+          "order": 1,
+          "unit": "개"
+        },
+        {
+          "key": "weighting_method",
+          "label": "비중 배분 방식",
+          "field_type": "Select",
+          "default_value": "Equal",
+          "help_text": "종목별 비중 배분 방식",
+          "options": [
+            { "label": "동일 비중", "value": "Equal", "description": "모든 종목에 동일 비중 배분" },
+            { "label": "시총 비례", "value": "MarketCap", "description": "시가총액에 비례하여 비중 배분" }
+          ],
+          "validation": { "required": true },
+          "group": "basic",
+          "order": 2
+        },
+        {
+          "key": "rebalance_frequency",
+          "label": "리밸런싱 주기",
+          "field_type": "Select",
+          "default_value": "monthly",
+          "help_text": "리밸런싱 실행 주기",
+          "options": [
+            { "label": "월말", "value": "monthly", "description": "매월 마지막 거래일" },
+            { "label": "분기말", "value": "quarterly", "description": "분기 마지막 거래일" }
+          ],
+          "validation": { "required": true },
+          "group": "basic",
+          "order": 3
+        }
+      ]
+    },
+    "sector_momentum": {
+      "name": "섹터 모멘텀",
+      "description": "섹터 ETF 모멘텀 전략",
+      "layout": { "columns": 1 },
+      "risk_defaults": {
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 20.0,
+        "use_trailing_stop": false,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 25.0,
+        "daily_loss_limit_pct": 5.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "market",
+          "label": "시장",
+          "field_type": "Select",
+          "default_value": "US",
+          "help_text": "US(미국 섹터 ETF) 또는 KR(국내 섹터 ETF) 선택",
+          "options": [
+            { "label": "미국 섹터 ETF", "value": "US", "description": "XLK, XLF, XLV 등 11개 섹터" },
+            { "label": "국내 섹터 ETF", "value": "KR", "description": "KODEX/TIGER 섹터 ETF 10개" }
+          ],
+          "validation": { "required": true },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "top_n",
+          "label": "상위 섹터 수",
+          "field_type": "Number",
+          "default_value": 3,
+          "help_text": "투자할 모멘텀 상위 섹터 수",
+          "validation": { "required": true, "min": 1, "max": 5, "step": 1 },
+          "group": "basic",
+          "order": 2,
+          "unit": "개"
+        },
+        {
+          "key": "weighting_method",
+          "label": "비중 배분 방식",
+          "field_type": "Select",
+          "default_value": "Equal",
+          "help_text": "섹터별 비중 배분 방식",
+          "options": [
+            { "label": "동일 비중", "value": "Equal", "description": "모든 섹터에 동일 비중 배분" },
+            { "label": "모멘텀 비례", "value": "Momentum", "description": "모멘텀 점수에 비례하여 비중 배분" }
+          ],
+          "validation": { "required": true },
+          "group": "basic",
+          "order": 3
+        }
+      ]
+    },
+    "small_cap_quant": {
+      "name": "소형주 퀀트",
+      "description": "재무 필터 기반 소형주 선정",
+      "layout": { "columns": 1 },
+      "risk_defaults": {
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 20.0,
+        "use_trailing_stop": false,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 25.0,
+        "daily_loss_limit_pct": 5.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "filter", "label": "재무 필터", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "target_count",
+          "label": "선택 종목 수",
+          "field_type": "Number",
+          "default_value": 20,
+          "help_text": "필터 통과 후 투자할 종목 수",
+          "validation": { "required": true, "min": 5, "max": 50, "step": 1 },
+          "group": "basic",
+          "order": 1,
+          "unit": "개"
+        },
+        {
+          "key": "ma_period",
+          "label": "이동평균 기간",
+          "field_type": "Number",
+          "default_value": 20,
+          "help_text": "시장 상태 판단용 이동평균 기간",
+          "validation": { "required": true, "min": 5, "max": 120, "step": 1 },
+          "group": "basic",
+          "order": 2,
+          "unit": "일"
+        },
+        {
+          "key": "min_market_cap",
+          "label": "최소 시가총액",
+          "field_type": "Number",
+          "default_value": 50.0,
+          "help_text": "최소 시가총액 필터 (억원)",
+          "validation": { "required": true, "min": 10, "max": 1000, "step": 10 },
+          "group": "filter",
+          "order": 3,
+          "unit": "억원"
+        },
+        {
+          "key": "min_roe",
+          "label": "최소 ROE",
+          "field_type": "Number",
+          "default_value": 5.0,
+          "help_text": "최소 ROE 필터 (%)",
+          "validation": { "required": true, "min": 0, "max": 50, "step": 1 },
+          "group": "filter",
+          "order": 4,
+          "unit": "%"
+        }
+      ]
+    },
+    "pension_bot": {
+      "name": "연금 자동화",
+      "description": "연금 계좌 자동 투자 전략",
+      "layout": { "columns": 1 },
+      "risk_defaults": {
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 20.0,
+        "use_trailing_stop": false,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 25.0,
+        "daily_loss_limit_pct": 5.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "cash", "label": "현금 배분", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "avg_momentum_period",
+          "label": "평균 모멘텀 기간",
+          "field_type": "Number",
+          "default_value": 10,
+          "help_text": "평균 모멘텀 계산 기간 (개월)",
+          "validation": { "required": true, "min": 3, "max": 24, "step": 1 },
+          "group": "basic",
+          "order": 1,
+          "unit": "개월"
+        },
+        {
+          "key": "top_bonus_count",
+          "label": "보너스 대상 종목 수",
+          "field_type": "Number",
+          "default_value": 12,
+          "help_text": "모멘텀 보너스를 받을 상위 종목 수",
+          "validation": { "required": true, "min": 3, "max": 20, "step": 1 },
+          "group": "basic",
+          "order": 2,
+          "unit": "개"
+        },
+        {
+          "key": "cash_to_short_term_rate",
+          "label": "단기자금 배분율",
+          "field_type": "Number",
+          "default_value": 0.45,
+          "help_text": "남은 현금 중 단기자금에 배분할 비율",
+          "validation": { "required": true, "min": 0, "max": 1, "step": 0.05 },
+          "group": "cash",
+          "order": 3
+        },
+        {
+          "key": "cash_to_bonus_rate",
+          "label": "보너스 배분율",
+          "field_type": "Number",
+          "default_value": 0.45,
+          "help_text": "남은 현금 중 모멘텀 보너스로 배분할 비율",
+          "validation": { "required": true, "min": 0, "max": 1, "step": 0.05 },
+          "group": "cash",
+          "order": 4
+        }
+      ]
+    },
+    "xaa": {
+      "name": "XAA 확장 자산배분",
+      "description": "VAA 기반 확장형 자산배분 전략",
+      "layout": { "columns": 1 },
+      "risk_defaults": {
+        "stop_loss_pct": 8.0,
+        "take_profit_pct": 20.0,
+        "use_trailing_stop": false,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 30.0,
+        "daily_loss_limit_pct": 5.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "assets", "label": "자산 설정", "description": "투자 대상 자산군 설정", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "offensive_assets",
+          "label": "공격 자산",
+          "field_type": "SymbolCategoryGroup",
+          "default_value": ["VWO", "SPY", "EFA", "EEM"],
+          "help_text": "고수익 추구 자산군",
+          "validation": { "required": true, "min_items": 2 },
+          "group": "assets",
+          "order": 1
+        },
+        {
+          "key": "defensive_assets",
+          "label": "방어 자산",
+          "field_type": "SymbolCategoryGroup",
+          "default_value": ["TLT", "IEF", "LQD", "BIL"],
+          "help_text": "안정성 추구 자산군",
+          "validation": { "required": true, "min_items": 2 },
+          "group": "assets",
+          "order": 2
+        },
+        {
+          "key": "momentum_period",
+          "label": "모멘텀 기간",
+          "field_type": "Number",
+          "default_value": 60,
+          "help_text": "모멘텀 점수 계산 기간",
+          "validation": { "required": true, "min": 20, "max": 252, "step": 1 },
+          "group": "basic",
+          "order": 3,
+          "unit": "일"
+        }
+      ]
+    },
+    "baa": {
+      "name": "BAA 자산배분",
+      "description": "Bold Asset Allocation 전략",
+      "layout": { "columns": 1 },
+      "risk_defaults": {
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 25.0,
+        "use_trailing_stop": false,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 25.0,
+        "daily_loss_limit_pct": 5.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "assets", "label": "자산 설정", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "canary_assets",
+          "label": "캐나리 자산",
+          "field_type": "SymbolCategoryGroup",
+          "default_value": ["VWO", "BND"],
+          "help_text": "시장 상황 판단용 자산",
+          "validation": { "required": true, "min_items": 1 },
+          "group": "assets",
+          "order": 1
+        },
+        {
+          "key": "offensive_assets",
+          "label": "공격 자산",
+          "field_type": "SymbolCategoryGroup",
+          "default_value": ["QQQ", "SPY", "EFA", "EEM"],
+          "help_text": "상승장 투자 자산",
+          "validation": { "required": true, "min_items": 2 },
+          "group": "assets",
+          "order": 2
+        },
+        {
+          "key": "defensive_assets",
+          "label": "방어 자산",
+          "field_type": "SymbolCategoryGroup",
+          "default_value": ["TLT", "IEF", "BIL"],
+          "help_text": "하락장 투자 자산",
+          "validation": { "required": true, "min_items": 1 },
+          "group": "assets",
+          "order": 3
+        }
+      ]
+    },
+    "stock_rotation": {
+      "name": "종목 갈아타기",
+      "description": "모멘텀 기반 종목 로테이션 전략",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 7.0,
+        "take_profit_pct": 15.0,
+        "use_trailing_stop": true,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 20.0,
+        "daily_loss_limit_pct": 5.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "rotation", "label": "로테이션 설정", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "symbols",
+          "label": "대상 종목",
+          "field_type": "SymbolCategoryGroup",
+          "default_value": ["005930", "000660", "035420", "051910", "006400"],
+          "help_text": "로테이션 대상 종목 풀",
+          "validation": { "required": true, "min_items": 3, "max_items": 20 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "top_n",
+          "label": "선택 종목 수",
+          "field_type": "Number",
+          "default_value": 3,
+          "help_text": "투자할 상위 종목 수",
+          "validation": { "required": true, "min": 1, "max": 10, "step": 1 },
+          "group": "rotation",
+          "order": 2,
+          "unit": "개"
+        },
+        {
+          "key": "rebalance_days",
+          "label": "리밸런싱 주기",
+          "field_type": "Number",
+          "default_value": 20,
+          "help_text": "포트폴리오 재조정 주기",
+          "validation": { "required": true, "min": 5, "max": 90, "step": 5 },
+          "group": "rotation",
+          "order": 3,
+          "unit": "일"
+        }
+      ]
+    },
+    "range_trading": {
+      "name": "구간 매매",
+      "description": "가격 구간 기반 분할 매매 전략",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 5.0,
+        "take_profit_pct": 8.0,
+        "use_trailing_stop": false,
+        "trailing_stop_pct": 3.0,
+        "max_position_pct": 15.0,
+        "daily_loss_limit_pct": 3.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "gugan", "label": "구간 설정", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "symbol",
+          "label": "종목",
+          "field_type": "SymbolPicker",
+          "default_value": ["005930"],
+          "placeholder": "종목을 선택하세요",
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "buy_zone_pct",
+          "label": "매수 구간",
+          "field_type": "Number",
+          "default_value": 5.0,
+          "help_text": "기준가 대비 하락 시 매수 구간",
+          "validation": { "required": true, "min": 1.0, "max": 20.0, "step": 1.0 },
+          "group": "gugan",
+          "order": 2,
+          "unit": "%"
+        },
+        {
+          "key": "sell_zone_pct",
+          "label": "매도 구간",
+          "field_type": "Number",
+          "default_value": 5.0,
+          "help_text": "기준가 대비 상승 시 매도 구간",
+          "validation": { "required": true, "min": 1.0, "max": 20.0, "step": 1.0 },
+          "group": "gugan",
+          "order": 3,
+          "unit": "%"
+        }
+      ]
+    },
+    "momentum_surge": {
+      "name": "모멘텀 급등",
+      "description": "모멘텀 급등 단타 전략",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 3.0,
+        "take_profit_pct": 5.0,
+        "use_trailing_stop": true,
+        "trailing_stop_pct": 2.0,
+        "max_position_pct": 10.0,
+        "daily_loss_limit_pct": 3.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "filter", "label": "필터 설정", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "symbol",
+          "label": "종목",
+          "field_type": "SymbolPicker",
+          "default_value": ["122630"],
+          "placeholder": "종목을 선택하세요",
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "volume_surge_ratio",
+          "label": "거래량 급증 배율",
+          "field_type": "Number",
+          "default_value": 3.0,
+          "help_text": "평균 대비 거래량 급증 배율",
+          "validation": { "required": true, "min": 1.5, "max": 10.0, "step": 0.5 },
+          "group": "filter",
+          "order": 2,
+          "unit": "배"
+        },
+        {
+          "key": "price_surge_pct",
+          "label": "가격 급등률",
+          "field_type": "Number",
+          "default_value": 5.0,
+          "help_text": "전일 대비 상승률 기준",
+          "validation": { "required": true, "min": 2.0, "max": 15.0, "step": 1.0 },
+          "group": "filter",
+          "order": 3,
+          "unit": "%"
+        }
+      ]
+    },
+    "market_both_side": {
+      "name": "시장 양방향",
+      "description": "코스피 레버리지/인버스 ETF 양방향 전략",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 3.0,
+        "take_profit_pct": 5.0,
+        "use_trailing_stop": true,
+        "trailing_stop_pct": 2.0,
+        "max_position_pct": 15.0,
+        "daily_loss_limit_pct": 5.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "etf", "label": "ETF 설정", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "long_etf",
+          "label": "롱 ETF",
+          "field_type": "SymbolPicker",
+          "default_value": ["122630"],
+          "help_text": "상승 베팅용 레버리지 ETF",
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "etf",
+          "order": 1
+        },
+        {
+          "key": "short_etf",
+          "label": "숏 ETF",
+          "field_type": "SymbolPicker",
+          "default_value": ["252670"],
+          "help_text": "하락 베팅용 인버스 ETF",
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "etf",
+          "order": 2
+        },
+        {
+          "key": "signal_threshold",
+          "label": "신호 임계값",
+          "field_type": "Number",
+          "default_value": 0.5,
+          "help_text": "매매 신호 발생 임계값",
+          "validation": { "required": true, "min": 0.1, "max": 1.0, "step": 0.1 },
+          "group": "basic",
+          "order": 3
+        }
+      ]
+    },
+    "sector_vb": {
+      "name": "섹터 변동성 돌파",
+      "description": "섹터 ETF 변동성 돌파 전략",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 2.0,
+        "take_profit_pct": 4.0,
+        "use_trailing_stop": true,
+        "trailing_stop_pct": 1.5,
+        "max_position_pct": 15.0,
+        "daily_loss_limit_pct": 3.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "vb", "label": "변동성 돌파 설정", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "sector_etfs",
+          "label": "섹터 ETF",
+          "field_type": "SymbolCategoryGroup",
+          "default_value": ["091160", "091170", "091180"],
+          "help_text": "투자 대상 섹터 ETF",
+          "validation": { "required": true, "min_items": 1, "max_items": 10 },
+          "group": "basic",
+          "order": 1
+        },
+        {
+          "key": "k_value",
+          "label": "K 값",
+          "field_type": "Number",
+          "default_value": 0.5,
+          "help_text": "변동성 돌파 계수",
+          "validation": { "required": true, "min": 0.1, "max": 1.0, "step": 0.1 },
+          "group": "vb",
+          "order": 2
+        }
+      ]
+    },
+    "us_3x_leverage": {
+      "name": "미국 3배 레버리지",
+      "description": "미국 3배 레버리지 ETF 투자 전략",
+      "layout": { "columns": 2 },
+      "risk_defaults": {
+        "stop_loss_pct": 10.0,
+        "take_profit_pct": 20.0,
+        "use_trailing_stop": true,
+        "trailing_stop_pct": 5.0,
+        "max_position_pct": 20.0,
+        "daily_loss_limit_pct": 10.0
+      },
+      "groups": [
+        { "id": "basic", "label": "기본 설정", "order": 1, "collapsed": false },
+        { "id": "etf", "label": "ETF 설정", "order": 2, "collapsed": false }
+      ],
+      "fields": [
+        {
+          "key": "leverage_etf",
+          "label": "레버리지 ETF",
+          "field_type": "SymbolPicker",
+          "default_value": ["TQQQ"],
+          "help_text": "3배 레버리지 ETF (TQQQ, UPRO 등)",
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "etf",
+          "order": 1
+        },
+        {
+          "key": "safe_asset",
+          "label": "안전 자산",
+          "field_type": "SymbolPicker",
+          "default_value": ["BIL"],
+          "help_text": "하락장 대피용 안전 자산",
+          "validation": { "required": true, "min_items": 1, "max_items": 1 },
+          "group": "etf",
+          "order": 2
+        },
+        {
+          "key": "rebalance_trigger_pct",
+          "label": "리밸런싱 트리거",
+          "field_type": "Number",
+          "default_value": 5.0,
+          "help_text": "비중 편차 발생 시 리밸런싱",
+          "validation": { "required": true, "min": 2.0, "max": 20.0, "step": 1.0 },
+          "group": "basic",
+          "order": 3,
+          "unit": "%"
+        }
+      ]
+    }
+  }
+}

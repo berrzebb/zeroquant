@@ -1,0 +1,56 @@
+{
+  "description": "로테이션 전략 회귀 테스트 - 자체 모멘텀 순위 계산이 핵심 (GlobalScore 불필요)",
+  "strategies": [
+    {
+      "strategy_id": "sector_momentum",
+      "name": "섹터 모멘텀",
+      "symbols": ["XLK", "XLF", "XLV", "XLY", "XLP", "XLE", "XLI", "XLB", "XLU", "XLRE", "XLC"],
+      "market": "US",
+      "config": {
+        "top_n": 3,
+        "total_amount": "10000000",
+        "rebalance_threshold": "0.01",
+        "min_momentum": "-100",
+        "cash_reserve_rate": "0"
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 2
+      }
+    },
+    {
+      "strategy_id": "stock_rotation",
+      "name": "종목 로테이션",
+      "symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "JPM", "V", "UNH", "JNJ", "XOM", "PG", "MA"],
+      "market": "US",
+      "config": {
+        "top_n": 5,
+        "total_amount": "10000000",
+        "rebalance_threshold": "0.01",
+        "min_momentum": "-100",
+        "cash_reserve_rate": "0"
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 2
+      }
+    },
+    {
+      "strategy_id": "market_cap_top",
+      "name": "시총 상위",
+      "symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "JPM", "V", "UNH", "JNJ", "XOM", "PG", "MA"],
+      "market": "US",
+      "config": {
+        "top_n": 5,
+        "total_amount": "10000000",
+        "rebalance_threshold": "0.01",
+        "use_momentum_filter": false,
+        "cash_reserve_rate": "0"
+      },
+      "expected": {
+        "initialization": "success",
+        "min_trades": 2
+      }
+    }
+  ]
+}

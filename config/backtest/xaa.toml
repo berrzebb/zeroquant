@@ -1,0 +1,23 @@
+# XAA 자산배분 전략 백테스트 설정
+# Extended Asset Allocation: 채권 최적화 포함 확장 자산배분
+name = "XAA Backtest"
+strategy_type = "xaa"
+
+[parameters]
+# 현금 티커 (안전자산)
+cash_ticker = "BIL"
+
+# 자산 선택 수
+offensive_top_n = 2             # 공격 자산 중 상위 N개 선택
+defensive_top_n = 2             # 방어 자산 중 상위 N개 선택
+
+# 채권 모멘텀 설정
+bond_momentum_months = 3        # 채권 모멘텀 기간 (개월)
+
+# 투자 설정
+invest_rate = 1.0               # 투자 비율 (100%)
+rebalance_threshold = 0.05      # 리밸런싱 임계값 (5%)
+
+# 필터
+min_global_score = 0            # GlobalScore 필터 비활성화 (백테스트)
+canary_threshold = 0            # 카나리아 임계값
