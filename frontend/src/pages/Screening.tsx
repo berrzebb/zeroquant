@@ -300,31 +300,18 @@ export function Screening() {
     }
 
     try {
-      const offset = reset ? 0 : presetOffset()
       const response = await runPresetScreening(
         ui.selectedPreset,
         filters.presetMarket || undefined,
-        PAGE_SIZE,
-        offset
       )
 
-      if (reset) {
-        setPresetResults(response.results)
-      } else {
-        setPresetResults(prev => [...prev, ...response.results])
-      }
+      setPresetResults(response.results)
       setPresetTotal(response.total)
-      setPresetOffset(offset + response.results.length)
       setPresetFilterSummary(response.filter_summary || '')
 
-      // 디버깅: 로드 완료 후 페이징 상태
       console.log('[Screening] Data loaded:', {
-        reset,
         loaded: response.results.length,
         total: response.total,
-        currentCount: reset ? response.results.length : presetResults().length,
-        nextOffset: offset + response.results.length,
-        hasMore: response.results.length + (reset ? 0 : presetResults().length - response.results.length) < response.total
       })
     } catch (e) {
       console.error('프리셋 스크리닝 실패:', e)
@@ -738,9 +725,9 @@ export function Screening() {
     return false
   })
 
-  // OpportunityMap용 데이터 변환
+  // OpportunityMap용 데이터 변환 (GlobalScore가 있는 종목만 표시)
   const opportunityMapData = createMemo((): OpportunitySymbol[] => {
-    return sortedResults().map(r => {
+    return sortedResults().filter(r => r.overall_score).map(r => {
       // RouteState 변환 (DB: ATTACK/ARMED/WAIT/OVERHEAT/NEUTRAL → UI)
       let routeState: 'ATTACK' | 'ARMED' | 'WATCH' | 'AVOID' | 'UNKNOWN' = 'UNKNOWN'
       const dbState = r.route_state?.toUpperCase()
@@ -751,8 +738,8 @@ export function Screening() {
 
       return {
         symbol: r.ticker,
-        totalScore: r.global_score ? parseFloat(r.global_score) : 50,
-        triggerScore: r.trigger_score ? parseFloat(r.trigger_score) : 50,
+        totalScore: r.overall_score ? parseFloat(r.overall_score) : 0,
+        triggerScore: r.trigger_score ?? 0,
         routeState,
         name: r.name,
         size: r.market_cap ? parseFloat(r.market_cap) / 1e11 : 1, // 천억 단위로 정규화
@@ -777,7 +764,7 @@ export function Screening() {
           symbol: r.ticker,
           name: r.name,
           routeState,
-          score: r.global_score ? parseFloat(r.global_score) : 0,
+          score: r.overall_score ? parseFloat(r.overall_score) : 0,
           price: r.current_price ? parseFloat(r.current_price) : undefined,
           changeRate: r.change_pct ? parseFloat(r.change_pct) : undefined,
         }
@@ -1752,8 +1739,7 @@ export function Screening() {
         <Show when={!isLoading() && ui.activeTab !== 'momentum' && sortedResults().length > 0 && ui.viewMode === 'table'}>
           <div
             ref={setTableScrollRef}
-            class="overflow-auto"
-            style={{ "height": "500px", "max-height": "calc(100vh - 400px)" }}
+            class="flex-1 overflow-auto"
             onScroll={handleScroll}
           >
             <table class="w-full text-sm table-fixed">
@@ -1923,7 +1909,7 @@ export function Screening() {
           {/* 무한 스크롤 상태 표시 */}
           <div class="flex items-center justify-between px-4 py-2 border-t border-[var(--color-surface-light)]">
             <span class="text-sm text-[var(--color-text-muted)]">
-              {sortedResults().length}개 표시 (서버: {presetResults().length} / {presetTotal()}개)
+              {sortedResults().length}개 표시 (전체: {presetResults().length}개)
             </span>
             <Show when={hasMorePresetResults()}>
               <Show when={presetLoadingMore()} fallback={

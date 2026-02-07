@@ -13,7 +13,7 @@
 - 이동평균 크로스오버
 
 ### 다중 자산 전략 (Multi-Asset Strategies)
-- Simple Power (TQQQ/SCHD/PFIX/TMF)
+- CompoundMomentum (TQQQ/SCHD/PFIX/TMF)
 - HAA (SPY/TLT/VEA/VWO 등)
 - XAA (SPY/QQQ/TLT 등)
 - 종목 갈아타기 (여러 종목 비교)
@@ -286,8 +286,8 @@
 |-----|-------|-----|
 | SPY | S&P 500 ETF | HAA/XAA |
 | QQQ | Nasdaq 100 ETF | XAA |
-| TQQQ | 3x Nasdaq ETF | Simple Power |
-| SCHD | 배당 ETF | Simple Power |
+| TQQQ | 3x Nasdaq ETF | CompoundMomentum |
+| SCHD | 배당 ETF | CompoundMomentum |
 | TLT | 20년 국채 ETF | HAA/XAA |
 | IEF | 7-10년 국채 ETF | HAA/XAA |
 | BIL | 단기 국채 ETF | 현금 대용 |

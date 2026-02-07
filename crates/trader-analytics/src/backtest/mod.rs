@@ -9,11 +9,14 @@
 //! - [`BacktestReport`]: 백테스트 결과 리포트
 //! - [`SlippageModel`]: 동적 슬리피지 모델 (Fixed/Linear/VolatilityBased/Tiered)
 //! - [`BacktestScreeningProvider`]: 백테스트용 스크리닝 결과 제공자
+//! - [`CandleProcessor`]: 캔들 처리 공통 프로세서 (BacktestEngine/SimulationEngine 공유)
 
+pub mod candle_processor;
 pub mod engine;
 pub mod screening_provider;
 pub mod slippage;
 
+pub use candle_processor::{CandleProcessor, PartitionedSignals, MIN_CANDLES_FOR_INDICATORS};
 pub use engine::{BacktestConfig, BacktestEngine, BacktestError, BacktestReport, BacktestResult};
 pub use screening_provider::{BacktestScreeningConfig, BacktestScreeningProvider, MIN_CANDLES_FOR_SCREENING};
 pub use slippage::{SlippageModel, SlippageResult, SlippageTier};

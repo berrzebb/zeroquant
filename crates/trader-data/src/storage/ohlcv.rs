@@ -24,7 +24,7 @@ use chrono::{DateTime, Duration, Utc};
 use rust_decimal::Decimal;
 use sqlx::postgres::PgPool;
 use sqlx::FromRow;
-use tracing::{debug, info, instrument};
+use tracing::{debug, info, instrument, warn};
 use trader_core::{Kline, Timeframe};
 
 /// OHLCV 캔들 데이터베이스 레코드.
@@ -172,6 +172,67 @@ impl OhlcvCache {
         Ok(klines)
     }
 
+    /// 여러 심볼의 캔들 데이터 배치 조회.
+    ///
+    /// 단일 SQL 쿼리로 여러 심볼의 최신 `limit`개 캔들을 조회합니다.
+    /// `WHERE symbol = ANY($1)` + 윈도우 함수로 N+1 쿼리 문제를 해결합니다.
+    ///
+    /// # 반환
+    /// 심볼별 캔들 데이터 (시간순 정렬, 오래된 것부터)
+    #[instrument(skip(self, symbols), fields(count = symbols.len()))]
+    pub async fn get_cached_klines_batch(
+        &self,
+        symbols: &[String],
+        timeframe: Timeframe,
+        limit: usize,
+    ) -> Result<std::collections::HashMap<String, Vec<Kline>>> {
+        use std::collections::HashMap;
+
+        if symbols.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        let tf_str = timeframe_to_string(timeframe);
+
+        let records: Vec<OhlcvRecord> = sqlx::query_as(
+            r#"
+            SELECT symbol, timeframe, open_time, open, high, low, close, volume, close_time, fetched_at
+            FROM (
+                SELECT symbol, timeframe, open_time, open, high, low, close, volume, close_time, fetched_at,
+                       ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY open_time DESC) as rn
+                FROM ohlcv
+                WHERE symbol = ANY($1) AND timeframe = $2
+            ) sub
+            WHERE rn <= $3
+            ORDER BY symbol, open_time ASC
+            "#,
+        )
+        .bind(symbols)
+        .bind(&tf_str)
+        .bind(limit as i64)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DataError::QueryError(e.to_string()))?;
+
+        // 심볼별로 그룹화
+        let mut result: HashMap<String, Vec<Kline>> = HashMap::new();
+        for record in records {
+            let symbol = record.symbol.clone();
+            let kline = record.to_kline();
+            result.entry(symbol).or_default().push(kline);
+        }
+
+        debug!(
+            symbols = symbols.len(),
+            timeframe = %tf_str,
+            fetched_symbols = result.len(),
+            total_klines = result.values().map(|v| v.len()).sum::<usize>(),
+            "배치 캔들 조회 완료"
+        );
+
+        Ok(result)
+    }
+
     /// 특정 시간 범위의 캔들 조회.
     #[instrument(skip(self))]
     pub async fn get_cached_klines_range(
@@ -218,11 +279,47 @@ impl OhlcvCache {
             return Ok(0);
         }
 
+        // symbol_info 존재 확인 — 미등록 심볼의 고아 데이터 방지
+        let exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM symbol_info WHERE ticker = $1)",
+        )
+        .bind(symbol)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap_or(false);
+
+        if !exists {
+            warn!(
+                symbol = symbol,
+                candles = klines.len(),
+                "symbol_info에 없는 심볼 — 저장 스킵"
+            );
+            return Ok(0);
+        }
+
+        // 비정상 가격 필터링 (close <= 0)
+        let valid_klines: Vec<&Kline> = klines
+            .iter()
+            .filter(|k| !k.close.is_zero() && !k.close.is_sign_negative())
+            .collect();
+
+        if valid_klines.len() < klines.len() {
+            warn!(
+                symbol = symbol,
+                filtered = klines.len() - valid_klines.len(),
+                "비정상 가격(close≤0) 캔들 필터링"
+            );
+        }
+
+        if valid_klines.is_empty() {
+            return Ok(0);
+        }
+
         let tf_str = timeframe_to_string(timeframe);
         let mut inserted = 0;
 
         // UNNEST 패턴으로 일괄 삽입 (N+1 쿼리 문제 해결)
-        for chunk in klines.chunks(500) {
+        for chunk in valid_klines.chunks(500) {
             // 각 컬럼에 대한 배열 생성
             let symbols: Vec<&str> = chunk.iter().map(|_| symbol).collect();
             let timeframes: Vec<&str> = chunk.iter().map(|_| tf_str.as_str()).collect();

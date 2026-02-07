@@ -569,7 +569,8 @@ pub async fn run_screening(
 
     let filter = to_screening_filter(&request);
 
-    let results = match ScreeningRepository::screen(db_pool, data_provider, &filter).await {
+    let redis_cache = state.cache.as_deref();
+    let results = match ScreeningRepository::screen(db_pool, data_provider, &filter, redis_cache).await {
         Ok(r) => r,
         Err(e) => {
             warn!("스크리닝 실패: {}", e);
@@ -788,8 +789,9 @@ pub async fn run_preset_screening(
         }
     };
 
+    let redis_cache = state.cache.as_deref();
     let results =
-        match ScreeningRepository::screen_preset(db_pool, data_provider, &preset, query.market.as_deref()).await {
+        match ScreeningRepository::screen_preset(db_pool, data_provider, &preset, query.market.as_deref(), redis_cache).await {
             Ok(r) => r,
             Err(e) => {
                 warn!("프리셋 스크리닝 실패: {}", e);
@@ -817,10 +819,8 @@ pub async fn run_preset_screening(
     );
     let total = results.len();
 
-    // offset/limit 적용
-    let offset = query.offset.unwrap_or(0) as usize;
-    let limit = query.limit.unwrap_or(100) as usize;
-    let results: Vec<_> = results.into_iter().skip(offset).take(limit).collect();
+    // 전체 결과 반환 (프론트엔드 무한 스크롤 대응)
+    let results: Vec<_> = results.into_iter().collect();
 
     let dto_results: Vec<ScreeningResultDto> = results.into_iter().map(to_result_dto).collect();
 
@@ -916,7 +916,6 @@ pub async fn run_momentum_screening(
         query.days,
         min_change,
         min_volume_ratio,
-        query.limit,
     )
     .await
     {

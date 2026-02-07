@@ -595,7 +595,7 @@ export interface BacktestRequest {
   multi_timeframe_config?: MultiTimeframeConfig;
 }
 
-// 다중 자산 백테스트 요청 (Simple Power, HAA, XAA, Stock Rotation 등)
+// 다중 자산 백테스트 요청 (CompoundMomentum, HAA, XAA, Stock Rotation 등)
 export interface BacktestMultiRequest {
   strategy_id: string;
   symbols: string[];
@@ -859,7 +859,7 @@ export const runBacktest = async (request: BacktestRequest): Promise<BacktestRes
   return response.data;
 };
 
-// 다중 자산 백테스트 실행 (Simple Power, HAA, XAA, Stock Rotation 등)
+// 다중 자산 백테스트 실행 (CompoundMomentum, HAA, XAA, Stock Rotation 등)
 export const runMultiBacktest = async (request: BacktestMultiRequest): Promise<BacktestMultiResult> => {
   const response = await api.post('/backtest/run-multi', request);
   return response.data;

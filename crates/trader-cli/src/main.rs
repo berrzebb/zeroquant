@@ -858,6 +858,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             println!("{}", diag);
                         }
                     }
+
+                    // 차트 생성 (--charts 플래그 또는 거래 존재 시)
+                    if charts {
+                        if let Some(ref report) = result.report {
+                            if report.equity_curve.len() >= 2 {
+                                let charts_path = std::path::Path::new(&charts_dir);
+                                std::fs::create_dir_all(charts_path).ok();
+
+                                let chart_filename = format!("{}_chart.png", result.strategy_id);
+                                let chart_path = charts_path.join(&chart_filename);
+
+                                let generator = commands::chart_gen::RegressionChartGenerator::new();
+                                match generator.generate_combined_chart(report, &result.strategy_id, &chart_path) {
+                                    Ok(()) => {
+                                        println!("\n📊 차트 저장: {}", chart_path.display());
+                                    }
+                                    Err(e) => {
+                                        println!("\n⚠️ 차트 생성 실패: {}", e);
+                                    }
+                                }
+                            } else {
+                                println!("\n⚠️ 차트 생성 불가: 데이터 포인트 부족");
+                            }
+                        }
+                    }
                 }
                 Err(e) => {
                     error!("Strategy test failed: {}", e);

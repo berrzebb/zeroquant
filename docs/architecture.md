@@ -474,7 +474,7 @@ Notification Service
 
 ---
 
-## 전략 실행 모드 아키텍처 (v0.8.0)
+## 전략 실행 모드 아키텍처
 
 데이터 발행과 Signal 처리를 분리하여 동일한 전략 로직으로 다양한 실행 모드를 지원합니다.
 
@@ -486,7 +486,7 @@ Notification Service
 │  ┌────────────────────────────┐    ┌────────────────────────────────┐   │
 │  │  ExchangeProvider (실환경) │    │  BacktestEngine (과거 데이터)   │   │
 │  │  • KIS (KR/US)             │    │  • TimescaleDB OHLCV           │   │
-│  │  • Binance                 │    │  • CSV 파일                    │   │
+│  │  • Binance                 │    │  • SimulationEngine (스트리밍) │   │
 │  │  • Mock (페이퍼)           │    │                                │   │
 │  └────────────┬───────────────┘    └───────────────┬────────────────┘   │
 │               └────────────────┬───────────────────┘                    │
@@ -494,6 +494,16 @@ Notification Service
 └──────────────────────────────────────────────────────────────────────────┘
                                  │
                                  ▼
+              ┌──────────────────────────────────┐
+              │        CandleProcessor           │
+              │  (BacktestEngine/SimulationEngine │
+              │   공통 캔들 처리 로직)            │
+              │  • StrategyContext 업데이트       │
+              │  • 멀티 심볼/멀티 TF 지원        │
+              │  • 스크리닝 파이프라인            │
+              └────────────────┬─────────────────┘
+                               │
+                               ▼
               ┌──────────────────────────────────┐
               │              전략                 │
               │  (StrategyContext 활용)          │
@@ -528,7 +538,11 @@ Notification Service
 |------------|------------|------|------|
 | ExchangeProvider (KIS/Binance) | LiveExecutor | **실거래** | 실제 매매 |
 | ExchangeProvider (Mock) | SimulatedExecutor | **페이퍼 트레이딩** | 전략 검증 |
-| BacktestEngine | SimulatedExecutor | **백테스트** | 과거 성과 분석 |
+| BacktestEngine | SimulatedExecutor | **정적 백테스트** | 과거 성과 분석 |
+| SimulationEngine | SimulatedExecutor | **동적 백테스트** | 시각적 시뮬레이션 |
+
+> BacktestEngine과 SimulationEngine은 CandleProcessor를 공유하여 동일한 캔들 처리 로직을 실행합니다.
+> 유일한 차이: 캔들이 한꺼번에(BacktestEngine) vs 스트리밍(SimulationEngine)으로 제공됩니다.
 
 ### SignalProcessor 구현체
 

@@ -37,11 +37,12 @@ use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
 use utoipa::ToSchema;
 use trader_core::{
-    unrealized_pnl, Kline, MarketData, Side, Signal, SignalMarker, SignalType, Timeframe,
+    unrealized_pnl, Kline, Side, Signal, SignalMarker, SignalType, StrategyContext, Timeframe,
 };
 use trader_data::cache::CachedHistoricalDataProvider;
 use trader_execution::{ProcessorConfig, SignalProcessor, SimulatedExecutor};
 use trader_strategy::{Strategy, StrategyRegistry};
+use trader_analytics::backtest::CandleProcessor;
 
 use crate::state::AppState;
 
@@ -173,6 +174,14 @@ pub struct SimulationEngine {
     /// 최고 자산 (낙폭 계산용)
     peak_equity: Decimal,
 
+    // === 공통 캔들 처리 (BacktestEngine과 동일 로직) ===
+    /// StrategyContext (전략 지표 데이터)
+    context: Option<Arc<RwLock<StrategyContext>>>,
+    /// 캔들 프로세서 (공통 캔들 처리 로직)
+    candle_processor: Option<CandleProcessor>,
+    /// 메인 티커
+    ticker: Option<String>,
+
     // === 백그라운드 태스크 ===
     /// 실제 시작 시간
     pub started_at: Option<DateTime<Utc>>,
@@ -209,6 +218,9 @@ impl Default for SimulationEngine {
             commission_rate: dec!(0.001), // 0.1%
             slippage_rate: dec!(0.0005),  // 0.05%
             peak_equity: initial_balance,
+            context: None,
+            candle_processor: None,
+            ticker: None,
             started_at: None,
         }
     }
@@ -546,11 +558,18 @@ impl SimulationEngine {
 
         let _ = selected_timeframe; // 향후 사용 예정
 
-        // 5. 상태 초기화
+        // 5. StrategyContext 생성 및 전략에 주입 (BacktestEngine과 동일)
+        let context = Arc::new(RwLock::new(StrategyContext::default()));
+        strategy.set_context(context.clone());
+
+        // 6. 상태 초기화
         self.state = SimulationState::Running;
         self.strategy_id = Some(strategy_id.to_string());
         self.strategy = Some(strategy);
         self.initial_balance = initial_balance;
+        self.context = Some(context);
+        self.candle_processor = Some(CandleProcessor::new());
+        self.ticker = Some(symbol.clone());
         self.peak_equity = initial_balance;
         self.signal_markers.clear();
         self.equity_curve.clear();
@@ -580,14 +599,18 @@ impl SimulationEngine {
         Ok(())
     }
 
-    /// 다음 캔들 처리 (백테스트 엔진과 동일한 로직)
+    /// 다음 캔들 처리 (CandleProcessor를 통해 BacktestEngine과 동일한 로직 실행)
+    ///
+    /// CandleProcessor가 StrategyContext 업데이트, 시그널 생성, 포지션 동기화를 수행하여
+    /// BacktestEngine과 동일한 결과를 보장합니다.
     pub async fn process_next_candle(&mut self) -> Result<bool, String> {
         if self.state != SimulationState::Running {
             return Ok(false);
         }
 
         // 현재 캔들 가져오기
-        let kline = match self.klines.get(self.current_kline_index) {
+        let idx = self.current_kline_index;
+        let kline = match self.klines.get(idx) {
             Some(k) => k.clone(),
             None => return Ok(false), // 데이터 끝
         };
@@ -595,26 +618,48 @@ impl SimulationEngine {
         // 현재 시뮬레이션 시간 업데이트
         self.current_simulation_time = Some(kline.close_time);
 
-        // 전략에 데이터 전달 (백테스트와 동일)
-        let strategy = self
-            .strategy
-            .as_mut()
+        let exchange_name = "simulation";
+
+        // CandleProcessor, StrategyContext, Strategy 존재 확인
+        let context = self.context.as_ref()
+            .ok_or_else(|| "StrategyContext가 초기화되지 않았습니다".to_string())?
+            .clone();
+        let ticker = self.ticker.as_ref()
+            .ok_or_else(|| "티커가 설정되지 않았습니다".to_string())?
+            .clone();
+
+        // 1. StrategyContext 업데이트 + 시그널 생성 (공통 로직)
+        let candle_processor = self.candle_processor.as_mut()
+            .ok_or_else(|| "CandleProcessor가 초기화되지 않았습니다".to_string())?;
+
+        let historical_klines = &self.klines[..=idx];
+        let strategy = self.strategy.as_mut()
             .ok_or_else(|| "전략이 초기화되지 않았습니다".to_string())?;
 
-        let exchange_name = "simulation";
-        let market_data = MarketData::from_kline(exchange_name, kline.clone());
-
-        let signals = strategy
-            .on_market_data(&market_data)
+        let signals = candle_processor
+            .process_candle(idx, &kline, historical_klines, &context, &ticker, exchange_name, strategy.as_mut(), None)
             .await
-            .map_err(|e| format!("전략 실행 오류: {}", e))?;
+            .map_err(|e| format!("캔들 처리 오류: {}", e))?;
 
-        // 신호 처리 (executor에 위임)
-        for signal in signals {
-            self.process_signal(&signal, &kline).await?;
+        // 2. 시그널 처리 (Entry 먼저, Exit 나중에)
+        for signal in &signals.entry_signals {
+            self.process_signal(signal, &kline).await?;
+        }
+        for signal in &signals.exit_signals {
+            self.process_signal(signal, &kline).await?;
         }
 
-        // 자산 곡선 업데이트 (executor가 포지션 가격 관리)
+        // 3. 포지션 동기화 (공통 로직)
+        let candle_processor = self.candle_processor.as_ref()
+            .ok_or_else(|| "CandleProcessor가 초기화되지 않았습니다".to_string())?;
+        let strategy = self.strategy.as_mut()
+            .ok_or_else(|| "전략이 초기화되지 않았습니다".to_string())?;
+        candle_processor
+            .sync_positions(strategy.as_mut(), self.executor.positions(), &kline, exchange_name, &ticker)
+            .await
+            .map_err(|e| format!("포지션 동기화 오류: {}", e))?;
+
+        // 4. 자산 곡선 업데이트
         self.update_equity_curve(&kline);
 
         // 다음 캔들로 이동

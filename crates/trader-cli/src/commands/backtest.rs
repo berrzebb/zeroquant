@@ -488,7 +488,7 @@ async fn run_strategy_backtest(
     klines: &[Kline],
     params: &serde_json::Value,
 ) -> Result<BacktestReport> {
-    // StrategyContext 기반 전략은 run_with_context() 사용
+    // StrategyContext 기반 전략은 run() 사용
     let ticker = params.get("ticker")
         .and_then(|v| v.as_str())
         .unwrap_or_else(|| klines.first().map(|k| k.ticker.as_str()).unwrap_or("UNKNOWN"));
@@ -510,9 +510,10 @@ async fn run_strategy_backtest(
                 .initialize(params.clone())
                 .await
                 .map_err(|e| anyhow!("Failed to initialize strategy: {}", e))?;
+            strategy.set_context(context.clone());
             let mut engine = BacktestEngine::new(backtest_config);
             engine
-                .run(&mut strategy, klines)
+                .run(&mut strategy, klines, context, ticker, None)
                 .await
                 .map_err(|e| anyhow!("Backtest failed: {}", e))
         }
@@ -526,7 +527,7 @@ async fn run_strategy_backtest(
             strategy.set_context(context.clone());
             let mut engine = BacktestEngine::new(backtest_config);
             engine
-                .run_with_context(&mut strategy, klines, context, ticker, None)
+                .run(&mut strategy, klines, context, ticker, None)
                 .await
                 .map_err(|e| anyhow!("Backtest failed: {}", e))
         }
@@ -540,7 +541,7 @@ async fn run_strategy_backtest(
             strategy.set_context(context.clone());
             let mut engine = BacktestEngine::new(backtest_config);
             engine
-                .run_with_context(&mut strategy, klines, context, ticker, None)
+                .run(&mut strategy, klines, context, ticker, None)
                 .await
                 .map_err(|e| anyhow!("Backtest failed: {}", e))
         }
@@ -554,7 +555,7 @@ async fn run_strategy_backtest(
             strategy.set_context(context.clone());
             let mut engine = BacktestEngine::new(backtest_config);
             engine
-                .run_with_context(&mut strategy, klines, context, ticker, None)
+                .run(&mut strategy, klines, context, ticker, None)
                 .await
                 .map_err(|e| anyhow!("Backtest failed: {}", e))
         }
@@ -564,9 +565,10 @@ async fn run_strategy_backtest(
                 .initialize(params.clone())
                 .await
                 .map_err(|e| anyhow!("Failed to initialize strategy: {}", e))?;
+            strategy.set_context(context.clone());
             let mut engine = BacktestEngine::new(backtest_config);
             engine
-                .run(&mut strategy, klines)
+                .run(&mut strategy, klines, context, ticker, None)
                 .await
                 .map_err(|e| anyhow!("Backtest failed: {}", e))
         }
@@ -576,67 +578,23 @@ async fn run_strategy_backtest(
                 .initialize(params.clone())
                 .await
                 .map_err(|e| anyhow!("Failed to initialize strategy: {}", e))?;
+            strategy.set_context(context.clone());
             let mut engine = BacktestEngine::new(backtest_config);
             engine
-                .run(&mut strategy, klines)
+                .run(&mut strategy, klines, context, ticker, None)
                 .await
                 .map_err(|e| anyhow!("Backtest failed: {}", e))
         }
-        StrategyType::CompoundMomentum => {
-            let mut strategy = CompoundMomentumStrategy::new();
-            strategy
-                .initialize(params.clone())
-                .await
-                .map_err(|e| anyhow!("Failed to initialize strategy: {}", e))?;
-            let mut engine = BacktestEngine::new(backtest_config);
-            engine
-                .run(&mut strategy, klines)
-                .await
-                .map_err(|e| anyhow!("Backtest failed: {}", e))
-        }
-        StrategyType::Haa => {
-            let mut strategy = AssetAllocationStrategy::haa();
-            strategy
-                .initialize(params.clone())
-                .await
-                .map_err(|e| anyhow!("Failed to initialize strategy: {}", e))?;
-            let mut engine = BacktestEngine::new(backtest_config);
-            engine
-                .run(&mut strategy, klines)
-                .await
-                .map_err(|e| anyhow!("Backtest failed: {}", e))
-        }
-        StrategyType::Xaa => {
-            let mut strategy = AssetAllocationStrategy::xaa();
-            strategy
-                .initialize(params.clone())
-                .await
-                .map_err(|e| anyhow!("Failed to initialize strategy: {}", e))?;
-            let mut engine = BacktestEngine::new(backtest_config);
-            engine
-                .run(&mut strategy, klines)
-                .await
-                .map_err(|e| anyhow!("Backtest failed: {}", e))
-        }
-        StrategyType::StockRotation => {
-            let mut strategy = RotationStrategy::stock_rotation();
-            strategy
-                .initialize(params.clone())
-                .await
-                .map_err(|e| anyhow!("Failed to initialize strategy: {}", e))?;
-            let mut engine = BacktestEngine::new(backtest_config);
-            engine
-                .run(&mut strategy, klines)
-                .await
-                .map_err(|e| anyhow!("Backtest failed: {}", e))
-        }
+        // CompoundMomentum, HAA, XAA, StockRotation은 is_multi_asset_strategy()로
+        // run_multi_asset_backtest()에서 처리됨 (여기 도달 불가)
+        _ => unreachable!("멀티 자산 전략은 run_multi_asset_backtest()에서 처리됩니다"),
     }
 }
 
 /// 멀티 자산 전략 백테스트 실행
 ///
 /// CompoundMomentum, HAA, XAA, StockRotation 등 여러 심볼 데이터가 필요한 전략용.
-/// StrategyContext에 모든 심볼의 klines를 등록한 후 run_with_context()를 호출합니다.
+/// StrategyContext에 모든 심볼의 klines를 등록한 후 run()를 호출합니다.
 async fn run_multi_asset_backtest(
     strategy_type: StrategyType,
     backtest_config: BacktestConfig,
@@ -704,7 +662,7 @@ async fn run_multi_asset_backtest(
                 .unwrap_or("TQQQ");
 
             engine
-                .run_with_context(&mut strategy, main_klines, context, ticker, None)
+                .run(&mut strategy, main_klines, context, ticker, None)
                 .await
                 .map_err(|e| anyhow!("CompoundMomentum backtest failed: {}", e))
         }
@@ -719,7 +677,7 @@ async fn run_multi_asset_backtest(
             // HAA는 SPY를 주 티커로 사용
             let ticker = "SPY";
             engine
-                .run_with_context(&mut strategy, main_klines, context, ticker, None)
+                .run(&mut strategy, main_klines, context, ticker, None)
                 .await
                 .map_err(|e| anyhow!("HAA backtest failed: {}", e))
         }
@@ -734,7 +692,7 @@ async fn run_multi_asset_backtest(
             // XAA도 SPY를 주 티커로 사용
             let ticker = "SPY";
             engine
-                .run_with_context(&mut strategy, main_klines, context, ticker, None)
+                .run(&mut strategy, main_klines, context, ticker, None)
                 .await
                 .map_err(|e| anyhow!("XAA backtest failed: {}", e))
         }
@@ -748,7 +706,7 @@ async fn run_multi_asset_backtest(
 
             // 종목 로테이션: 첫 번째 심볼을 주 티커로
             engine
-                .run_with_context(&mut strategy, main_klines, context, main_ticker, None)
+                .run(&mut strategy, main_klines, context, main_ticker, None)
                 .await
                 .map_err(|e| anyhow!("StockRotation backtest failed: {}", e))
         }

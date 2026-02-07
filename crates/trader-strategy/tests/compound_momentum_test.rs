@@ -1,4 +1,4 @@
-//! CompoundMomentum (Simple Power) 전략 통합 테스트.
+//! CompoundMomentum 전략 통합 테스트.
 //!
 //! TQQQ/SCHD/PFIX/TMF 기반 모멘텀 자산배분 전략의 핵심 로직 검증:
 //! 1. MA130 기반 모멘텀 필터 (전일종가 vs MA, MA 추세)
@@ -136,7 +136,7 @@ mod initialize_tests {
 
         let result = strategy.initialize(config).await;
         assert!(result.is_ok());
-        assert_eq!(strategy.name(), "Simple Power");
+        assert_eq!(strategy.name(), "CompoundMomentum");
     }
 
     #[tokio::test]
@@ -489,7 +489,7 @@ mod get_state_tests {
         let strategy = CompoundMomentumStrategy::new();
         let state = strategy.get_state();
 
-        assert_eq!(state["name"], "Simple Power");
+        assert_eq!(state["name"], "CompoundMomentum");
         assert_eq!(state["version"], "2.0.0");
     }
 

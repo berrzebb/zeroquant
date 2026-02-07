@@ -72,8 +72,9 @@ pub use symbol_fundamental::{
     SymbolWithFundamental,
 };
 pub use symbol_info::{
-    DeactivatedStats, ExternalFetchError, FailedSymbolInfo, FetchFailureResult, NewSymbolInfo,
-    SymbolInfo, SymbolInfoRepository, SymbolSearchResult, MAX_FETCH_FAILURES,
+    CascadeDeleteResult, DeactivatedStats, ExternalFetchError, FailedSymbolInfo,
+    FetchFailureResult, NewSymbolInfo, SymbolInfo, SymbolInfoRepository, SymbolSearchResult,
+    MAX_FETCH_FAILURES,
 };
 
 pub use global_score::{

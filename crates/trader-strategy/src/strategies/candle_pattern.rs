@@ -1040,6 +1040,10 @@ impl Strategy for CandlePatternStrategy {
         self.context = Some(context);
         info!("StrategyContext injected into CandlePattern strategy");
     }
+
+    fn exit_config(&self) -> Option<&ExitConfig> {
+        self.config.as_ref().map(|c| &c.exit_config)
+    }
 }
 
 #[cfg(test)]

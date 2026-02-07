@@ -645,6 +645,10 @@ impl Strategy for MomentumPowerStrategy {
         debug!("StrategyContext 주입 완료");
     }
 
+    fn exit_config(&self) -> Option<&ExitConfig> {
+        self.config.as_ref().map(|c| &c.exit_config)
+    }
+
     fn get_state(&self) -> Value {
         let config = self.config.as_ref();
         let tip_klines_count = config.map(|c| {

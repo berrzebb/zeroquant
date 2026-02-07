@@ -311,6 +311,39 @@ impl CachedHistoricalDataProvider {
         Ok(klines)
     }
 
+    /// 여러 심볼의 캔들 데이터 배치 조회 (읽기 전용).
+    ///
+    /// 스크리닝 등 대량 심볼 조회에 최적화된 메서드입니다.
+    /// N개의 개별 쿼리 대신 단일 배치 SQL 쿼리를 사용하여
+    /// DB 커넥션 풀 고갈을 방지합니다.
+    ///
+    /// **주의**: 심볼 해석(resolve_symbol)과 Redis 캐시를 생략합니다.
+    /// 입력 심볼이 이미 DB ticker 형식이어야 합니다 (스크리닝 결과의 ticker).
+    ///
+    /// # 인자
+    /// - `symbols`: canonical 심볼 목록 (symbol_info.ticker 형식)
+    /// - `timeframe`: 타임프레임
+    /// - `limit`: 심볼당 최대 캔들 수
+    ///
+    /// # 반환
+    /// 심볼별 캔들 데이터 (시간순 정렬)
+    pub async fn get_klines_batch_readonly(
+        &self,
+        symbols: &[String],
+        timeframe: Timeframe,
+        limit: usize,
+    ) -> Result<std::collections::HashMap<String, Vec<Kline>>> {
+        if symbols.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+
+        // Redis 스킵, symbol resolution 스킵 — 직접 PostgreSQL 배치 조회
+        // 스크리닝에서 전달되는 심볼은 이미 symbol_info.ticker 형식
+        self.cache
+            .get_cached_klines_batch(symbols, timeframe, limit)
+            .await
+    }
+
     /// 심볼 정보 조회.
     ///
     /// DB의 symbol_info 테이블에서 조회:

@@ -1034,6 +1034,10 @@ impl Strategy for Us3xLeverageStrategy {
         self.context = Some(context);
         info!("StrategyContext injected into Us3xLeverage v2.0 strategy");
     }
+
+    fn exit_config(&self) -> Option<&ExitConfig> {
+        self.config.as_ref().map(|c| &c.exit_config)
+    }
 }
 
 // ============================================================================

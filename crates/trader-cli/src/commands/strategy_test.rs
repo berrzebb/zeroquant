@@ -453,7 +453,7 @@ pub async fn run_strategy_test(config: StrategyTestConfig) -> Result<TestResult>
         }
     }
 
-    // 백테스트 실행 (run_with_context 사용)
+    // 백테스트 실행 (run 사용)
     // 각 캔들 시점마다 StructuralFeatures를 계산하여 StrategyContext에 업데이트
     let backtest_config = create_backtest_config_for_strategy(
         &config.strategy_id,
@@ -471,7 +471,7 @@ pub async fn run_strategy_test(config: StrategyTestConfig) -> Result<TestResult>
     }
 
     let report = engine
-        .run_with_context(&mut *strategy, &klines, context.clone(), &ticker, screening_provider.as_ref().map(|p| p as &dyn trader_core::ScreeningCalculator))
+        .run(&mut *strategy, &klines, context.clone(), &ticker, screening_provider.as_ref().map(|p| p as &dyn trader_core::ScreeningCalculator))
         .await
         .map_err(|e| {
             diagnostics.push(format!("❌ 백테스트 실행 실패: {}", e));
@@ -1230,7 +1230,7 @@ pub fn generate_charts_from_results(results: &[RegressionTestResult], output_dir
     let generator = RegressionChartGenerator::new();
     let mut generated_count = 0;
 
-    for (strategy_id, _name, report) in &chart_data {
+    for (strategy_id, name, report) in &chart_data {
         if report.equity_curve.is_empty() {
             println!("  ⚠️  {} - 자산 곡선 데이터 없음 (차트 생략)", strategy_id);
             continue;
@@ -1251,7 +1251,7 @@ pub fn generate_charts_from_results(results: &[RegressionTestResult], output_dir
 
         // panic catch로 차트 생성 (plotters 오버플로우 방지)
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            generator.generate_combined_chart(report, strategy_id, &output_path)
+            generator.generate_combined_chart(report, name, &output_path)
         }));
 
         match result {
@@ -1549,7 +1549,7 @@ async fn run_strategy_test_quiet(config: StrategyTestConfig) -> Result<TestResul
     let screening_provider = create_screening_provider_for_strategy(&config.strategy_id);
 
     let report = engine
-        .run_with_context(&mut *strategy, &klines, context.clone(), &ticker, screening_provider.as_ref().map(|p| p as &dyn trader_core::ScreeningCalculator))
+        .run(&mut *strategy, &klines, context.clone(), &ticker, screening_provider.as_ref().map(|p| p as &dyn trader_core::ScreeningCalculator))
         .await
         .map_err(|e| anyhow!("백테스트 실행 실패: {}", e))?;
 

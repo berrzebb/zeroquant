@@ -45,11 +45,11 @@ use crate::strategies::common::{adjust_strength_by_score, ExitConfig};
 use crate::traits::Strategy;
 use trader_core::{MarketData, Order, Position, Side, Signal, SignalType};
 
-/// Simple Power 전략 설정.
+/// CompoundMomentum 전략 설정.
 #[derive(Debug, Clone, Serialize, Deserialize, StrategyConfig)]
 #[strategy(
     id = "compound_momentum",
-    name = "Simple Power",
+    name = "CompoundMomentum",
     description = "TQQQ/SCHD/PFIX/TMF 기반 모멘텀 자산배분 전략",
     category = "Monthly"
 )]
@@ -286,7 +286,7 @@ impl Default for AssetMomentumState {
     }
 }
 
-/// Simple Power 전략.
+/// CompoundMomentum 전략.
 pub struct CompoundMomentumStrategy {
     config: Option<CompoundMomentumConfig>,
     /// StrategyContext (RouteState, GlobalScore, Klines 조회용)
@@ -662,7 +662,7 @@ impl CompoundMomentumStrategy {
         if !signals.is_empty() {
             self.last_rebalance_ym =
                 Some(format!("{}_{}", current_time.year(), current_time.month()));
-            info!("Simple Power 리밸런싱 완료: {} 주문 생성", signals.len());
+            info!("CompoundMomentum 리밸런싱 완료: {} 주문 생성", signals.len());
         }
 
         signals
@@ -678,7 +678,7 @@ impl Default for CompoundMomentumStrategy {
 #[async_trait]
 impl Strategy for CompoundMomentumStrategy {
     fn name(&self) -> &str {
-        "Simple Power"
+        "CompoundMomentum"
     }
 
     fn version(&self) -> &str {
@@ -711,12 +711,12 @@ impl Strategy for CompoundMomentumStrategy {
             
             if let Some(capital_dec) = capital_opt {
                 self.cash_balance = capital_dec;
-                info!("[Simple Power] 초기 자본금 설정: {}", capital_dec);
+                info!("[CompoundMomentum] 초기 자본금 설정: {}", capital_dec);
             }
         }
 
         info!(
-            "[Simple Power] 전략 초기화 - 시장: {:?}, 자산: {:?}, 초기자본: {}",
+            "[CompoundMomentum] 전략 초기화 - 시장: {:?}, 자산: {:?}, 초기자본: {}",
             parsed_config.market,
             parsed_config.all_assets(),
             self.cash_balance
@@ -758,7 +758,7 @@ impl Strategy for CompoundMomentumStrategy {
         order: &Order,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!(
-            "[Simple Power] 주문 체결: {:?} {} {} @ {:?}",
+            "[CompoundMomentum] 주문 체결: {:?} {} {} @ {:?}",
             order.side, order.quantity, order.ticker, order.average_fill_price
         );
         Ok(())
@@ -771,14 +771,14 @@ impl Strategy for CompoundMomentumStrategy {
         let ticker = position.ticker.clone();
         self.positions.insert(ticker.clone(), position.quantity);
         info!(
-            "[Simple Power] 포지션 업데이트: {} = {} (PnL: {})",
+            "[CompoundMomentum] 포지션 업데이트: {} = {} (PnL: {})",
             ticker, position.quantity, position.unrealized_pnl
         );
         Ok(())
     }
 
     async fn shutdown(&mut self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("[Simple Power] 전략 종료");
+        info!("[CompoundMomentum] 전략 종료");
         Ok(())
     }
 
@@ -814,7 +814,11 @@ impl Strategy for CompoundMomentumStrategy {
 
     fn set_context(&mut self, context: Arc<RwLock<StrategyContext>>) {
         self.context = Some(context);
-        info!("StrategyContext injected into Simple Power strategy");
+        info!("StrategyContext injected into CompoundMomentum strategy");
+    }
+
+    fn exit_config(&self) -> Option<&ExitConfig> {
+        self.config.as_ref().map(|c| &c.exit_config)
     }
 }
 
@@ -864,7 +868,7 @@ mod tests {
     #[test]
     fn test_strategy_creation() {
         let strategy = CompoundMomentumStrategy::new();
-        assert_eq!(strategy.name(), "Simple Power");
+        assert_eq!(strategy.name(), "CompoundMomentum");
         assert_eq!(strategy.version(), "2.0.0");
     }
 
@@ -920,7 +924,7 @@ mod tests {
         let strategy = CompoundMomentumStrategy::new();
         let state = strategy.get_state();
 
-        assert_eq!(state["name"], "Simple Power");
+        assert_eq!(state["name"], "CompoundMomentum");
         assert_eq!(state["version"], "2.0.0");
     }
 }

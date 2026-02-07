@@ -59,6 +59,7 @@ trader migrate consolidate --output migrations_v2
 | 07 | performance_optimization | 인덱스, MV(screening, sector_rs), Hypertable |
 | 08 | paper_trading | Mock 거래소, 전략-계정 연결, Paper Trading 세션 |
 | 09 | strategy_watched_tickers | 전략별 관심 종목, Collector 우선순위 연동 |
+| 10 | symbol_cascade | Symbol 연쇄 삭제 + 고아 데이터 정리 DB 함수 |
 
 ### 의존성 그래프 (graph)
 

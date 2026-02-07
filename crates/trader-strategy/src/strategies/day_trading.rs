@@ -1630,6 +1630,8 @@ impl Strategy for DayTradingStrategy {
         self.context = Some(context);
         info!("StrategyContext injected into DayTrading strategy");
     }
+
+    // DayTrading은 자체 ExitConfig 구조체를 사용하므로 trait 기본값(None) 사용
 }
 
 // ============================================================================

@@ -38,23 +38,15 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
-use tracing::debug;
 use trader_core::{
-    unrealized_pnl, Kline, MarketData, Position, RouteState, ScreeningCalculator, Side, Signal, SignalMarker, SignalType, StrategyContext, Trade, Timeframe,
+    unrealized_pnl, Kline, MarketData, ScreeningCalculator, Side, Signal, SignalMarker, SignalType, StrategyContext, Trade,
 };
 use uuid::Uuid;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use crate::{
-    IndicatorEngine,
-    StructuralFeaturesCalculator,
-    RouteStateCalculator,
-    GlobalScorer,
-    GlobalScorerParams,
-};
-use trader_core::MarketType;
 
 use crate::backtest::slippage::SlippageModel;
+use crate::backtest::candle_processor::CandleProcessor;
 use crate::performance::{EquityPoint, PerformanceMetrics, PerformanceTracker, RoundTrip};
 use trader_execution::{ProcessorConfig, SignalProcessor, SimulatedExecutor, TradeResult};
 
@@ -524,123 +516,6 @@ impl BacktestEngine {
         self.executor.total_orders()
     }
 
-    /// 캔들 데이터로 백테스트를 실행합니다.
-    ///
-    /// # 매개변수
-    ///
-    /// * `strategy` - 테스트할 전략 (Strategy trait 구현체)
-    /// * `klines` - 과거 캔들 데이터 (시간순 정렬 필수)
-    ///
-    /// # 반환값
-    ///
-    /// 백테스트 결과 리포트
-    pub async fn run<S>(
-        &mut self,
-        strategy: &mut S,
-        klines: &[Kline],
-    ) -> BacktestResult<BacktestReport>
-    where
-        S: trader_strategy::Strategy + ?Sized,
-    {
-        // 설정 검증
-        self.config.validate()?;
-
-        if klines.is_empty() {
-            return Err(BacktestError::DataError(
-                "캔들 데이터가 비어있습니다".to_string(),
-            ));
-        }
-
-        // 시간순 정렬 확인
-        for window in klines.windows(2) {
-            if window[0].open_time > window[1].open_time {
-                return Err(BacktestError::DataError(
-                    "캔들 데이터가 시간순으로 정렬되어 있지 않습니다".to_string(),
-                ));
-            }
-        }
-
-        let start_time = klines.first().unwrap().open_time;
-        let end_time = klines.last().unwrap().close_time;
-        let data_points = klines.len();
-
-        // 백테스트 시작 시간으로 equity curve 초기 timestamp 설정
-        // (Utc::now() 대신 실제 백테스트 시작 시간 사용)
-        self.tracker.set_initial_timestamp(start_time);
-
-        // 각 캔들에 대해 시뮬레이션
-        // 중요: Look-Ahead Bias 방지를 위해 캔들 완성 후 신호 생성
-        for kline in klines {
-            // 캔들 완성 시점으로 현재 시간 설정 (데이터 누수 방지)
-            self.current_time = kline.close_time;
-            self.current_prices
-                .insert(kline.ticker.to_string(), kline.close);
-
-            // 시장 데이터 생성 (완성된 캔들 정보 사용)
-            let market_data = MarketData::from_kline(&self.config.exchange_name, kline.clone());
-
-            // 전략에 데이터 전달 (캔들 완성 후 신호 생성)
-            let signals = strategy
-                .on_market_data(&market_data)
-                .await
-                .map_err(|e| BacktestError::StrategyError(e.to_string()))?;
-
-            // 신호 처리 (다음 틱에서 체결된다고 가정)
-            // Entry/AddToPosition 신호를 먼저 처리하고, Exit/ReducePosition은 나중에 처리
-            // (같은 캔들에서 매수/매도가 동시에 발생할 때 순서 보장)
-            let (entry_signals, exit_signals): (Vec<_>, Vec<_>) = signals.into_iter().partition(|s| {
-                matches!(s.signal_type, SignalType::Entry | SignalType::AddToPosition | SignalType::Scale)
-            });
-
-            for signal in entry_signals {
-                self.process_signal(&signal, kline).await?;
-            }
-            for signal in exit_signals {
-                self.process_signal(&signal, kline).await?;
-            }
-
-            // 미실현 손익 반영하여 자산 업데이트
-            let equity = self.calculate_equity(kline);
-            self.tracker.update_equity(kline.close_time, equity);
-        }
-
-        // 미청산 포지션 강제 청산
-        let last_kline = klines.last().unwrap();
-        self.close_all_positions(last_kline).await?;
-
-        // 강제 청산 후 최종 자산 업데이트 (실현 손익 반영)
-        let final_equity = self.calculate_equity(last_kline);
-        self.tracker.update_equity(last_kline.close_time, final_equity);
-
-        // 심볼별 성과 계산
-        let performance_by_symbol = self.calculate_performance_by_symbol();
-
-        // 결과 생성
-        // PerformanceMetrics는 완료된 거래(RoundTrip) 기준으로 계산
-        // MDD는 equity curve 기반으로 교체
-        let mut metrics = self.tracker.get_metrics();
-        metrics.max_drawdown_pct = self.tracker.max_drawdown_pct();
-
-        let symbol = klines.first().map(|k| k.ticker.clone()).unwrap_or_default();
-        Ok(BacktestReport {
-            config: self.config.clone(),
-            metrics,
-            trades: self.tracker.get_round_trips().to_vec(),
-            equity_curve: self.tracker.get_equity_curve().to_vec(),
-            total_orders: self.total_orders(),
-            total_commission: self.total_commission(),
-            total_slippage: self.total_slippage,
-            start_time,
-            end_time,
-            data_points,
-            performance_by_symbol,
-            signal_markers: self.signal_markers.clone(),
-            klines: klines.to_vec(),
-            symbol,
-            all_trades: self.executor.trades().to_vec(),
-        })
-    }
-
     /// StrategyContext 연동 백테스트 실행.
     ///
     /// 각 캔들 시점마다 StructuralFeatures를 재계산하여 StrategyContext에 업데이트합니다.
@@ -660,7 +535,7 @@ impl BacktestEngine {
     /// * `context` - StrategyContext (지표 데이터 업데이트 대상, 다중 심볼 klines 포함)
     /// * `ticker` - 메인 종목 티커
     /// * `screening_calculator` - 스크리닝 계산기 (동적 유니버스 전략용, None이면 스크리닝 비활성화)
-    pub async fn run_with_context<S>(
+    pub async fn run<S>(
         &mut self,
         strategy: &mut S,
         klines: &[Kline],
@@ -696,348 +571,41 @@ impl BacktestEngine {
         // 백테스트 시작 시간으로 equity curve 초기 timestamp 설정
         self.tracker.set_initial_timestamp(start_time);
 
-        // 최소 지표 계산에 필요한 캔들 수 (StructuralFeaturesCalculator는 40개 필요)
-        const MIN_CANDLES_FOR_INDICATORS: usize = 40;
+        // 공통 캔들 프로세서 (SimulationEngine과 동일한 로직 공유)
+        let mut candle_processor = CandleProcessor::new();
+        let exchange_name = self.config.exchange_name.clone();
 
         // 각 캔들에 대해 시뮬레이션
         for (idx, kline) in klines.iter().enumerate() {
-            self.current_time = kline.close_time;
-            self.current_prices
-                .insert(kline.ticker.to_string(), kline.close);
+            // 1. StrategyContext 업데이트 (공통: 지표, klines, 스크리닝)
+            let historical_klines = &klines[..=idx];
+            candle_processor.update_context(
+                idx, kline, historical_klines, &context, ticker, screening_calculator,
+            ).await?;
 
-            // 멀티 자산 전략 지원: StrategyContext에 등록된 모든 심볼의 klines 업데이트
-            // 호출 전에 StrategyContext.update_klines()로 모든 심볼의 klines를 등록해야 함
-            {
-                // StrategyContext에서 등록된 심볼 목록 가져오기
-                let symbols: Vec<String> = {
-                    let ctx_read = context.read().await;
-                    ctx_read.klines_by_timeframe.keys().filter(|s| *s != ticker).cloned().collect()
-                };
+            // 가격/시간 동기화 (BacktestEngine 내부 메서드용)
+            self.current_time = candle_processor.current_time();
+            self.current_prices.clone_from(candle_processor.current_prices());
 
-                for symbol in symbols {
-                    // 해당 심볼의 현재 시점까지 klines 필터링
-                    let symbol_klines: Vec<Kline> = {
-                        let ctx_read = context.read().await;
-                        ctx_read.klines_by_timeframe
-                            .get(&symbol)
-                            .and_then(|tf_map| tf_map.get(&Timeframe::D1))
-                            .map(|klines| {
-                                klines.iter()
-                                    .filter(|k| k.close_time <= self.current_time)
-                                    .cloned()
-                                    .collect()
-                            })
-                            .unwrap_or_default()
-                    };
+            // 2. 시그널 생성 (공통: 멀티 심볼/멀티 TF + Entry/Exit 파티셔닝)
+            let signals = candle_processor.generate_signals(
+                strategy, kline, &context, ticker, &exchange_name,
+            ).await?;
 
-                    // 현재 가격 업데이트
-                    if let Some(current_kline) = symbol_klines.last() {
-                        self.current_prices.insert(symbol.clone(), current_kline.close);
-                    }
-
-                    // 충분한 데이터가 있을 때만 지표 계산 및 klines 업데이트
-                    if symbol_klines.len() >= MIN_CANDLES_FOR_INDICATORS {
-                        let mut ctx_write = context.write().await;
-
-                        // 현재 시점까지의 klines로 업데이트 (다중 심볼 전략이 context.get_klines()로 접근)
-                        ctx_write.update_klines(&symbol, Timeframe::D1, symbol_klines.clone());
-
-                        // RouteState 계산 - 백테스트에서는 Armed로 설정
-                        ctx_write.route_states.insert(symbol.clone(), RouteState::Armed);
-
-                        // GlobalScore 계산 (실제 캔들 데이터 기반)
-                        let scorer = GlobalScorer::new();
-                        let params = GlobalScorerParams {
-                            symbol: Some(symbol.clone()),
-                            market_type: Some(MarketType::Stock),
-                            ..Default::default()
-                        };
-                        if let Ok(mut score) = scorer.calculate(&symbol_klines, params) {
-                            // 백테스트에서는 필터 우회를 위해 80점으로 설정
-                            score.overall_score = rust_decimal_macros::dec!(80);
-                            ctx_write.global_scores.insert(symbol.clone(), score);
-                        }
-                    }
-                }
+            // 3. 시그널 처리 (BacktestEngine 고유: PerformanceTracker/SignalMarker 기록)
+            for signal in &signals.entry_signals {
+                self.process_signal(signal, kline).await?;
+            }
+            for signal in &signals.exit_signals {
+                self.process_signal(signal, kline).await?;
             }
 
-            // 현재 시점까지의 캔들로 지표 계산 및 업데이트
-            // (StructuralFeatures, RouteState, GlobalScore)
-            if idx >= MIN_CANDLES_FOR_INDICATORS {
-                let historical_klines = &klines[..=idx];
-                let indicator_engine = IndicatorEngine::new();
+            // 4. 포지션 동기화 (공통: 전략에 현재 포지션 상태 알림)
+            candle_processor.sync_positions(
+                strategy, self.executor.positions(), kline, &exchange_name, ticker,
+            ).await?;
 
-                // 1. StructuralFeatures 계산
-                let features_result = StructuralFeaturesCalculator::from_candles(ticker, historical_klines, &indicator_engine);
-                let features_opt = features_result.ok();
-                
-                // 디버그: 첫 계산 시 로그 출력
-                if idx == MIN_CANDLES_FOR_INDICATORS {
-                    match StructuralFeaturesCalculator::from_candles(ticker, historical_klines, &indicator_engine) {
-                        Ok(f) => debug!(
-                            ticker = %ticker,
-                            bb_lower = %f.bb_lower,
-                            bb_middle = %f.bb_middle,
-                            bb_upper = %f.bb_upper,
-                            bb_width = %f.bb_width,
-                            "StructuralFeatures 계산 성공"
-                        ),
-                        Err(e) => debug!(ticker = %ticker, error = %e, "StructuralFeatures 계산 실패"),
-                    }
-                }
-
-                // 2. RouteState 계산
-                let _route_state_opt = {
-                    let calculator = RouteStateCalculator::new();
-                    calculator.calculate(historical_klines).ok()
-                };
-
-                // 3. GlobalScore 계산 (structural_features는 내부에서 계산)
-                let global_score_opt = {
-                    let scorer = GlobalScorer::new();
-                    let params = GlobalScorerParams {
-                        symbol: Some(ticker.to_string()),
-                        market_type: Some(MarketType::Stock),
-                        ..Default::default()
-                    };
-                    scorer.calculate(historical_klines, params).ok()
-                };
-
-                // StrategyContext에 업데이트
-                {
-                    let mut ctx_write = context.write().await;
-
-                    // StructuralFeatures 업데이트
-                    if let Some(features) = features_opt {
-                        ctx_write.structural_features.insert(ticker.to_string(), features);
-                    }
-
-                    // RouteState 업데이트 - 백테스트에서는 Armed로 강제 설정
-                    // 테스트 목적: 전략 로직 자체를 검증하기 위해 RouteState 필터 우회
-                    // 실제 계산된 값 대신 Armed로 설정하여 진입 조건만 검증
-                    ctx_write.route_states.insert(ticker.to_string(), RouteState::Armed);
-
-                    // GlobalScore 업데이트 - 백테스트에서는 높은 점수로 강제 설정
-                    // 테스트 목적: 전략 로직 자체를 검증하기 위해 GlobalScore 필터 우회
-                    if let Some(mut score) = global_score_opt {
-                        // 원래 점수 대신 80점으로 설정하여 필터 통과
-                        score.overall_score = rust_decimal_macros::dec!(80);
-                        ctx_write.global_scores.insert(ticker.to_string(), score);
-                    }
-
-                    // klines 업데이트 (현재 시점까지만)
-                    ctx_write.update_klines(ticker, Timeframe::D1, historical_klines.to_vec());
-                }
-            }
-
-            // =========================================================================
-            // 스크리닝 파이프라인 (동적 유니버스 전략 지원)
-            // =========================================================================
-            if let Some(screening_calc) = screening_calculator {
-                // 스크리닝 업데이트 조건 체크
-                let last_screening_update = {
-                    let ctx_read = context.read().await;
-                    if ctx_read.screening_results.contains_key(&screening_calc.config().preset_name) {
-                        Some(ctx_read.last_analytics_sync)
-                    } else {
-                        None
-                    }
-                };
-
-                // ScreeningCalculator trait 메서드 사용
-                let should_update = screening_calc.should_update(
-                    idx,
-                    kline.close_time,
-                    last_screening_update,
-                );
-
-                if should_update {
-                    // 모든 심볼의 현재 시점까지 klines 수집
-                    let all_klines: HashMap<String, Vec<Kline>> = {
-                        let ctx_read = context.read().await;
-                        ctx_read
-                            .klines_by_timeframe
-                            .iter()
-                            .filter_map(|(symbol, tf_map)| {
-                                tf_map.get(&Timeframe::D1).map(|klines| {
-                                    let filtered: Vec<_> = klines
-                                        .iter()
-                                        .filter(|k| k.close_time <= self.current_time)
-                                        .cloned()
-                                        .collect();
-                                    (symbol.clone(), filtered)
-                                })
-                            })
-                            .collect()
-                    };
-
-                    debug!(
-                        symbols_count = all_klines.len(),
-                        preset = %screening_calc.config().preset_name,
-                        idx = idx,
-                        "스크리닝 계산 시작: {} 심볼",
-                        all_klines.len()
-                    );
-
-                    // ScreeningCalculator trait 메서드로 스크리닝 결과 계산
-                    let screening_results = screening_calc.calculate_from_klines(
-                        &all_klines,
-                        self.current_time,
-                    );
-
-                    let results_count = screening_results.len();
-
-                    // StrategyContext 업데이트
-                    {
-                        let mut ctx_write = context.write().await;
-                        ctx_write.update_screening(screening_calc.config().preset_name.clone(), screening_results);
-                    }
-
-                    debug!(
-                        preset = %screening_calc.config().preset_name,
-                        time = %self.current_time,
-                        results_count = results_count,
-                        "스크리닝 결과 업데이트 완료: {} 개 결과",
-                        results_count
-                    );
-                }
-            }
-
-            // 멀티 자산 전략 지원: 모든 심볼에 대해 MarketData 전달
-            // (로테이션, 자산배분 전략은 유니버스의 각 심볼에 대한 데이터가 필요)
-            let mut all_signals = Vec::new();
-
-            // 1. 주 심볼의 시장 데이터 전달
-            let market_data = MarketData::from_kline(&self.config.exchange_name, kline.clone());
-            
-            // 멀티 타임프레임 전략 지원 체크
-            let is_multi_tf = strategy.multi_timeframe_config().is_some();
-            
-            let signals = if is_multi_tf {
-                // 멀티 타임프레임 전략: Secondary 데이터 수집 및 정렬
-                let secondary_data: HashMap<Timeframe, Vec<Kline>> = {
-                    let ctx_read = context.read().await;
-                    let mut result = HashMap::new();
-                    
-                    // 주 심볼의 다른 타임프레임 데이터 수집
-                    if let Some(tf_map) = ctx_read.klines_by_timeframe.get(ticker) {
-                        for (&tf, tf_klines) in tf_map.iter() {
-                            // D1은 primary로 처리되므로 secondary에서 제외 가능
-                            // 하지만 전략에 따라 D1도 secondary로 필요할 수 있음
-                            result.insert(tf, tf_klines.clone());
-                        }
-                    }
-                    result
-                };
-                
-                // TimeframeAligner로 현재 시점 기준 유효한 데이터만 필터링
-                use crate::timeframe_alignment::TimeframeAligner;
-                let aligned_secondary = TimeframeAligner::align_multi_timeframe(
-                    &secondary_data,
-                    kline.close_time,
-                );
-                
-                strategy
-                    .on_multi_timeframe_data(&market_data, &aligned_secondary)
-                    .await
-                    .map_err(|e| BacktestError::StrategyError(e.to_string()))?
-            } else {
-                // 단일 타임프레임 전략: 기존 로직
-                strategy
-                    .on_market_data(&market_data)
-                    .await
-                    .map_err(|e| BacktestError::StrategyError(e.to_string()))?
-            };
-            all_signals.extend(signals);
-
-            // 2. 다른 심볼들의 시장 데이터도 전달 (StrategyContext에서 현재 시간의 kline 찾기)
-            // 먼저 현재 시간에 해당하는 모든 심볼의 klines를 수집
-            let other_klines: Vec<Kline> = {
-                let ctx_read = context.read().await;
-                ctx_read.klines_by_timeframe
-                    .iter()
-                    .filter(|(symbol, _)| *symbol != ticker) // 주 심볼 제외
-                    .filter_map(|(_, tf_map)| tf_map.get(&Timeframe::D1))
-                    .filter_map(|symbol_klines| {
-                        symbol_klines
-                            .iter()
-                            .find(|k| k.close_time == self.current_time)
-                            .cloned()
-                    })
-                    .collect()
-            };
-
-            // 수집한 klines로 각 심볼의 MarketData 전달
-            for other_kline in other_klines {
-                let symbol_market_data = MarketData::from_kline(
-                    &self.config.exchange_name,
-                    other_kline,
-                );
-                let symbol_signals = strategy
-                    .on_market_data(&symbol_market_data)
-                    .await
-                    .map_err(|e| BacktestError::StrategyError(e.to_string()))?;
-                all_signals.extend(symbol_signals);
-            }
-
-            // 신호 처리 (Entry/AddToPosition 먼저, Exit/ReducePosition 나중에)
-            let (entry_signals, exit_signals): (Vec<_>, Vec<_>) = all_signals.into_iter().partition(|s| {
-                matches!(s.signal_type, SignalType::Entry | SignalType::AddToPosition | SignalType::Scale)
-            });
-
-            for signal in entry_signals {
-                self.process_signal(&signal, kline).await?;
-            }
-            for signal in exit_signals {
-                self.process_signal(&signal, kline).await?;
-            }
-
-            // 시그널 처리 후 포지션 동기화 - 전략에 현재 포지션 상태 알림
-            // 이를 통해 전략의 has_position() 체크가 정상 작동함
-            for (_, proc_pos) in self.executor.positions().iter() {
-                let position = Position {
-                    id: Uuid::new_v4(),
-                    exchange: self.config.exchange_name.clone(),
-                    ticker: proc_pos.symbol.clone(),
-                    side: proc_pos.side,
-                    quantity: proc_pos.quantity,
-                    entry_price: proc_pos.entry_price,
-                    current_price: kline.close,
-                    unrealized_pnl: unrealized_pnl(proc_pos.entry_price, kline.close, proc_pos.quantity, proc_pos.side),
-                    realized_pnl: Decimal::ZERO,
-                    strategy_id: None,
-                    opened_at: proc_pos.entry_time,
-                    updated_at: Utc::now(),
-                    closed_at: None,
-                    metadata: serde_json::Value::Null,
-                };
-                strategy.on_position_update(&position).await
-                    .map_err(|e| BacktestError::StrategyError(e.to_string()))?;
-            }
-
-            // 포지션이 청산된 경우 빈 포지션 상태 알림 (주 티커만)
-            if self.executor.positions().is_empty() {
-                let empty_position = Position {
-                    id: Uuid::new_v4(),
-                    exchange: self.config.exchange_name.clone(),
-                    ticker: ticker.to_string(),
-                    side: Side::Buy,
-                    quantity: Decimal::ZERO,
-                    entry_price: Decimal::ZERO,
-                    current_price: kline.close,
-                    unrealized_pnl: Decimal::ZERO,
-                    realized_pnl: Decimal::ZERO,
-                    strategy_id: None,
-                    opened_at: Utc::now(),
-                    updated_at: Utc::now(),
-                    closed_at: None,
-                    metadata: serde_json::Value::Null,
-                };
-                strategy.on_position_update(&empty_position).await
-                    .map_err(|e| BacktestError::StrategyError(e.to_string()))?;
-            }
-
-            // 미실현 손익 반영하여 자산 업데이트
+            // 5. 미실현 손익 반영하여 자산 업데이트 (BacktestEngine 고유)
             let equity = self.calculate_equity(kline);
             self.tracker.update_equity(kline.close_time, equity);
         }
@@ -1717,6 +1285,11 @@ mod tests {
             .collect()
     }
 
+    /// 테스트용 StrategyContext 생성 헬퍼
+    fn create_test_context() -> Arc<RwLock<StrategyContext>> {
+        Arc::new(RwLock::new(StrategyContext::default()))
+    }
+
     #[test]
     fn test_config_creation() {
         let config = BacktestConfig::new(dec!(10000));
@@ -1743,8 +1316,9 @@ mod tests {
         let config = BacktestConfig::new(dec!(10000));
         let mut engine = BacktestEngine::new(config);
         let mut strategy = test_strategies::AlwaysBuyStrategy::new();
+        let context = create_test_context();
 
-        let result = engine.run(&mut strategy, &[]).await;
+        let result = engine.run(&mut strategy, &[], context, "BTC/USDT", None).await;
         assert!(result.is_err());
     }
 
@@ -1756,11 +1330,12 @@ mod tests {
 
         let mut engine = BacktestEngine::new(config);
         let mut strategy = test_strategies::AlwaysBuyStrategy::new();
+        let context = create_test_context();
 
         // 상승 추세 데이터
         let klines = create_test_klines(10, dec!(50000), dec!(100));
 
-        let result = engine.run(&mut strategy, &klines).await;
+        let result = engine.run(&mut strategy, &klines, context, "BTC/USDT", None).await;
         assert!(result.is_ok());
 
         let report = result.unwrap();
@@ -1776,6 +1351,7 @@ mod tests {
 
         let mut engine = BacktestEngine::new(config);
         let mut strategy = test_strategies::SimpleSmaStrategy::new(5, 20);
+        let context = create_test_context();
 
         // 상승 후 하락 데이터
         let mut klines = create_test_klines(30, dec!(50000), dec!(100));
@@ -1788,7 +1364,7 @@ mod tests {
             k.close_time = k.open_time + Duration::hours(1);
         }
 
-        let result = engine.run(&mut strategy, &klines).await;
+        let result = engine.run(&mut strategy, &klines, context, "BTC/USDT", None).await;
         assert!(result.is_ok());
 
         let report = result.unwrap();
@@ -1801,10 +1377,11 @@ mod tests {
         let config = BacktestConfig::new(dec!(100000));
         let mut engine = BacktestEngine::new(config);
         let mut strategy = test_strategies::AlwaysBuyStrategy::new();
+        let context = create_test_context();
 
         let klines = create_test_klines(20, dec!(50000), dec!(50));
 
-        let result = engine.run(&mut strategy, &klines).await.unwrap();
+        let result = engine.run(&mut strategy, &klines, context, "BTC/USDT", None).await.unwrap();
 
         // 리포트 확인
         assert!(!result.equity_curve.is_empty());

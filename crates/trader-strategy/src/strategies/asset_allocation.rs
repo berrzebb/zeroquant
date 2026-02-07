@@ -215,6 +215,10 @@ pub struct AssetAllocationConfig {
     /// 카나리아 임계값 (양수 모멘텀 비율)
     #[schema(label = "카나리아 임계값", min = 0, max = 1)]
     pub canary_threshold: Decimal,
+
+    /// 청산 설정 (손절/익절/트레일링 스탑).
+    #[serde(default = "ExitConfig::for_rebalancing")]
+    pub exit_config: ExitConfig,
 }
 
 impl Default for AssetAllocationConfig {
@@ -283,6 +287,7 @@ impl From<HaaConfig> for AssetAllocationConfig {
         base.rebalance_threshold = cfg.rebalance_threshold;
         base.min_global_score = Some(cfg.min_global_score);
         base.canary_threshold = cfg.canary_threshold;
+        base.exit_config = cfg.exit_config;
         base
     }
 }
@@ -350,6 +355,7 @@ impl From<XaaConfig> for AssetAllocationConfig {
         base.rebalance_threshold = cfg.rebalance_threshold;
         base.min_global_score = Some(cfg.min_global_score);
         base.canary_threshold = cfg.canary_threshold;
+        base.exit_config = cfg.exit_config;
         base
     }
 }
@@ -409,6 +415,7 @@ impl From<BaaConfig> for AssetAllocationConfig {
         base.rebalance_threshold = cfg.rebalance_threshold;
         base.min_global_score = Some(cfg.min_global_score);
         base.canary_threshold = cfg.canary_threshold;
+        base.exit_config = cfg.exit_config;
         base
     }
 }
@@ -449,6 +456,7 @@ impl From<AllWeatherConfig> for AssetAllocationConfig {
         base.cash_ticker = cfg.cash_ticker;
         base.invest_rate = cfg.invest_rate;
         base.rebalance_threshold = cfg.rebalance_threshold;
+        base.exit_config = cfg.exit_config;
         // AllWeather는 min_global_score와 canary 미사용
         base
     }
@@ -495,6 +503,7 @@ impl From<DualMomentumConfig> for AssetAllocationConfig {
         base.invest_rate = cfg.invest_rate;
         base.rebalance_threshold = cfg.rebalance_threshold;
         base.min_global_score = Some(cfg.min_global_score);
+        base.exit_config = cfg.exit_config;
         // DualMomentum의 canary_threshold는 1.0 고정
         base
     }
@@ -531,6 +540,7 @@ impl AssetAllocationConfig {
             rebalance_threshold: dec!(5.0),
             min_global_score: Some(dec!(55)),
             canary_threshold: dec!(0.5), // 50% 이상 양수 모멘텀
+            exit_config: ExitConfig::for_rebalancing(),
         }
     }
 
@@ -569,6 +579,7 @@ impl AssetAllocationConfig {
             rebalance_threshold: dec!(5.0),
             min_global_score: Some(dec!(55)),
             canary_threshold: dec!(0.5),
+            exit_config: ExitConfig::for_rebalancing(),
         }
     }
 
@@ -608,6 +619,7 @@ impl AssetAllocationConfig {
             rebalance_threshold: dec!(5.0),
             min_global_score: Some(dec!(55)),
             canary_threshold: dec!(0.75), // 75% 이상 양수
+            exit_config: ExitConfig::for_rebalancing(),
         }
     }
 
@@ -637,6 +649,7 @@ impl AssetAllocationConfig {
             rebalance_threshold: dec!(5.0),
             min_global_score: None,      // 정적 배분이므로 스코어 필터 없음
             canary_threshold: dec!(0.0), // 카나리아 없음
+            exit_config: ExitConfig::for_rebalancing(),
         }
     }
 
@@ -666,6 +679,7 @@ impl AssetAllocationConfig {
             rebalance_threshold: dec!(5.0),
             min_global_score: Some(dec!(50)),
             canary_threshold: dec!(1.0), // 모든 카나리아 양수여야 공격 모드
+            exit_config: ExitConfig::for_rebalancing(),
         }
     }
 
@@ -1236,6 +1250,10 @@ impl Strategy for AssetAllocationStrategy {
     fn set_context(&mut self, context: Arc<RwLock<StrategyContext>>) {
         self.context = Some(context);
         info!("[AssetAllocation] StrategyContext 주입 완료");
+    }
+
+    fn exit_config(&self) -> Option<&ExitConfig> {
+        self.config.as_ref().map(|c| &c.exit_config)
     }
 }
 

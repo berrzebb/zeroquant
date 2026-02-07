@@ -672,7 +672,7 @@ impl RegressionChartGenerator {
         Ok(())
     }
 
-    /// 낙폭 차트 그리기 (f64 타임스탬프 좌표계)
+    /// 낙폭 + MDD 통합 차트 그리기 (f64 타임스탬프 좌표계)
     fn draw_drawdown_chart<DB: DrawingBackend>(
         &self,
         area: &DrawingArea<DB, plotters::coord::Shift>,
@@ -680,8 +680,22 @@ impl RegressionChartGenerator {
         time_range: &std::ops::Range<f64>,
         drawdown_range: &std::ops::Range<f64>,
     ) -> Result<(), DrawingAreaErrorKind<DB::ErrorType>> {
+        // MDD 값 계산
+        let mdd_point = equity_curve
+            .iter()
+            .max_by(|a, b| {
+                a.drawdown_pct
+                    .partial_cmp(&b.drawdown_pct)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+        let mdd_value = mdd_point
+            .map(|p| decimal_to_f64(p.drawdown_pct))
+            .unwrap_or(0.0);
+
+        // 캡션에 MDD 수치 표시
+        let caption = format!("Drawdown (MDD: -{:.2}%)", mdd_value);
         let mut chart = ChartBuilder::on(area)
-            .caption("Drawdown %", ("sans-serif", 16).into_font())
+            .caption(&caption, ("sans-serif", 16).into_font())
             .margin(10)
             .x_label_area_size(40)
             .y_label_area_size(80)
@@ -701,6 +715,25 @@ impl RegressionChartGenerator {
             &BLACK.mix(0.3),
         ))?;
 
+        // MDD 수평 기준선 (점선 효과 - 짧은 세그먼트 반복)
+        if mdd_value > 0.0 {
+            let mdd_y = -mdd_value;
+            let total_width = time_range.end - time_range.start;
+            let segment_count = 60;
+            let segment_width = total_width / segment_count as f64;
+            let mdd_line_color = RGBColor(180, 0, 0).mix(0.6);
+
+            // 대시 세그먼트로 점선 효과 구현
+            for i in (0..segment_count).step_by(2) {
+                let x_start = time_range.start + segment_width * i as f64;
+                let x_end = time_range.start + segment_width * (i + 1) as f64;
+                chart.draw_series(LineSeries::new(
+                    vec![(x_start, mdd_y), (x_end, mdd_y)],
+                    mdd_line_color.stroke_width(1),
+                ))?;
+            }
+        }
+
         // 낙폭 영역 (f64 타임스탬프)
         let data: Vec<(f64, f64)> = equity_curve
             .iter()
@@ -716,6 +749,26 @@ impl RegressionChartGenerator {
         chart.draw_series(AreaSeries::new(data.iter().cloned(), 0.0, fill_color))?;
 
         chart.draw_series(LineSeries::new(data, &self.config.drawdown_color))?;
+
+        // MDD 지점 마커
+        if let Some(max_dd_point) = mdd_point {
+            let mdd_ts = max_dd_point.timestamp.timestamp() as f64;
+            let mdd_y = -decimal_to_f64(max_dd_point.drawdown_pct);
+            chart.draw_series(PointSeries::of_element(
+                vec![(mdd_ts, mdd_y)],
+                6,
+                &RED,
+                &|coord, size, style| {
+                    EmptyElement::at(coord)
+                        + Circle::new((0, 0), size, style.filled())
+                        + Text::new(
+                            format!("MDD {:.1}%", mdd_y),
+                            (10, -10),
+                            ("sans-serif", 12).into_font().color(&RED),
+                        )
+                },
+            ))?;
+        }
 
         Ok(())
     }
@@ -761,25 +814,6 @@ impl RegressionChartGenerator {
                 EmptyElement::at(coord) + Circle::new((0, 0), size, style.filled())
             },
         ))?;
-
-        // 최대 낙폭 지점
-        if let Some(max_dd_point) = equity_curve.iter().max_by(|a, b| {
-            a.drawdown_pct
-                .partial_cmp(&b.drawdown_pct)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        }) {
-            let mdd_ts = max_dd_point.timestamp.timestamp() as f64;
-            chart.draw_series(PointSeries::of_element(
-                vec![(mdd_ts, decimal_to_f64(max_dd_point.equity))],
-                7,
-                &RED,
-                &|coord, size, style| {
-                    EmptyElement::at(coord)
-                        + Circle::new((0, 0), size, style.stroke_width(2))
-                        + Text::new("MDD", (10, -10), ("sans-serif", 12).into_font())
-                },
-            ))?;
-        }
 
         Ok(())
     }

@@ -4,13 +4,12 @@
 //! 다양한 조건으로 종목을 필터링합니다.
 
 use chrono::{DateTime, Duration, Utc};
-use futures::future::join_all;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{FromRow, PgPool, QueryBuilder};
-use tracing::debug;
+use tracing::{debug, warn};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -24,6 +23,31 @@ use trader_data::RedisCache;
 /// 스크리닝 결과 캐시 TTL (2시간).
 /// 일중 변동이 없으므로 장 마감까지 유효.
 const SCREENING_CACHE_TTL_SECS: u64 = 7200;
+
+/// 구조적 피처 캐시 TTL (4시간).
+/// 일봉 기반 지표이므로 일중 변동 없음. 스크리닝 결과보다 긴 TTL 사용.
+const FEATURES_CACHE_TTL_SECS: u64 = 14400;
+
+/// 심볼별 캐시된 구조적 피처.
+///
+/// 일봉 기반 지표 계산 결과를 Redis에 캐시하여
+/// 반복 스크리닝 시 DB 조회 + CPU 계산을 생략합니다.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CachedStructuralFeatures {
+    pub low_trend: Option<f64>,
+    pub vol_quality: Option<f64>,
+    pub range_pos: Option<f64>,
+    pub dist_ma20: Option<f64>,
+    pub bb_width: Option<f64>,
+    pub rsi_14: Option<f64>,
+    pub breakout_score: Option<f64>,
+    pub macd: Option<f64>,
+    pub macd_signal: Option<f64>,
+    pub macd_histogram: Option<f64>,
+    pub macd_cross: Option<String>,
+    pub trigger_score: Option<f64>,
+    pub trigger_label: Option<String>,
+}
 
 /// 스크리닝 결과 레코드
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -190,10 +214,12 @@ impl ScreeningRepository {
     /// 종합 스크리닝 실행
     ///
     /// Fundamental 데이터와 최근 OHLCV 데이터를 조합하여 스크리닝합니다.
+    /// Redis 캐시가 제공되면 구조적 피처를 캐시하여 반복 조회 시 성능을 향상합니다.
     pub async fn screen(
         pool: &PgPool,
         data_provider: &CachedHistoricalDataProvider,
         filter: &ScreeningFilter,
+        cache: Option<&RedisCache>,
     ) -> Result<Vec<ScreeningResult>, sqlx::Error> {
         // 기본 쿼리: Fundamental 뷰 + Materialized View (최신 가격)
         // mv_latest_prices 사용으로 DISTINCT ON 쿼리 제거 → 성능 ~10x 향상
@@ -284,19 +310,25 @@ impl ScreeningRepository {
             builder.push(" DESC NULLS LAST");
         }
 
-        // LIMIT/OFFSET
-        let limit = filter.limit.unwrap_or(50).min(500);
-        let offset = filter.offset.unwrap_or(0);
-        builder.push(" LIMIT ");
-        builder.push_bind(limit);
-        builder.push(" OFFSET ");
-        builder.push_bind(offset);
-
+        // 전체 데이터 조회 (LIMIT 없음 — 프론트엔드 무한 스크롤 대응)
+        // 구조적 필터가 DB 쿼리 이후 애플리케이션 레벨에서 적용되므로,
+        // DB에서 LIMIT을 걸면 필터 대상이 축소되어 결과가 누락됨
         let query = builder.build_query_as::<ScreeningResult>();
         let results = query.fetch_all(pool).await?;
 
-        // 구조적 피처 필터링 적용 (7단계, 공유 data_provider 사용)
-        let filtered = Self::apply_structural_filter(data_provider, results, filter).await?;
+        // 구조적 피처 필터링 적용 (Redis 피처 캐시 활용)
+        let mut filtered = Self::apply_structural_filter(data_provider, results, filter, cache).await?;
+
+        // 결과수 제한 (구조적 필터 이후 적용 — DB LIMIT과 별개)
+        if let Some(limit) = filter.limit {
+            if limit > 0 {
+                let offset = filter.offset.unwrap_or(0).max(0) as usize;
+                if offset > 0 {
+                    filtered = filtered.into_iter().skip(offset).collect();
+                }
+                filtered.truncate(limit as usize);
+            }
+        }
 
         debug!("스크리닝 완료: {} 종목 반환", filtered.len());
         Ok(filtered)
@@ -462,16 +494,20 @@ impl ScreeningRepository {
         }
     }
 
-    /// 구조적 피처 계산 및 필터링 적용 (배치 병렬 처리)
+    /// 구조적 피처 계산 및 필터링 적용 (Redis 피처 캐시 활용)
     ///
     /// 모든 스크리닝 결과에 대해 기술적 지표(RSI, MACD 등)를 계산하고,
     /// 구조적 필터가 있으면 필터링도 적용합니다.
     ///
-    /// **성능 최적화**: N+1 문제 해결을 위해 배치 병렬 처리 적용
+    /// **성능 최적화**:
+    /// - Redis에 심볼별 구조적 피처를 캐시 (4시간 TTL)
+    /// - 캐시 히트 시 DB 조회 + CPU 계산 모두 생략
+    /// - 캐시 미스 심볼만 배치 쿼리로 조회 후 계산
     async fn apply_structural_filter(
         data_provider: &CachedHistoricalDataProvider,
         candidates: Vec<ScreeningResult>,
         filter: &ScreeningFilter,
+        cache: Option<&RedisCache>,
     ) -> Result<Vec<ScreeningResult>, sqlx::Error> {
         use std::collections::HashMap;
 
@@ -482,7 +518,7 @@ impl ScreeningRepository {
 
         let total_count = candidates.len();
         debug!(
-            "구조적 피처 계산: {} 종목 (필터 적용: {}) - 배치 병렬 처리",
+            "구조적 피처 계산: {} 종목 (필터 적용: {})",
             total_count, has_structural_filter
         );
 
@@ -490,137 +526,204 @@ impl ScreeningRepository {
             return Ok(vec![]);
         }
 
-        // 1단계: 모든 심볼의 캔들 데이터 병렬 조회 (N+1 → 1번의 병렬 배치)
-        let symbols: Vec<String> = candidates.iter().map(|c| c.ticker.clone()).collect();
-        let fetch_futures: Vec<_> = symbols
-            .iter()
-            .map(|symbol| {
-                let symbol = symbol.clone();
-                let provider = data_provider;
-                async move {
-                    let result = provider.get_klines_readonly(&symbol, Timeframe::D1, 50).await;
-                    (symbol, result)
+        // ─── 1단계: Redis에서 캐시된 피처 조회 ───
+        let cache_key = "screening:structural_features";
+        let mut features_map: HashMap<String, CachedStructuralFeatures> = if let Some(redis) = cache
+        {
+            match redis
+                .get::<HashMap<String, CachedStructuralFeatures>>(cache_key)
+                .await
+            {
+                Ok(Some(cached)) => {
+                    debug!("피처 캐시 히트: {} 심볼", cached.len());
+                    cached
                 }
-            })
+                _ => HashMap::new(),
+            }
+        } else {
+            HashMap::new()
+        };
+
+        // ─── 2단계: 캐시 미스 심볼 식별 ───
+        let all_symbols: Vec<String> = candidates.iter().map(|c| c.ticker.clone()).collect();
+        let miss_symbols: Vec<String> = all_symbols
+            .iter()
+            .filter(|s| !features_map.contains_key(*s))
+            .cloned()
             .collect();
 
-        // 병렬 실행
-        let fetch_results = join_all(fetch_futures).await;
+        debug!(
+            "피처 캐시 상태: 전체={}, 히트={}, 미스={}",
+            all_symbols.len(),
+            all_symbols.len() - miss_symbols.len(),
+            miss_symbols.len()
+        );
 
-        // 결과를 HashMap으로 변환
-        let candles_map: HashMap<String, Vec<Kline>> = fetch_results
-            .into_iter()
-            .filter_map(|(symbol, result)| result.ok().map(|candles| (symbol, candles)))
-            .collect();
+        // ─── 3단계: 미스 심볼만 배치 캔들 조회 + 피처 계산 ───
+        if !miss_symbols.is_empty() {
+            let candles_map: HashMap<String, Vec<Kline>> = data_provider
+                .get_klines_batch_readonly(&miss_symbols, Timeframe::D1, 50)
+                .await
+                .unwrap_or_else(|e| {
+                    warn!("배치 캔들 조회 실패: {} - 빈 결과 반환", e);
+                    HashMap::new()
+                });
 
-        debug!("캔들 데이터 조회 완료: {}/{} 성공", candles_map.len(), total_count);
+            debug!(
+                "캔들 데이터 조회 완료: {}/{} 성공",
+                candles_map.len(),
+                miss_symbols.len()
+            );
 
-        // 2단계: 피처 계산 및 필터링 (동기 처리, CPU 바운드)
-        let indicator_engine = IndicatorEngine::new();
-        let trigger_calculator = trader_analytics::TriggerCalculator::new();
+            let indicator_engine = IndicatorEngine::new();
+            let trigger_calculator = trader_analytics::TriggerCalculator::new();
+
+            for (symbol, candles) in &candles_map {
+                if candles.len() < 40 {
+                    continue;
+                }
+
+                // 구조적 피처 계산
+                let features = match StructuralFeaturesCalculator::from_candles(
+                    symbol,
+                    candles,
+                    &indicator_engine,
+                ) {
+                    Ok(f) => f,
+                    Err(_) => continue,
+                };
+
+                let mut cached_features = CachedStructuralFeatures {
+                    low_trend: Some(features.low_trend.to_f64().unwrap_or(0.0)),
+                    vol_quality: Some(features.vol_quality.to_f64().unwrap_or(0.0)),
+                    range_pos: Some(features.range_pos.to_f64().unwrap_or(0.0)),
+                    dist_ma20: Some(features.dist_ma20.to_f64().unwrap_or(0.0)),
+                    bb_width: Some(features.bb_width.to_f64().unwrap_or(0.0)),
+                    rsi_14: Some(features.rsi.to_f64().unwrap_or(0.0)),
+                    breakout_score: Some(features.breakout_score().to_f64().unwrap_or(0.0)),
+                    macd: None,
+                    macd_signal: None,
+                    macd_histogram: None,
+                    macd_cross: None,
+                    trigger_score: None,
+                    trigger_label: None,
+                };
+
+                // MACD 계산
+                if candles.len() >= 35 {
+                    let closes: Vec<Decimal> = candles.iter().map(|c| c.close).collect();
+                    let macd_params = trader_analytics::MacdParams::default();
+
+                    if let Ok(macd_results) = indicator_engine.macd(&closes, macd_params) {
+                        if let Some(latest) = macd_results.last() {
+                            cached_features.macd =
+                                latest.macd.map(|d| d.to_f64().unwrap_or(0.0));
+                            cached_features.macd_signal =
+                                latest.signal.map(|d| d.to_f64().unwrap_or(0.0));
+                            cached_features.macd_histogram =
+                                latest.histogram.map(|d| d.to_f64().unwrap_or(0.0));
+
+                            // 골든크로스/데드크로스 감지
+                            if macd_results.len() >= 2 {
+                                let prev = &macd_results[macd_results.len() - 2];
+                                if let (
+                                    Some(curr_macd),
+                                    Some(curr_sig),
+                                    Some(prev_macd),
+                                    Some(prev_sig),
+                                ) = (latest.macd, latest.signal, prev.macd, prev.signal)
+                                {
+                                    if prev_macd < prev_sig && curr_macd > curr_sig {
+                                        cached_features.macd_cross =
+                                            Some("golden".to_string());
+                                    } else if prev_macd > prev_sig && curr_macd < curr_sig {
+                                        cached_features.macd_cross =
+                                            Some("dead".to_string());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // TRIGGER 계산
+                if let Ok(trigger) = trigger_calculator.calculate(candles) {
+                    cached_features.trigger_score = Some(trigger.score);
+                    cached_features.trigger_label = Some(trigger.label);
+                }
+
+                features_map.insert(symbol.clone(), cached_features);
+            }
+
+            // ─── 4단계: 계산된 피처를 Redis에 캐시 ───
+            if let Some(redis) = cache {
+                if let Err(e) = redis
+                    .set_with_ttl(cache_key, &features_map, FEATURES_CACHE_TTL_SECS)
+                    .await
+                {
+                    debug!(error = %e, "피처 캐시 저장 실패");
+                }
+            }
+        }
+
+        // ─── 5단계: 피처를 후보에 적용 + 필터링 ───
         let mut filtered_results = Vec::with_capacity(candidates.len());
 
         for mut candidate in candidates {
             let symbol = &candidate.ticker;
 
-            // 캔들 데이터 조회 (HashMap에서)
-            let candles = match candles_map.get(symbol) {
-                Some(c) if c.len() >= 40 => c,
-                Some(_) => {
-                    debug!("데이터 부족 ({}): 40개 미만", symbol);
-                    continue;
-                }
-                None => {
-                    debug!("캔들 조회 실패 ({})", symbol);
-                    continue;
-                }
-            };
-
-            // 피처 계산
-            let features = match StructuralFeaturesCalculator::from_candles(symbol, candles, &indicator_engine) {
-                Ok(f) => f,
-                Err(e) => {
-                    debug!("피처 계산 실패 ({}): {}", symbol, e);
-                    continue;
-                }
+            let features = match features_map.get(symbol) {
+                Some(f) => f,
+                None => continue, // 피처 없는 심볼 스킵
             };
 
             // 필터 조건 매칭
             let mut pass = true;
 
             if let Some(min_lt) = filter.min_low_trend {
-                if features.low_trend.to_f64().unwrap_or(0.0) < min_lt {
+                if features.low_trend.unwrap_or(0.0) < min_lt {
                     pass = false;
                 }
             }
-
             if let Some(min_vq) = filter.min_vol_quality {
-                if features.vol_quality.to_f64().unwrap_or(0.0) < min_vq {
+                if features.vol_quality.unwrap_or(0.0) < min_vq {
                     pass = false;
                 }
             }
-
             if let Some(min_bs) = filter.min_breakout_score {
-                if features.breakout_score().to_f64().unwrap_or(0.0) < min_bs {
+                if features.breakout_score.unwrap_or(0.0) < min_bs {
                     pass = false;
                 }
             }
-
-            if filter.only_alive_consolidation.unwrap_or(false)
-                && !features.is_alive_consolidation()
-            {
-                pass = false;
+            // alive_consolidation: StructuralFeatures::is_alive_consolidation() 조건 재현
+            // low_trend > 0.2, vol_quality > 0.1, bb_width < 3.0
+            if filter.only_alive_consolidation.unwrap_or(false) {
+                let lt = features.low_trend.unwrap_or(0.0);
+                let vq = features.vol_quality.unwrap_or(0.0);
+                let bw = features.bb_width.unwrap_or(999.0);
+                if lt <= 0.2 || vq <= 0.1 || bw >= 3.0 {
+                    pass = false;
+                }
             }
 
             if !pass {
                 continue;
             }
 
-            // 피처를 결과에 추가 (Decimal → f64 변환)
-            candidate.low_trend = Some(features.low_trend.to_f64().unwrap_or(0.0));
-            candidate.vol_quality = Some(features.vol_quality.to_f64().unwrap_or(0.0));
-            candidate.range_pos = Some(features.range_pos.to_f64().unwrap_or(0.0));
-            candidate.dist_ma20 = Some(features.dist_ma20.to_f64().unwrap_or(0.0));
-            candidate.bb_width = Some(features.bb_width.to_f64().unwrap_or(0.0));
-            candidate.rsi_14 = Some(features.rsi.to_f64().unwrap_or(0.0));
-            candidate.breakout_score = Some(features.breakout_score().to_f64().unwrap_or(0.0));
-
-            // MACD 계산 (이미 캔들 데이터가 있으므로 추가 조회 불필요)
-            if candles.len() >= 35 {
-                let closes: Vec<Decimal> = candles.iter().map(|c| c.close).collect();
-                let macd_params = trader_analytics::MacdParams::default();
-
-                if let Ok(macd_results) = indicator_engine.macd(&closes, macd_params) {
-                    if let Some(latest) = macd_results.last() {
-                        candidate.macd = latest.macd.map(|d| d.to_f64().unwrap_or(0.0));
-                        candidate.macd_signal = latest.signal.map(|d| d.to_f64().unwrap_or(0.0));
-                        candidate.macd_histogram = latest.histogram.map(|d| d.to_f64().unwrap_or(0.0));
-
-                        // 골든크로스/데드크로스 감지
-                        if macd_results.len() >= 2 {
-                            let prev = &macd_results[macd_results.len() - 2];
-                            if let (Some(curr_macd), Some(curr_sig), Some(prev_macd), Some(prev_sig)) =
-                                (latest.macd, latest.signal, prev.macd, prev.signal)
-                            {
-                                if prev_macd < prev_sig && curr_macd > curr_sig {
-                                    candidate.macd_cross = Some("golden".to_string());
-                                } else if prev_macd > prev_sig && curr_macd < curr_sig {
-                                    candidate.macd_cross = Some("dead".to_string());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // TRIGGER 계산 (block_on 제거 - 이미 캔들 데이터 있음)
-            if let Ok(trigger) = trigger_calculator.calculate(candles) {
-                candidate.trigger_score = Some(trigger.score);
-                candidate.trigger_label = Some(trigger.label);
-            } else {
-                candidate.trigger_score = None;
-                candidate.trigger_label = None;
-            }
+            // 피처를 결과에 반영
+            candidate.low_trend = features.low_trend;
+            candidate.vol_quality = features.vol_quality;
+            candidate.range_pos = features.range_pos;
+            candidate.dist_ma20 = features.dist_ma20;
+            candidate.bb_width = features.bb_width;
+            candidate.rsi_14 = features.rsi_14;
+            candidate.breakout_score = features.breakout_score;
+            candidate.macd = features.macd;
+            candidate.macd_signal = features.macd_signal;
+            candidate.macd_histogram = features.macd_histogram;
+            candidate.macd_cross = features.macd_cross.clone();
+            candidate.trigger_score = features.trigger_score;
+            candidate.trigger_label = features.trigger_label.clone();
 
             // Sector RS는 별도 계산
             candidate.sector_rs = None;
@@ -630,7 +733,7 @@ impl ScreeningRepository {
         }
 
         debug!(
-            "구조적 필터링 완료: {} → {} 종목 (병렬 처리)",
+            "구조적 필터링 완료: {} → {} 종목 (캐시 활용)",
             total_count,
             filtered_results.len()
         );
@@ -701,6 +804,7 @@ impl ScreeningRepository {
                 JOIN ohlcv o ON o.symbol = sf.ticker
                 WHERE o.timeframe = '1d'
                   AND o.open_time >= $1
+                  AND o.close > 0
                   AND sf.sector IS NOT NULL
                   AND sf.sector != ''
                   {}
@@ -911,6 +1015,7 @@ impl ScreeningRepository {
         data_provider: &CachedHistoricalDataProvider,
         preset: &str,
         market: Option<&str>,
+        cache: Option<&RedisCache>,
     ) -> Result<Vec<ScreeningResult>, sqlx::Error> {
         let filter = match preset {
             // 가치주: 저PER + 저PBR + 적정 ROE
@@ -919,7 +1024,6 @@ impl ScreeningRepository {
                 max_per: Some(Decimal::from(15)),
                 max_pbr: Some(Decimal::from(1)),
                 min_roe: Some(Decimal::from(5)),
-                limit: Some(50),
                 sort_by: Some("pbr".to_string()),
                 sort_order: Some("asc".to_string()),
                 ..Default::default()
@@ -930,7 +1034,6 @@ impl ScreeningRepository {
                 min_dividend_yield: Some(Decimal::from(3)),
                 min_roe: Some(Decimal::from(5)),
                 max_debt_ratio: Some(Decimal::from(100)),
-                limit: Some(50),
                 sort_by: Some("dividend_yield".to_string()),
                 sort_order: Some("desc".to_string()),
                 ..Default::default()
@@ -941,7 +1044,6 @@ impl ScreeningRepository {
                 min_revenue_growth: Some(Decimal::from(20)),
                 min_earnings_growth: Some(Decimal::from(15)),
                 min_roe: Some(Decimal::from(10)),
-                limit: Some(50),
                 sort_by: Some("revenue_growth_yoy".to_string()),
                 sort_order: Some("desc".to_string()),
                 ..Default::default()
@@ -953,7 +1055,6 @@ impl ScreeningRepository {
                 min_dividend_yield: Some(Decimal::from(3)),
                 max_debt_ratio: Some(Decimal::from(80)),
                 min_roe: Some(Decimal::from(8)),
-                limit: Some(30),
                 sort_by: Some("dividend_yield".to_string()),
                 sort_order: Some("desc".to_string()),
                 ..Default::default()
@@ -962,7 +1063,6 @@ impl ScreeningRepository {
             "large_cap" => ScreeningFilter {
                 market: market.map(String::from),
                 min_market_cap: Some(Decimal::from(10_000_000_000_000i64)), // 10조 이상
-                limit: Some(50),
                 sort_by: Some("market_cap".to_string()),
                 sort_order: Some("desc".to_string()),
                 ..Default::default()
@@ -973,7 +1073,6 @@ impl ScreeningRepository {
                 min_distance_from_52w_low: Some(Decimal::from(0)),
                 max_distance_from_52w_high: Some(Decimal::from(50)), // 고가 대비 50% 이상 하락
                 min_roe: Some(Decimal::from(5)),                     // 기본 수익성 보장
-                limit: Some(50),
                 sort_by: Some("pbr".to_string()),
                 sort_order: Some("asc".to_string()),
                 ..Default::default()
@@ -981,24 +1080,27 @@ impl ScreeningRepository {
             // 전체: 필터 없이 모든 종목 조회 (basic, all, 또는 알 수 없는 값)
             _ => ScreeningFilter {
                 market: market.map(String::from),
-                limit: Some(100),
                 ..Default::default()
             },
         };
 
-        Self::screen(pool, data_provider, &filter).await
+        Self::screen(pool, data_provider, &filter, cache).await
     }
 
     /// 가격 변동률 기반 모멘텀 스크리닝
     ///
     /// OHLCV 데이터를 직접 분석하여 급등주, 급락주 등을 찾습니다.
+    ///
+    /// **데이터 품질 필터**: 주식 분할(stock split)이나 데이터 소스 오류로 인한
+    /// 비현실적 변동률(예: +15000%)을 자동으로 필터링합니다.
+    /// - 시작가 $0.50 미만인 심볼 제외 (분할 전 가격 아티팩트)
+    /// - 시작가와 종가의 비율이 50배 초과인 심볼 제외 (비현실적 변동)
     pub async fn screen_momentum(
         pool: &PgPool,
         market: Option<&str>,
         days: i32,
         min_change_pct: Decimal,
         min_volume_ratio: Option<Decimal>,
-        limit: i32,
     ) -> Result<Vec<MomentumScreenResult>, sqlx::Error> {
         let lookback_date = Utc::now() - Duration::days(days.into());
 
@@ -1015,6 +1117,7 @@ impl ScreeningRepository {
                 FROM ohlcv
                 WHERE timeframe = '1d'
                   AND open_time >= $1
+                  AND close > 0
                 ORDER BY symbol, open_time ASC
             ),
             end_prices AS (
@@ -1026,6 +1129,7 @@ impl ScreeningRepository {
                 FROM ohlcv
                 WHERE timeframe = '1d'
                   AND open_time >= $1
+                  AND close > 0
                 ORDER BY symbol, open_time DESC
             ),
             avg_volumes AS (
@@ -1054,6 +1158,7 @@ impl ScreeningRepository {
                 FROM start_prices sp
                 JOIN end_prices ep ON ep.symbol = sp.symbol
                 LEFT JOIN avg_volumes av ON av.symbol = sp.symbol
+                WHERE ep.end_price / NULLIF(sp.start_price, 0) <= 20
             )
             SELECT
                 m.symbol,
@@ -1073,14 +1178,12 @@ impl ScreeningRepository {
               AND ($3::text IS NULL OR si.market = $3)
               AND ($4::numeric IS NULL OR m.volume_ratio >= $4)
             ORDER BY m.change_pct DESC
-            LIMIT $5
             "#,
         )
         .bind(lookback_date)
         .bind(min_change_pct)
         .bind(market)
         .bind(min_volume_ratio)
-        .bind(limit)
         .fetch_all(pool)
         .await?;
 
@@ -1146,9 +1249,9 @@ impl ScreeningRepository {
         preset: &str,
         market: Option<&str>,
     ) -> Result<Vec<ScreeningResult>, sqlx::Error> {
-        // 캐시 없으면 DB 직접 조회
+        // 캐시 없으면 DB 직접 조회 (피처 캐시도 None)
         let Some(cache) = cache else {
-            return Self::screen_preset(pool, data_provider, preset, market).await;
+            return Self::screen_preset(pool, data_provider, preset, market, None).await;
         };
 
         // 캐시 키 생성: screening:preset:{preset}:{market}
@@ -1164,8 +1267,8 @@ impl ScreeningRepository {
             return Ok(cached);
         }
 
-        // DB 조회
-        let results = Self::screen_preset(pool, data_provider, preset, market).await?;
+        // DB 조회 (피처 캐시 전달)
+        let results = Self::screen_preset(pool, data_provider, preset, market, Some(cache)).await?;
 
         // 결과 캐시에 저장
         if !results.is_empty() {
@@ -1188,22 +1291,20 @@ impl ScreeningRepository {
         days: i32,
         min_change_pct: Decimal,
         min_volume_ratio: Option<Decimal>,
-        limit: i32,
     ) -> Result<Vec<MomentumScreenResult>, sqlx::Error> {
         // 캐시 없으면 DB 직접 조회
         let Some(cache) = cache else {
-            return Self::screen_momentum(pool, market, days, min_change_pct, min_volume_ratio, limit)
+            return Self::screen_momentum(pool, market, days, min_change_pct, min_volume_ratio)
                 .await;
         };
 
         // 캐시 키 생성
         let cache_key = format!(
-            "screening:momentum:{}:{}:{}:{}:{}",
+            "screening:momentum:{}:{}:{}:{}",
             market.unwrap_or("ALL"),
             days,
             min_change_pct,
             min_volume_ratio.map(|d| d.to_string()).unwrap_or_default(),
-            limit
         );
 
         // 캐시에서 조회 시도
@@ -1214,7 +1315,7 @@ impl ScreeningRepository {
 
         // DB 조회
         let results =
-            Self::screen_momentum(pool, market, days, min_change_pct, min_volume_ratio, limit)
+            Self::screen_momentum(pool, market, days, min_change_pct, min_volume_ratio)
                 .await?;
 
         // 결과 캐시에 저장

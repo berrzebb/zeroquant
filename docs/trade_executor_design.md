@@ -190,10 +190,45 @@ impl SignalProcessor for LiveExecutor {
 - [x] 중복 코드 제거
 - [x] 문서화 (이 문서 + architecture.md)
 
+### Phase 5: CandleProcessor 공통화 ✅
+
+캔들 처리 로직(StrategyContext 업데이트, 시그널 생성, 포지션 동기화)을 BacktestEngine과 SimulationEngine 간 공통화.
+
+- [x] `CandleProcessor` 구조체 생성 (`trader-analytics/src/backtest/candle_processor.rs`)
+- [x] BacktestEngine의 루프 내부를 CandleProcessor 호출로 리팩토링
+- [x] 레거시 `run()` 메서드 삭제, `run_with_context()` → `run()`으로 통합
+- [x] SimulationEngine에 StrategyContext + CandleProcessor 통합
+- [x] CLI 호출부 전환 (7곳)
+
+```
+CandleProcessor (trader-analytics)
+├── update_context()      # StrategyContext 업데이트 (지표, klines, 스크리닝)
+├── generate_signals()    # 시그널 생성 (멀티 심볼/멀티 TF + Entry/Exit 파티셔닝)
+├── sync_positions()      # 전략에 포지션 상태 동기화
+└── process_candle()      # 위 3개를 순차 실행 (편의 메서드)
+```
+
+**사용 패턴**:
+```
+BacktestEngine.run()              SimulationEngine.process_next_candle()
+    │                                  │
+    ├─ candle_processor               ├─ candle_processor
+    │  .update_context()              │  .process_candle()  ← 편의 메서드
+    │  .generate_signals()            │
+    │                                 │
+    ├─ self.process_signal() ←고유    ├─ self.process_signal() ←고유
+    │  (PerformanceTracker 기록)      │  (SignalMarker 기록)
+    │                                 │
+    ├─ candle_processor               ├─ candle_processor
+    │  .sync_positions()              │  .sync_positions()
+    │                                 │
+    └─ self.tracker.update_equity()   └─ self.update_equity_curve()
+```
+
 ## 장점
 
-1. **일관성**: 두 엔진이 동일한 거래 로직 사용
-2. **유지보수**: 한 곳만 수정하면 됨
+1. **일관성**: 두 엔진이 동일한 거래 로직 + 동일한 캔들 처리 로직 사용
+2. **유지보수**: StrategyContext 관련 수정 시 CandleProcessor 한 곳만 수정
 3. **테스트**: 공통 로직 한 번만 테스트
 4. **확장성**: 새로운 엔진 추가 시 재사용 가능
 

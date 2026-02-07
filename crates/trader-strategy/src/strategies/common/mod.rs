@@ -73,4 +73,7 @@ pub use signal_filters::{
     can_execute_signal, validate_signals_with_context,
 };
 
-pub use exit_config::ExitConfig;
+pub use exit_config::{
+    DailyLossLimitConfig, ExitConfig, ProfitLockConfig, StepLevel, StopLossConfig, StopLossMode,
+    TakeProfitConfig, TrailingMode, TrailingStopConfig,
+};

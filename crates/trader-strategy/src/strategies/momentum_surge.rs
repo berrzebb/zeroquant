@@ -935,6 +935,10 @@ impl Strategy for MomentumSurgeStrategy {
         info!("StrategyContext injected into MomentumSurge strategy");
     }
 
+    fn exit_config(&self) -> Option<&ExitConfig> {
+        self.config.as_ref().map(|c| &c.exit_config)
+    }
+
     fn get_state(&self) -> Value {
         let holdings: HashMap<_, _> = self
             .etf_data

@@ -298,10 +298,21 @@ impl HistoricalDataProvider for YahooFinanceProvider {
         let currency = Self::guess_currency(yahoo_symbol);
         let symbol_obj = Symbol::stock(symbol, currency);
 
-        // Quote를 Kline으로 변환
+        // Quote를 Kline으로 변환 (비정상 가격 필터링)
         let klines: Vec<Kline> = quotes
             .iter()
             .map(|q| self.quote_to_kline(&symbol_obj, timeframe, q))
+            .filter(|k| {
+                if k.close.is_zero() || k.close.is_sign_negative() {
+                    warn!(
+                        "Yahoo Finance: {} 비정상 가격 필터링 (close={}, time={})",
+                        symbol, k.close, k.open_time
+                    );
+                    false
+                } else {
+                    true
+                }
+            })
             .collect();
 
         // 시간순 정렬 (오래된 것부터)

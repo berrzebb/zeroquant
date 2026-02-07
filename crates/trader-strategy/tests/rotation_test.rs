@@ -18,6 +18,7 @@ use trader_core::{
     GlobalScoreResult, Kline, MarketData, MarketDataType, Order, OrderStatusType, Position, Side,
     StrategyContext, Timeframe,
 };
+use trader_strategy::strategies::common::ExitConfig;
 use trader_strategy::strategies::rotation::{
     AssetInfo, MarketType, RankingMetric, RebalanceFrequency, RotationConfig, RotationStrategy,
     RotationVariant, WeightingMethod,
@@ -532,6 +533,7 @@ mod config_tests {
             cash_reserve_rate: dec!(0.1),
             use_momentum_filter: true,
             min_global_score: dec!(55),
+            exit_config: ExitConfig::for_rebalancing(),
         };
 
         assert_eq!(config.top_n, 2);

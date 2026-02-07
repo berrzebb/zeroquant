@@ -1,7 +1,7 @@
 # ZeroQuant TODO - 통합 로드맵
 
-> **마지막 업데이트**: 2026-02-07
-> **현재 버전**: v0.8.1
+> **마지막 업데이트**: 2026-02-08
+> **현재 버전**: v0.8.2
 > **상세 계획**: `.claude/plans/warm-sniffing-waterfall.md`
 
 ---
@@ -245,6 +245,7 @@ Candle Pattern, US 3X Leverage, Pension Portfolio, Compound Momentum, Small Cap 
 | 백테스트 차트 자동 생성 | ✅ |
 | Collector watchlist_helper 개선 | ✅ |
 | CLI .env 자동 로딩 (dotenvy) | ✅ |
+| symbol_info 기준 데이터 무결성 관리 (연쇄 삭제 + 고아 정리 + save_klines 검증) | ✅ |
 
 ---
 

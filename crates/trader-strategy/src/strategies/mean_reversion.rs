@@ -888,6 +888,10 @@ impl Strategy for MeanReversionStrategy {
         self.context = Some(context);
         info!("[MeanReversion] StrategyContext 주입 완료");
     }
+
+    fn exit_config(&self) -> Option<&ExitConfig> {
+        self.config.as_ref().map(|c| &c.exit_config)
+    }
 }
 
 // ================================================================================================

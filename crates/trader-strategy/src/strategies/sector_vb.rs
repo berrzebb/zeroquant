@@ -924,6 +924,10 @@ impl Strategy for SectorVbStrategy {
         self.context = Some(context);
         info!("StrategyContext injected into SectorVb v2.0 strategy");
     }
+
+    fn exit_config(&self) -> Option<&ExitConfig> {
+        self.config.as_ref().map(|c| &c.exit_config)
+    }
 }
 
 // ============================================================================

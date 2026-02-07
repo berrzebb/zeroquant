@@ -1,6 +1,88 @@
 # Changelog
 
 
+## [0.8.2] - 2026-02-08
+
+> **성능 최적화, 통합 리스크 관리, CandleProcessor 공통화, 데이터 무결성 관리**: 스크리닝 배치 쿼리 + Redis 구조적 특성 캐시로 10초 → 서브초 성능을 달성하고, ExitConfig를 5가지 리스크 타입으로 확장했습니다. BacktestEngine/SimulationEngine 간 캔들 처리 로직을 CandleProcessor로 공통화하고, GlobalScore 동시 처리(Semaphore 10개)로 ~10배 속도를 개선했습니다. symbol_info 기준 데이터 무결성 관리 시스템(cascade delete, orphan cleanup)을 도입했습니다.
+
+### Added
+
+#### 🔄 CandleProcessor - 백테스트/시뮬레이션 공통 캔들 처리 (592줄)
+
+**파일**: `trader-analytics/src/backtest/candle_processor.rs` (신규)
+
+- BacktestEngine과 SimulationEngine 간 공통 캔들 처리 로직 추출
+- StrategyContext 업데이트, 시그널 생성, 포지션 동기화를 한 곳에서 관리
+- 수정 시 한 곳만 변경하면 양쪽 엔진에 반영
+
+#### 🛡️ ExitConfig 통합 리스크 관리 시스템 (+500줄)
+
+**파일**: `trader-strategy/src/strategies/common/exit_config.rs`
+
+6가지 리스크 옵션을 전략별로 `enabled: bool`로 독립 활성화/비활성화하여 조합하는 통합 리스크 관리 시스템:
+
+| 옵션 | 설명 | 모드/파라미터 | 동작 방식 |
+|------|------|-------------|----------|
+| **StopLoss** | 손절 | `Fixed` (고정 %), `AtrBased` (ATR 배수) | entry ± pct% / executor에서 ATR 동적 계산 |
+| **TakeProfit** | 익절 | `pct` (고정 %) | entry ± pct% |
+| **TrailingStop** | 트레일링 스톱 | `FixedPercentage`, `AtrBased`, `Step`, `ParabolicSar` | trigger 도달 후 고점 대비 stop% 하락 시 청산 |
+| **ProfitLock** | 수익 잠금 | `threshold_pct`, `lock_pct` | 목표 수익 달성 후 수익의 lock% 이하 하락 시 청산 |
+| **DailyLossLimit** | 일일 손실 한도 | `max_loss_pct` | 계좌 대비 일일 최대 손실 초과 시 거래 중단 |
+| **반대 신호 청산** | exit_on_opposite_signal | `bool` | 보유 중 반대 Entry 발생 시 즉시 청산 |
+
+- `Strategy` trait에 `exit_config()` 메서드 추가 — 엔진 레벨 리스크 관리 자동 적용
+- `enrich_signal()`: Entry 신호에 SL/TP 가격 자동 계산, 트레일링/수익잠금은 metadata로 executor 전달
+- 6가지 프리셋: `for_day_trading()`, `for_mean_reversion()`, `for_grid_trading()`, `for_rebalancing()`, `for_leverage()`, `for_momentum()`
+- 빌더 패턴: `.stop_loss()`, `.take_profit()`, `.trailing_stop()`으로 프리셋 커스터마이징 가능
+- SDUI Schema Registry 확장 — 리스크 타입별 UI 폼 자동 생성
+- 16개 전략 모두 `exit_config()` 기본 구현 + 694줄 테스트 (exit_config_test.rs)
+
+#### 🗑️ 심볼 무결성 관리 시스템
+
+**DB 함수**:
+- `delete_symbol_cascade(ticker, market)` — 심볼 삭제 + 연쇄 정리
+- `cleanup_orphan_symbol_data()` — 고아 데이터 일괄 정리
+
+**API 엔드포인트**:
+- `DELETE /api/v1/dataset/symbols/:ticker?market=KR` — 심볼 삭제
+- `POST /api/v1/dataset/symbols/cleanup-orphans` — 고아 정리
+
+**Repository**: `symbol_info.rs`에 `delete_symbol()`, `cleanup_orphans()` 추가
+
+#### ⚡ 스크리닝 성능 최적화
+
+- **배치 kline 쿼리**: `get_cached_klines_batch()` — 윈도우 함수로 N+1 쿼리 제거 (300+ 개별 쿼리 → 1 쿼리)
+- **Redis 구조적 특성 캐시**: `CachedStructuralFeatures` — 4시간 TTL, 첫 호출 후 서브초 응답
+- **모멘텀 데이터 왜곡 필터**: `end_price / start_price <= 20` — 주식분할 아티팩트 자동 제거
+- **결과수 제한 필터 수정**: 구조적 필터 이후 limit/offset 적용 (기존: 미동작)
+
+#### 🚀 GlobalScore 동시 처리
+
+**파일**: `trader-collector/src/modules/global_score_sync.rs`
+
+- 순차 for 루프 → Semaphore(10) 기반 동시 처리
+- 100개 청크 단위 처리 + 체크포인트 호환
+- AtomicUsize 카운터로 안전한 동시 업데이트
+- 2000개 심볼 기준: ~50초 → ~5-8초
+
+### Fixed
+
+- **OpportunityMap 필드명 불일치**: `r.global_score` → `r.overall_score` (프론트엔드 Screening.tsx)
+  - 원인: 백엔드 DTO 필드명 `overall_score`와 프론트엔드 참조 `global_score` 불일치
+  - 186개 종목 모두 기본값 50으로 표시되던 문제 해결
+- **스크리닝 결과수 제한 미동작**: `filter.limit`이 SQL 이후 적용되지 않던 문제 수정
+- **GlobalScore null 종목 차트 표시**: score 없는 종목 OpportunityMap에서 필터링
+
+### Changed
+
+- `BacktestEngine` 캔들 처리 로직을 `CandleProcessor`로 추출하여 엔진 코드 대폭 축소
+- `ExitConfig` 구조 변경: 단일 struct → 5개 서브 config struct 분리
+- Schema Registry: exit_config fragment 완전 재작성 (중첩 필드, section 지원)
+- `get_klines_batch_readonly()` 추가 — 스크리닝용 Redis 스킵 배치 조회
+- 16개 전략에 `exit_config()` trait 메서드 기본 구현 추가
+
+---
+
 ## [0.8.1] - 2026-02-07
 
 > **StructuralFeatures Decimal 통합, LiveExecutor, DCA 전략 그룹, GlobalScore 활용 재설계, 백테스트 CLI 대폭 개선**: StructuralFeatures 타입을 f64에서 Decimal로 통합하여 금융 계산 정밀도를 높이고, LiveExecutor 실거래 실행기와 DCA 전략 그룹(Grid, MagicSplit, InfinityBot)을 추가했습니다. 전략 컨셉에 맞게 GlobalScore 활용 방식을 전면 재설계하고, 백테스트 CLI에 TOML 설정 파일 기반 실행, 멀티에셋 백테스트, Signal Analysis Report 자동 생성 기능을 도입했습니다.

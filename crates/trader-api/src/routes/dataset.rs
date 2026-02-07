@@ -10,6 +10,8 @@
 //! - `POST /api/v1/dataset/symbols/batch` - 여러 티커의 심볼 정보 일괄 조회
 //! - `GET /api/v1/dataset/:symbol` - 특정 심볼의 캔들 데이터 조회
 //! - `DELETE /api/v1/dataset/:symbol` - 특정 심볼 캐시 삭제
+//! - `DELETE /api/v1/dataset/symbols/:ticker` - 심볼 삭제 + 연쇄 정리
+//! - `POST /api/v1/dataset/symbols/cleanup-orphans` - 고아 데이터 일괄 정리
 
 use axum::{
     extract::{Path, Query, State},
@@ -25,7 +27,7 @@ use utoipa::{IntoParams, ToSchema};
 
 use trader_core::Timeframe;
 
-use crate::repository::{SymbolInfoRepository, SymbolSearchResult};
+use crate::repository::{CascadeDeleteResult, SymbolInfoRepository, SymbolSearchResult};
 use crate::routes::strategies::ApiError;
 use crate::state::AppState;
 
@@ -1106,6 +1108,9 @@ pub fn dataset_router() -> Router<Arc<AppState>> {
         .route("/symbols/failed", get(get_failed_symbols))
         .route("/symbols/stats", get(get_symbol_stats))
         .route("/symbols/reactivate", post(reactivate_symbols))
+        // 심볼 무결성 관리
+        .route("/symbols/{ticker}", delete(delete_symbol))
+        .route("/symbols/cleanup-orphans", post(cleanup_orphans))
         // 심볼별 조회/삭제
         .route("/{symbol}", get(get_candles))
         .route("/{symbol}", delete(delete_dataset))
@@ -1362,6 +1367,143 @@ async fn reactivate_symbols(
         }
         Err(e) => {
             error!(error = %e, "심볼 재활성화 실패");
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiError::new("DB_ERROR", e.to_string())),
+            ))
+        }
+    }
+}
+
+// ==================== 심볼 무결성 관리 ====================
+
+/// 심볼 삭제 쿼리 파라미터.
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct DeleteSymbolQuery {
+    /// 시장 코드 (KR, US, CRYPTO 등)
+    pub market: String,
+}
+
+/// 심볼 삭제 응답.
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteSymbolResponse {
+    pub success: bool,
+    pub ticker: String,
+    pub market: String,
+    pub deleted_tables: Vec<CascadeDeleteResult>,
+    pub message: String,
+}
+
+/// 고아 데이터 정리 응답.
+#[derive(Debug, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CleanupOrphansResponse {
+    pub success: bool,
+    pub cleaned_tables: Vec<CascadeDeleteResult>,
+    pub total_deleted: i64,
+    pub message: String,
+}
+
+/// 심볼 삭제 + 연쇄 정리.
+///
+/// symbol_info 레코드와 관련된 모든 데이터(ohlcv, 포지션, 체결 등)를 삭제합니다.
+/// DELETE /api/v1/dataset/symbols/:ticker?market=KR
+#[utoipa::path(
+    delete,
+    path = "/api/v1/dataset/symbols/{ticker}",
+    params(
+        ("ticker" = String, Path, description = "삭제할 심볼 티커"),
+        DeleteSymbolQuery,
+    ),
+    responses(
+        (status = 200, description = "심볼 삭제 완료", body = DeleteSymbolResponse),
+        (status = 404, description = "심볼을 찾을 수 없음"),
+        (status = 500, description = "서버 오류"),
+    ),
+    tag = "dataset"
+)]
+pub async fn delete_symbol(
+    State(state): State<Arc<AppState>>,
+    Path(ticker): Path<String>,
+    Query(query): Query<DeleteSymbolQuery>,
+) -> Result<Json<DeleteSymbolResponse>, (StatusCode, Json<ApiError>)> {
+    let pool = state.db_pool.as_ref().ok_or_else(|| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(ApiError::new("DB_NOT_CONFIGURED", "DB 미설정")),
+        )
+    })?;
+
+    match SymbolInfoRepository::delete_symbol(pool, &ticker, &query.market).await {
+        Ok(results) => {
+            // SymbolResolver 캐시 클리어
+            state.clear_symbol_cache().await;
+
+            let total: i64 = results.iter().map(|r| r.deleted_count).sum();
+            Ok(Json(DeleteSymbolResponse {
+                success: true,
+                ticker: ticker.clone(),
+                market: query.market.clone(),
+                deleted_tables: results,
+                message: format!("심볼 '{}' ({}) 삭제 완료 (총 {}건)", ticker, query.market, total),
+            }))
+        }
+        Err(e) => {
+            let err_msg = e.to_string();
+            if err_msg.contains("symbol_info not found") {
+                Err((
+                    StatusCode::NOT_FOUND,
+                    Json(ApiError::new("SYMBOL_NOT_FOUND", format!(
+                        "심볼을 찾을 수 없습니다: ticker={}, market={}", ticker, query.market
+                    ))),
+                ))
+            } else {
+                error!(error = %e, ticker = %ticker, "심볼 삭제 실패");
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ApiError::new("DB_ERROR", e.to_string())),
+                ))
+            }
+        }
+    }
+}
+
+/// 고아 데이터 일괄 정리.
+///
+/// symbol_info에 존재하지 않는 심볼의 데이터를 모든 관련 테이블에서 삭제합니다.
+/// POST /api/v1/dataset/symbols/cleanup-orphans
+#[utoipa::path(
+    post,
+    path = "/api/v1/dataset/symbols/cleanup-orphans",
+    responses(
+        (status = 200, description = "고아 데이터 정리 완료", body = CleanupOrphansResponse),
+        (status = 500, description = "서버 오류"),
+    ),
+    tag = "dataset"
+)]
+pub async fn cleanup_orphans(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<CleanupOrphansResponse>, (StatusCode, Json<ApiError>)> {
+    let pool = state.db_pool.as_ref().ok_or_else(|| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(ApiError::new("DB_NOT_CONFIGURED", "DB 미설정")),
+        )
+    })?;
+
+    match SymbolInfoRepository::cleanup_orphans(pool).await {
+        Ok(results) => {
+            let total: i64 = results.iter().map(|r| r.deleted_count).sum();
+            Ok(Json(CleanupOrphansResponse {
+                success: true,
+                cleaned_tables: results,
+                total_deleted: total,
+                message: format!("고아 데이터 정리 완료 (총 {}건 삭제)", total),
+            }))
+        }
+        Err(e) => {
+            error!(error = %e, "고아 데이터 정리 실패");
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ApiError::new("DB_ERROR", e.to_string())),

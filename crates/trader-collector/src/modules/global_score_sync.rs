@@ -4,6 +4,8 @@
 
 use rust_decimal::Decimal;
 use sqlx::{PgPool, QueryBuilder, Postgres};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
@@ -20,6 +22,9 @@ use crate::config::CollectorConfig;
 use crate::error::CollectorError;
 use crate::stats::CollectionStats;
 use crate::Result;
+
+/// 동시 처리 심볼 수 (기본값)
+const DEFAULT_CONCURRENT_LIMIT: usize = 10;
 
 /// GlobalScore 동기화 옵션
 #[derive(Debug, Default)]
@@ -158,56 +163,101 @@ pub async fn sync_global_scores_with_options(
         return Ok(stats);
     }
 
-    info!("GlobalScore 동기화 시작: {} 심볼", target_symbols.len());
-    stats.total = target_symbols.len();
+    let total = target_symbols.len();
+    info!("GlobalScore 동기화 시작: {} 심볼 (동시 {}개)", total, DEFAULT_CONCURRENT_LIMIT);
+    stats.total = total;
 
     // 시작 상태 저장
     checkpoint::save_checkpoint(pool, "global_score_sync", "", 0, CheckpointStatus::Running)
         .await?;
 
-    for (idx, (symbol_info_id, ticker, market)) in target_symbols.iter().enumerate() {
-        // 체크포인트 저장 (100개마다)
-        if (idx + 1) % 100 == 0 {
-            info!(
-                progress = format!("{}/{}", idx + 1, stats.total),
-                "GlobalScore 동기화 진행 중"
-            );
-            checkpoint::save_checkpoint(
-                pool,
-                "global_score_sync",
-                ticker,
-                (idx + 1) as i32,
-                CheckpointStatus::Running,
-            )
-            .await?;
+    // 공유 리소스를 Arc로 래핑 (동시 접근용)
+    let scorer = Arc::new(scorer);
+    let indicator_engine = Arc::new(indicator_engine);
+    let data_provider = Arc::new(data_provider);
+
+    // 원자적 카운터 (동시 업데이트 안전)
+    let success_count = Arc::new(AtomicUsize::new(0));
+    let skipped_count = Arc::new(AtomicUsize::new(0));
+    let errors_count = Arc::new(AtomicUsize::new(0));
+
+    // 100개씩 청크로 분할 → 각 청크 내에서 동시 처리 → 청크 완료 후 체크포인트
+    let chunk_size = 100;
+    for (chunk_idx, chunk) in target_symbols.chunks(chunk_size).enumerate() {
+        let chunk_start = chunk_idx * chunk_size;
+        let semaphore = Arc::new(tokio::sync::Semaphore::new(DEFAULT_CONCURRENT_LIMIT));
+        let mut handles = Vec::with_capacity(chunk.len());
+
+        for (symbol_info_id, ticker, market) in chunk.iter() {
+            let sem = semaphore.clone();
+            let pool = pool.clone();
+            let scorer = scorer.clone();
+            let indicator_engine = indicator_engine.clone();
+            let data_provider = data_provider.clone();
+            let success_count = success_count.clone();
+            let skipped_count = skipped_count.clone();
+            let errors_count = errors_count.clone();
+            let symbol_info_id = *symbol_info_id;
+            let ticker = ticker.clone();
+            let market = market.clone();
+
+            let handle = tokio::spawn(async move {
+                let _permit = sem.acquire().await.expect("세마포어 획득 실패");
+
+                debug!(ticker = %ticker, market = %market, "GlobalScore 계산 중");
+
+                match calculate_and_save(
+                    &pool,
+                    &scorer,
+                    &data_provider,
+                    &indicator_engine,
+                    symbol_info_id,
+                    &ticker,
+                    &market,
+                )
+                .await
+                {
+                    Ok(true) => {
+                        success_count.fetch_add(1, Ordering::Relaxed);
+                    }
+                    Ok(false) => {
+                        skipped_count.fetch_add(1, Ordering::Relaxed);
+                    }
+                    Err(e) => {
+                        warn!(ticker = %ticker, error = %e, "GlobalScore 계산 실패");
+                        errors_count.fetch_add(1, Ordering::Relaxed);
+                    }
+                }
+            });
+
+            handles.push(handle);
         }
 
-        debug!(ticker = %ticker, market = %market, "GlobalScore 계산 중");
+        // 청크 내 모든 태스크 완료 대기
+        for handle in handles {
+            if let Err(e) = handle.await {
+                warn!(error = %e, "GlobalScore 태스크 패닉");
+                errors_count.fetch_add(1, Ordering::Relaxed);
+            }
+        }
 
-        match calculate_and_save(
+        // 청크 완료 후 체크포인트 저장
+        let processed = chunk_start + chunk.len();
+        let last_ticker = &chunk.last().map(|(_, t, _)| t.as_str()).unwrap_or("");
+        info!(
+            progress = format!("{}/{}", processed, total),
+            success = success_count.load(Ordering::Relaxed),
+            errors = errors_count.load(Ordering::Relaxed),
+            "GlobalScore 동기화 진행 중"
+        );
+        checkpoint::save_checkpoint(
             pool,
-            &scorer,
-            &data_provider,
-            &indicator_engine,
-            *symbol_info_id,
-            ticker,
-            market,
+            "global_score_sync",
+            last_ticker,
+            processed as i32,
+            CheckpointStatus::Running,
         )
-        .await
-        {
-            Ok(true) => {
-                stats.success += 1;
-            }
-            Ok(false) => {
-                // 데이터 부족으로 스킵
-                stats.skipped += 1;
-            }
-            Err(e) => {
-                warn!(ticker = %ticker, error = %e, "GlobalScore 계산 실패");
-                stats.errors += 1;
-            }
-        }
-
+        .await?;
     }
 
     // 완료 상태 저장
@@ -215,15 +265,19 @@ pub async fn sync_global_scores_with_options(
         pool,
         "global_score_sync",
         "",
-        stats.total as i32,
+        total as i32,
         CheckpointStatus::Completed,
     )
     .await?;
 
+    stats.success = success_count.load(Ordering::Relaxed);
+    stats.skipped = skipped_count.load(Ordering::Relaxed);
+    stats.errors = errors_count.load(Ordering::Relaxed);
     stats.elapsed = start.elapsed();
     info!(
-        "GlobalScore 동기화 완료: {}/{} 성공, {} 스킵, {} 오류",
-        stats.success, stats.total, stats.skipped, stats.errors
+        "GlobalScore 동기화 완료: {}/{} 성공, {} 스킵, {} 오류 ({:.1}초)",
+        stats.success, stats.total, stats.skipped, stats.errors,
+        stats.elapsed.as_secs_f64()
     );
 
     Ok(stats)

@@ -746,6 +746,10 @@ impl Strategy for ScreeningBasedStrategy {
         self.context = Some(context);
     }
 
+    fn exit_config(&self) -> Option<&ExitConfig> {
+        self.config.as_ref().map(|c| &c.exit_config)
+    }
+
     fn get_state(&self) -> Value {
         let config = self.config.as_ref();
         json!({

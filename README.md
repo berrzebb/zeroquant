@@ -36,7 +36,7 @@ ZeroQuant는 암호화폐와 주식 시장에서 **24/7 자동화된 거래**를
 
 검증된 **16가지 통합 전략**과 **50개 ML 패턴 인식** (캔들스틱 26개 + 차트 패턴 24개)을 통해 **그리드 트레이딩**, **자산배분**, **모멘텀** 등 다양한 투자 방법론을 지원합니다. 웹 대시보드에서 실시간 모니터링과 전략 제어가 가능하며, 리스크 관리 시스템이 자동으로 자산을 보호합니다.
 
-> ⚠️ **v0.8.1 StructuralFeatures Decimal 통합 & LiveExecutor**: StructuralFeatures 타입을 Decimal로 통합하여 금융 계산 정밀도를 높이고, LiveExecutor 실거래 실행기와 DCA 전략 그룹(Grid, MagicSplit, InfinityBot)을 추가했습니다. 백테스트 CLI에 TOML 설정 파일 기반 실행, 멀티에셋 백테스트, Signal Analysis Report 기능이 도입되었습니다.
+> ⚠️ **v0.8.2 성능 최적화, 리스크 관리 확장, 데이터 무결성**: 스크리닝 성능을 배치 쿼리 + Redis 캐시로 대폭 개선하고, ExitConfig를 5가지 리스크 타입(StopLoss/TakeProfit/TrailingStop/ProfitLock/DailyLossLimit)으로 확장했습니다. CandleProcessor 공통화, GlobalScore 동시 처리, 심볼 무결성 관리 시스템이 추가되었습니다.
 
 ## 주요 기능
 
@@ -94,9 +94,16 @@ ZeroQuant는 암호화폐와 주식 시장에서 **24/7 자동화된 거래**를
   - 알림 규칙 관리 (JSONB 필터)
 
 ### 🛡️ 리스크 관리
-- 자동 스톱로스 / 테이크프로핏
-- 포지션 크기 및 일일 손실 한도
-- ATR 기반 변동성 필터
+- **ExitConfig 통합 리스크 관리** (v0.8.2): 6가지 리스크 옵션을 전략별로 조합
+  - **StopLoss**: 고정 % 손절 또는 ATR(평균 진폭 범위) 기반 동적 손절
+  - **TakeProfit**: 고정 % 익절
+  - **TrailingStop**: 4가지 모드 (고정 %, ATR 기반, 단계별 Step, Parabolic SAR)
+  - **ProfitLock**: 수익 보호 — 목표 수익 달성 후 일정 비율 이하 하락 시 자동 청산
+  - **DailyLossLimit**: 일일 최대 손실 비율 초과 시 거래 중단
+  - **반대 신호 청산**: 보유 중 반대 방향 신호 발생 시 즉시 청산
+- **6가지 프리셋** 제공 (day_trading, mean_reversion, grid, rebalancing, leverage, momentum)
+- 전략마다 `exit_config()` trait 메서드로 리스크 설정을 엔진에 전달
+- `enrich_signal()`: Entry 신호에 SL/TP 가격 자동 계산, 트레일링/수익잠금은 metadata로 executor에 전달
 - Circuit Breaker 패턴 (에러 카테고리별 차등 임계치)
 - API 재시도 시스템 (지수 백오프, Rate Limit 대응)
 
@@ -559,22 +566,55 @@ register_strategy! {
 }
 ```
 
-#### 4. 공통 Exit Config 프리셋 활용 (v0.7.0+)
+#### 4. ExitConfig 통합 리스크 관리 (v0.8.2)
 
-| 프리셋 | 손절 | 익절 | 트레일링 | 반대신호 청산 | 적용 대상 |
-|--------|------|------|----------|--------------|----------|
-| `for_day_trading()` | 2% | 4% | ❌ | ✅ | day_trading, sector_vb, momentum_surge |
-| `for_mean_reversion()` | 3% | 6% | ❌ | ✅ | mean_reversion, range_trading, candle_pattern |
-| `for_grid_trading()` | ❌ | 3% | ❌ | ❌ | infinity_bot, grid 변형 |
+전략별로 6가지 리스크 옵션을 `enabled: bool`로 독립 활성화/비활성화하여 조합합니다.
+`Strategy` trait의 `exit_config()` 메서드로 엔진에 전달하면, `enrich_signal()`이 Entry 신호에 SL/TP 가격과 metadata를 자동 적용합니다.
+
+**리스크 옵션 상세:**
+
+| 옵션 | 설명 | 모드/파라미터 | 동작 방식 |
+|------|------|-------------|----------|
+| **StopLoss** | 손절 | `Fixed` (고정 %), `AtrBased` (ATR 배수) | Fixed: entry_price ± pct% / ATR: executor에서 ATR 값으로 동적 계산 |
+| **TakeProfit** | 익절 | `pct` (고정 %) | entry_price ± pct% |
+| **TrailingStop** | 트레일링 스톱 | `FixedPercentage`, `AtrBased`, `Step`, `ParabolicSar` | trigger_pct 도달 후 고점 대비 stop_pct 하락 시 청산 |
+| **ProfitLock** | 수익 잠금 | `threshold_pct`, `lock_pct` | 수익이 threshold 달성 → 수익의 lock% 이하 하락 시 청산 (예: 5%수익, 80%잠금 → 4% 이하면 청산) |
+| **DailyLossLimit** | 일일 손실 한도 | `max_loss_pct` | 계좌 대비 일일 손실이 max_loss_pct 초과 시 거래 중단 |
+| **반대 신호 청산** | exit_on_opposite_signal | `bool` | 보유 중 반대 방향 Entry 발생 시 기존 포지션 즉시 청산 |
+
+**TrailingStop 4가지 모드:**
+
+| 모드 | 설명 | 파라미터 |
+|------|------|---------|
+| `FixedPercentage` | 고정 % 트레일링 | trigger_pct (시작 수익률), stop_pct (고점 대비 하락폭) |
+| `AtrBased` | ATR 기반 동적 트레일링 | trigger_pct, atr_multiplier (ATR × 배수만큼 트레일) |
+| `Step` | 단계별 트레일링 | step_levels: [{profit_pct, trail_pct}, ...] 수익 구간별 차등 트레일 |
+| `ParabolicSar` | Parabolic SAR 지표 기반 | 지표가 가격과 교차 시 청산 |
+
+**6가지 프리셋:**
+
+| 프리셋 | 손절 | 익절 | 트레일링 | 반대 청산 | 적용 대상 |
+|--------|------|------|----------|----------|----------|
+| `for_day_trading()` | 2% Fixed | 4% | ❌ | ✅ | day_trading, sector_vb, momentum_surge |
+| `for_mean_reversion()` | 3% Fixed | 6% | ❌ | ✅ | mean_reversion, range_trading, candle_pattern |
+| `for_grid_trading()` | ❌ | 3% | ❌ | ❌ | DCA (grid, magic_split, infinity_bot) |
 | `for_rebalancing()` | ❌ | ❌ | ❌ | ❌ | asset_allocation, rotation, pension_bot |
-| `for_leverage_etf()` | 5% | 10% | ✅ (3%→2%) | ✅ | us_3x_leverage |
+| `for_leverage()` | 5% Fixed | 10% | ✅ (5%→2%) | ✅ | us_3x_leverage, market_bothside |
+| `for_momentum()` | 5% Fixed | 15% | ✅ (8%→3%) | ✅ | compound_momentum, momentum_power, rsi_multi_tf |
 
 ```rust
-// 사용 예시
-use super::common::ExitConfig;
+// Strategy trait에서 exit_config() 반환 → 엔진이 enrich_signal() 자동 적용
+fn exit_config(&self) -> Option<&ExitConfig> {
+    Some(&self.config.exit_config)
+}
 
-#[serde(default = "ExitConfig::for_mean_reversion")]
-pub exit_config: ExitConfig,
+// 커스텀 빌더 패턴
+let config = ExitConfig::for_momentum()
+    .stop_loss(StopLossConfig { mode: StopLossMode::AtrBased, atr_multiplier: dec!(2.0), ..Default::default() })
+    .trailing_stop(TrailingStopConfig { mode: TrailingMode::Step, step_levels: vec![
+        StepLevel { profit_pct: dec!(5), trail_pct: dec!(3) },
+        StepLevel { profit_pct: dec!(10), trail_pct: dec!(2) },
+    ], ..Default::default() });
 ```
 
 ### CLI로 전략 테스트 (v0.7.0+)
@@ -628,7 +668,7 @@ crates/trader-strategy/
 │   └── strategies/
 │       ├── mod.rs          # 전략 모듈 목록
 │       ├── common/         # 공통 유틸리티 (v0.7.0 대폭 확장)
-│       │   ├── exit_config.rs      # 청산 설정 프리셋
+│       │   ├── exit_config.rs      # 통합 리스크 관리 설정 (5가지 타입) [v0.8.2]
 │       │   ├── global_score_utils.rs # GlobalScore 유틸리티
 │       │   ├── indicators.rs       # 기술 지표 (RSI, SMA, BB 등)
 │       │   ├── position_sizing.rs  # 포지션 사이징
@@ -662,7 +702,7 @@ zeroquant/
 │   │       ├── naver.rs         # 네이버 금융 (국내)
 │   │       ├── yahoo_fundamental.rs # Yahoo 펀더멘털 (해외)
 │   │       └── krx_api.rs       # KRX OPEN API
-│   ├── trader-analytics/    # ML 추론, 성과 분석, 패턴 인식
+│   ├── trader-analytics/    # ML 추론, 성과 분석, 패턴 인식, CandleProcessor [v0.8.2]
 │   ├── trader-api/          # REST/WebSocket API (OpenAPI 3.0 문서화)
 │   │   ├── repository/      # 데이터 접근 계층 (12개 Repository)
 │   │   ├── routes/          # 모듈화된 라우트 (paper_trading 추가) [v0.8.0]

@@ -555,103 +555,226 @@ fn create_exit_config_fragment() -> SchemaFragment {
         "리스크 관리",
         FragmentCategory::RiskManagement,
     )
-    .with_description("손절/익절/트레일링 스탑 설정")
+    .with_description("손절/익절/트레일링/수익잠금/일일한도 통합 리스크 관리 설정")
     .with_fields(vec![
-        // === 손절 설정 ===
+        // ================================================================
+        // 섹션 1: 손절 설정
+        // ================================================================
         FieldSchema {
-            name: "stop_loss_enabled".to_string(),
+            name: "stop_loss.enabled".to_string(),
             field_type: FieldType::Boolean,
             label: "손절 활성화".to_string(),
             description: Some("손절가 설정 활성화".to_string()),
             default: Some(json!(true)),
             required: true,
+            section: Some("stop_loss".to_string()),
             ..Default::default()
         },
         FieldSchema {
-            name: "stop_loss_pct".to_string(),
+            name: "stop_loss.mode".to_string(),
+            field_type: FieldType::Select,
+            label: "손절 모드".to_string(),
+            description: Some("Fixed: 고정 %, AtrBased: ATR 기반 동적 손절".to_string()),
+            default: Some(json!("Fixed")),
+            options: vec!["Fixed".to_string(), "AtrBased".to_string()],
+            condition: Some("stop_loss.enabled == true".to_string()),
+            section: Some("stop_loss".to_string()),
+            ..Default::default()
+        },
+        FieldSchema {
+            name: "stop_loss.pct".to_string(),
             field_type: FieldType::Number,
             label: "손절 비율".to_string(),
             description: Some("진입가 대비 손절 비율 (%)".to_string()),
             default: Some(json!(2.0)),
             min: Some(0.1),
-            max: Some(20.0),
-            condition: Some("stop_loss_enabled == true".to_string()),
-            required: true,
+            max: Some(30.0),
+            condition: Some("stop_loss.enabled == true && stop_loss.mode == Fixed".to_string()),
+            section: Some("stop_loss".to_string()),
             ..Default::default()
         },
-        // === 익절 설정 ===
         FieldSchema {
-            name: "take_profit_enabled".to_string(),
+            name: "stop_loss.atr_multiplier".to_string(),
+            field_type: FieldType::Number,
+            label: "ATR 배수".to_string(),
+            description: Some("ATR 대비 손절 거리 배수 (예: 2.0 = 2배 ATR)".to_string()),
+            default: Some(json!(2.0)),
+            min: Some(0.5),
+            max: Some(5.0),
+            condition: Some("stop_loss.enabled == true && stop_loss.mode == AtrBased".to_string()),
+            section: Some("stop_loss".to_string()),
+            ..Default::default()
+        },
+        FieldSchema {
+            name: "stop_loss.atr_period".to_string(),
+            field_type: FieldType::Integer,
+            label: "ATR 기간".to_string(),
+            description: Some("ATR 계산 기간".to_string()),
+            default: Some(json!(14)),
+            min: Some(5.0),
+            max: Some(50.0),
+            condition: Some("stop_loss.enabled == true && stop_loss.mode == AtrBased".to_string()),
+            section: Some("stop_loss".to_string()),
+            ..Default::default()
+        },
+        // ================================================================
+        // 섹션 2: 익절 설정
+        // ================================================================
+        FieldSchema {
+            name: "take_profit.enabled".to_string(),
             field_type: FieldType::Boolean,
             label: "익절 활성화".to_string(),
             description: Some("익절가 설정 활성화".to_string()),
             default: Some(json!(true)),
             required: true,
+            section: Some("take_profit".to_string()),
             ..Default::default()
         },
         FieldSchema {
-            name: "take_profit_pct".to_string(),
+            name: "take_profit.pct".to_string(),
             field_type: FieldType::Number,
             label: "익절 비율".to_string(),
             description: Some("진입가 대비 익절 비율 (%)".to_string()),
             default: Some(json!(4.0)),
             min: Some(0.1),
-            max: Some(50.0),
-            condition: Some("take_profit_enabled == true".to_string()),
-            required: true,
+            max: Some(100.0),
+            condition: Some("take_profit.enabled == true".to_string()),
+            section: Some("take_profit".to_string()),
             ..Default::default()
         },
-        // === 트레일링 스탑 설정 ===
+        // ================================================================
+        // 섹션 3: 트레일링 스톱 설정
+        // ================================================================
         FieldSchema {
-            name: "trailing_stop_enabled".to_string(),
+            name: "trailing_stop.enabled".to_string(),
             field_type: FieldType::Boolean,
-            label: "트레일링 스탑 활성화".to_string(),
+            label: "트레일링 스톱 활성화".to_string(),
             description: Some("고점 추적 손절 활성화".to_string()),
             default: Some(json!(false)),
-            required: true,
+            section: Some("trailing_stop".to_string()),
             ..Default::default()
         },
         FieldSchema {
-            name: "trailing_trigger_pct".to_string(),
+            name: "trailing_stop.mode".to_string(),
+            field_type: FieldType::Select,
+            label: "트레일링 모드".to_string(),
+            description: Some("FixedPercentage: 고정%, AtrBased: ATR 기반, Step: 단계별, ParabolicSar: PSAR".to_string()),
+            default: Some(json!("FixedPercentage")),
+            options: vec![
+                "FixedPercentage".to_string(),
+                "AtrBased".to_string(),
+                "Step".to_string(),
+                "ParabolicSar".to_string(),
+            ],
+            condition: Some("trailing_stop.enabled == true".to_string()),
+            section: Some("trailing_stop".to_string()),
+            ..Default::default()
+        },
+        FieldSchema {
+            name: "trailing_stop.trigger_pct".to_string(),
             field_type: FieldType::Number,
             label: "트레일링 시작 수익률".to_string(),
-            description: Some("이 수익률 달성 시 트레일링 스탑 시작 (%)".to_string()),
+            description: Some("이 수익률 달성 시 트레일링 스톱 시작 (%)".to_string()),
             default: Some(json!(2.0)),
             min: Some(0.1),
-            max: Some(20.0),
-            condition: Some("trailing_stop_enabled == true".to_string()),
+            max: Some(30.0),
+            condition: Some("trailing_stop.enabled == true".to_string()),
+            section: Some("trailing_stop".to_string()),
             ..Default::default()
         },
         FieldSchema {
-            name: "trailing_stop_pct".to_string(),
+            name: "trailing_stop.stop_pct".to_string(),
             field_type: FieldType::Number,
             label: "트레일링 비율".to_string(),
             description: Some("고점 대비 하락 허용 비율 (%)".to_string()),
             default: Some(json!(1.0)),
             min: Some(0.1),
-            max: Some(10.0),
-            condition: Some("trailing_stop_enabled == true".to_string()),
+            max: Some(15.0),
+            condition: Some("trailing_stop.enabled == true && trailing_stop.mode == FixedPercentage".to_string()),
+            section: Some("trailing_stop".to_string()),
             ..Default::default()
         },
-        // === 기타 청산 조건 ===
         FieldSchema {
-            name: "exit_on_neutral".to_string(),
+            name: "trailing_stop.atr_multiplier".to_string(),
+            field_type: FieldType::Number,
+            label: "트레일링 ATR 배수".to_string(),
+            description: Some("ATR 대비 트레일링 거리 배수".to_string()),
+            default: Some(json!(2.0)),
+            min: Some(0.5),
+            max: Some(5.0),
+            condition: Some("trailing_stop.enabled == true && trailing_stop.mode == AtrBased".to_string()),
+            section: Some("trailing_stop".to_string()),
+            ..Default::default()
+        },
+        // ================================================================
+        // 섹션 4: 수익 잠금 설정
+        // ================================================================
+        FieldSchema {
+            name: "profit_lock.enabled".to_string(),
             field_type: FieldType::Boolean,
-            label: "중립점 청산".to_string(),
-            description: Some("RSI 50, 중간밴드 도달 시 청산".to_string()),
+            label: "수익 잠금 활성화".to_string(),
+            description: Some("일정 수익 달성 후 최소 수익 보호".to_string()),
             default: Some(json!(false)),
-            required: false,
+            section: Some("profit_lock".to_string()),
             ..Default::default()
         },
         FieldSchema {
-            name: "cooldown_candles".to_string(),
-            field_type: FieldType::Integer,
-            label: "쿨다운 캔들 수".to_string(),
-            description: Some("청산 후 재진입까지 대기 캔들 수".to_string()),
-            default: Some(json!(5)),
-            min: Some(0.0),
+            name: "profit_lock.threshold_pct".to_string(),
+            field_type: FieldType::Number,
+            label: "잠금 시작 수익률".to_string(),
+            description: Some("이 수익률 달성 시 수익 잠금 시작 (%)".to_string()),
+            default: Some(json!(5.0)),
+            min: Some(1.0),
+            max: Some(50.0),
+            condition: Some("profit_lock.enabled == true".to_string()),
+            section: Some("profit_lock".to_string()),
+            ..Default::default()
+        },
+        FieldSchema {
+            name: "profit_lock.lock_pct".to_string(),
+            field_type: FieldType::Number,
+            label: "잠금 비율".to_string(),
+            description: Some("달성 수익 대비 보호 비율 (%). 예: 80% = 수익의 80% 보호".to_string()),
+            default: Some(json!(80.0)),
+            min: Some(30.0),
             max: Some(100.0),
-            required: false,
+            condition: Some("profit_lock.enabled == true".to_string()),
+            section: Some("profit_lock".to_string()),
+            ..Default::default()
+        },
+        // ================================================================
+        // 섹션 5: 일일 손실 한도 설정
+        // ================================================================
+        FieldSchema {
+            name: "daily_loss_limit.enabled".to_string(),
+            field_type: FieldType::Boolean,
+            label: "일일 손실 한도 활성화".to_string(),
+            description: Some("하루 최대 손실 한도 설정".to_string()),
+            default: Some(json!(false)),
+            section: Some("daily_loss_limit".to_string()),
+            ..Default::default()
+        },
+        FieldSchema {
+            name: "daily_loss_limit.max_loss_pct".to_string(),
+            field_type: FieldType::Number,
+            label: "일일 최대 손실".to_string(),
+            description: Some("계좌 대비 일일 최대 손실 비율 (%)".to_string()),
+            default: Some(json!(3.0)),
+            min: Some(0.5),
+            max: Some(20.0),
+            condition: Some("daily_loss_limit.enabled == true".to_string()),
+            section: Some("daily_loss_limit".to_string()),
+            ..Default::default()
+        },
+        // ================================================================
+        // 기타 청산 조건
+        // ================================================================
+        FieldSchema {
+            name: "exit_on_opposite_signal".to_string(),
+            field_type: FieldType::Boolean,
+            label: "반대 신호 시 청산".to_string(),
+            description: Some("매수 포지션에서 매도 신호 발생 시 자동 청산".to_string()),
+            default: Some(json!(true)),
             ..Default::default()
         },
     ])

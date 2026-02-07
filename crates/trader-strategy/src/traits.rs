@@ -10,6 +10,8 @@ use trader_core::{
     Timeframe,
 };
 
+use crate::strategies::common::ExitConfig;
+
 /// 트레이딩 전략 구현을 위한 Strategy trait.
 ///
 /// 모든 전략은 전략 엔진에서 로드되기 위해 이 trait를 구현해야 합니다.
@@ -61,6 +63,14 @@ pub trait Strategy: Send + Sync {
     /// Phase 1의 스코어링 작업에서 각 전략이 명시적으로 구현할 예정입니다.
     fn set_context(&mut self, _context: Arc<RwLock<StrategyContext>>) {
         // TODO: Phase 1에서 각 전략이 명시적으로 구현
+    }
+
+    /// 리스크 관리(ExitConfig) 설정 반환.
+    ///
+    /// 엔진/executor 레벨에서 Signal에 SL/TP/트레일링 등을 자동 적용하기 위해 사용.
+    /// 전략이 구현하면 엔진이 Signal 생성 후 ExitConfig 기반 리스크 관리를 적용합니다.
+    fn exit_config(&self) -> Option<&ExitConfig> {
+        None
     }
 
     // =========================================================================

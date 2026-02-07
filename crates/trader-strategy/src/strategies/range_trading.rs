@@ -583,6 +583,10 @@ impl Strategy for RangeTradingStrategy {
         debug!("StrategyContext 주입 완료");
     }
 
+    fn exit_config(&self) -> Option<&ExitConfig> {
+        self.config.as_ref().map(|c| &c.exit_config)
+    }
+
     fn get_state(&self) -> Value {
         let klines_count = self.get_klines().len();
         json!({

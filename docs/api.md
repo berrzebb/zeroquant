@@ -681,6 +681,75 @@ Critical 에러만 조회
 
 ---
 
+## Dataset API
+
+### GET /api/v1/dataset
+캐시된 데이터셋 목록 조회
+
+### POST /api/v1/dataset/fetch
+새 데이터셋 다운로드 요청
+
+### GET /api/v1/dataset/search
+심볼 검색 (티커/이름 패턴 매칭)
+
+### POST /api/v1/dataset/symbols/batch
+여러 티커의 심볼 정보 일괄 조회
+
+### GET /api/v1/dataset/symbols/failed
+수집 실패한 심볼 목록 조회
+
+### GET /api/v1/dataset/symbols/stats
+심볼 상태 통계 (비활성화/임계/경고)
+
+### POST /api/v1/dataset/symbols/reactivate
+비활성화된 심볼 재활성화
+
+### DELETE /api/v1/dataset/symbols/{ticker}
+심볼 삭제 + 관련 데이터 연쇄 정리 (delete_symbol_cascade DB 함수 호출)
+
+**Query Parameters:**
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| market | string | ✓ | 시장 코드 (KR, US, CRYPTO 등) |
+
+**Response:**
+```json
+{
+  "success": true,
+  "ticker": "005930",
+  "market": "KR",
+  "deletedTables": [
+    {"tableName": "ohlcv", "deletedCount": 1200},
+    {"tableName": "ohlcv_metadata", "deletedCount": 3}
+  ],
+  "message": "심볼 '005930' (KR) 삭제 완료 (총 1203건)"
+}
+```
+
+### POST /api/v1/dataset/symbols/cleanup-orphans
+symbol_info에 없는 심볼의 고아 데이터 일괄 정리 (cleanup_orphan_symbol_data DB 함수 호출)
+
+**Response:**
+```json
+{
+  "success": true,
+  "cleanedTables": [
+    {"tableName": "ohlcv", "deletedCount": 500},
+    {"tableName": "execution_cache", "deletedCount": 12}
+  ],
+  "totalDeleted": 512,
+  "message": "고아 데이터 정리 완료 (총 512건 삭제)"
+}
+```
+
+### GET /api/v1/dataset/{symbol}
+특정 심볼의 캔들 데이터 조회 (정렬/페이지네이션 지원)
+
+### DELETE /api/v1/dataset/{symbol}
+특정 심볼 캐시 삭제 (ohlcv + ohlcv_metadata)
+
+---
+
 ## Screening API
 
 ### POST /api/v1/screening/filter

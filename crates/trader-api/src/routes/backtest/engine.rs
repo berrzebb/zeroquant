@@ -92,7 +92,7 @@ fn inject_ticker(params: Option<serde_json::Value>, ticker: &str) -> serde_json:
 /// StrategyRegistry를 사용하여 전략 인스턴스를 동적으로 생성합니다.
 /// SDUI에서 제공된 params가 그대로 전략 초기화에 사용됩니다.
 ///
-/// **중요**: run_with_context를 사용하여 StrategyContext가 제대로 업데이트되도록 합니다.
+/// **중요**: run를 사용하여 StrategyContext가 제대로 업데이트되도록 합니다.
 /// 이렇게 해야 전략이 RouteState, GlobalScore, StructuralFeatures 등의 지표를 활용할 수 있습니다.
 async fn run_strategy_backtest_inner(
     strategy_id: &str,
@@ -136,9 +136,9 @@ async fn run_strategy_backtest_inner(
     // **핵심**: 전략에 context 전달 (RouteState, GlobalScore 등 접근 가능하게)
     strategy.set_context(Arc::clone(&context));
 
-    // run_with_context 사용: RouteState, GlobalScore, StructuralFeatures 등 지표 계산
+    // run 사용: RouteState, GlobalScore, StructuralFeatures 등 지표 계산
     engine
-        .run_with_context(&mut *strategy, klines, context, &symbol_str, None)
+        .run(&mut *strategy, klines, context, &symbol_str, None)
         .await
         .map_err(|e| e.to_string())
 }
@@ -226,7 +226,7 @@ fn inject_multi_asset_params(
 /// StrategyRegistry를 사용하여 전략 인스턴스를 동적으로 생성합니다.
 /// SDUI에서 제공된 params가 그대로 전략 초기화에 사용됩니다.
 ///
-/// **중요**: run_with_context를 사용하여 StrategyContext가 제대로 업데이트되도록 합니다.
+/// **중요**: run를 사용하여 StrategyContext가 제대로 업데이트되도록 합니다.
 /// 다중 자산 전략에서는 모든 심볼의 klines를 context에 로드합니다.
 async fn run_multi_strategy_backtest_inner(
     strategy_id: &str,
@@ -273,10 +273,10 @@ async fn run_multi_strategy_backtest_inner(
     // 첫 번째 심볼을 기준 ticker로 사용
     let primary_ticker = symbols.first().map(|s| s.as_str()).unwrap_or("BTC/USDT");
 
-    // run_with_context 사용: RouteState, GlobalScore, StructuralFeatures 등 지표 계산
+    // run 사용: RouteState, GlobalScore, StructuralFeatures 등 지표 계산
     // multi_klines는 이미 StrategyContext에 등록됨 (위 코드 참조)
     engine
-        .run_with_context(&mut *strategy, merged_klines, context, primary_ticker, None)
+        .run(&mut *strategy, merged_klines, context, primary_ticker, None)
         .await
         .map_err(|e| e.to_string())
 }

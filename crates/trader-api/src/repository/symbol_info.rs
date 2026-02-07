@@ -1098,6 +1098,64 @@ impl SymbolInfoRepository {
             _ => "YAHOO", // 기본값
         }
     }
+
+    /// 심볼 삭제 + 연쇄 정리 (delete_symbol_cascade SQL 함수 호출).
+    ///
+    /// symbol_info 레코드와 관련된 모든 데이터(ohlcv, 포지션, 체결 등)를 삭제합니다.
+    /// FK CASCADE 테이블(symbol_fundamental, symbol_global_score 등)은 자동 처리됩니다.
+    pub async fn delete_symbol(
+        pool: &PgPool,
+        ticker: &str,
+        market: &str,
+    ) -> Result<Vec<CascadeDeleteResult>, sqlx::Error> {
+        let results = sqlx::query_as::<_, CascadeDeleteResult>(
+            "SELECT table_name, deleted_count FROM delete_symbol_cascade($1, $2)"
+        )
+        .bind(ticker)
+        .bind(market)
+        .fetch_all(pool)
+        .await?;
+
+        info!(
+            ticker = ticker,
+            market = market,
+            tables_affected = results.len(),
+            "심볼 연쇄 삭제 완료"
+        );
+
+        Ok(results)
+    }
+
+    /// 고아 데이터 일괄 정리 (cleanup_orphan_symbol_data SQL 함수 호출).
+    ///
+    /// symbol_info에 존재하지 않는 심볼의 데이터를 모든 관련 테이블에서 삭제합니다.
+    pub async fn cleanup_orphans(
+        pool: &PgPool,
+    ) -> Result<Vec<CascadeDeleteResult>, sqlx::Error> {
+        let results = sqlx::query_as::<_, CascadeDeleteResult>(
+            "SELECT table_name, deleted_count FROM cleanup_orphan_symbol_data()"
+        )
+        .fetch_all(pool)
+        .await?;
+
+        let total: i64 = results.iter().map(|r| r.deleted_count).sum();
+        info!(
+            tables_affected = results.len(),
+            total_deleted = total,
+            "고아 데이터 정리 완료"
+        );
+
+        Ok(results)
+    }
+}
+
+/// 연쇄 삭제 결과 (테이블별 삭제 건수).
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
+pub struct CascadeDeleteResult {
+    /// 삭제된 테이블 이름.
+    pub table_name: String,
+    /// 삭제된 행 수.
+    pub deleted_count: i64,
 }
 
 /// 실패한 심볼 정보.

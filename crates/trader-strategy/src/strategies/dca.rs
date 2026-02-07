@@ -1535,6 +1535,10 @@ impl Strategy for DcaStrategy {
         self.context = Some(context);
         info!("[DCA] StrategyContext 주입 완료");
     }
+
+    fn exit_config(&self) -> Option<&ExitConfig> {
+        self.config.as_ref().map(|c| &c.exit_config)
+    }
 }
 
 // ================================================================================================

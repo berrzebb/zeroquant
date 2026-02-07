@@ -294,6 +294,10 @@ pub struct RotationConfig {
     #[serde(default = "default_min_global_score")]
     #[schema(label = "최소 GlobalScore", min = 0, max = 100)]
     pub min_global_score: Decimal,
+
+    /// 청산 설정 (손절/익절/트레일링 스탑).
+    #[serde(default = "ExitConfig::for_rebalancing")]
+    pub exit_config: ExitConfig,
 }
 
 fn default_top_n() -> usize {
@@ -400,6 +404,7 @@ impl From<SectorMomentumConfig> for RotationConfig {
         base.min_momentum = Some(cfg.min_momentum);
         base.cash_reserve_rate = cfg.cash_reserve_rate;
         base.min_global_score = cfg.min_global_score;
+        base.exit_config = cfg.exit_config;
         base
     }
 }
@@ -458,6 +463,7 @@ impl From<SectorMomentumKrConfig> for RotationConfig {
         base.min_momentum = Some(cfg.min_momentum);
         base.cash_reserve_rate = cfg.cash_reserve_rate;
         base.min_global_score = cfg.min_global_score;
+        base.exit_config = cfg.exit_config;
         base
     }
 }
@@ -516,6 +522,7 @@ impl From<StockRotationConfig> for RotationConfig {
         base.min_momentum = Some(cfg.min_momentum);
         base.cash_reserve_rate = cfg.cash_reserve_rate;
         base.min_global_score = cfg.min_global_score;
+        base.exit_config = cfg.exit_config;
         base
     }
 }
@@ -574,6 +581,7 @@ impl From<StockRotationKrConfig> for RotationConfig {
         base.min_momentum = Some(cfg.min_momentum);
         base.cash_reserve_rate = cfg.cash_reserve_rate;
         base.min_global_score = cfg.min_global_score;
+        base.exit_config = cfg.exit_config;
         base
     }
 }
@@ -632,6 +640,7 @@ impl From<MarketCapTopConfig> for RotationConfig {
         base.use_momentum_filter = cfg.use_momentum_filter;
         base.cash_reserve_rate = cfg.cash_reserve_rate;
         base.min_global_score = cfg.min_global_score;
+        base.exit_config = cfg.exit_config;
         base
     }
 }
@@ -664,6 +673,7 @@ impl RotationConfig {
             cash_reserve_rate: Decimal::ZERO,
             use_momentum_filter: false,
             min_global_score: default_min_global_score(),
+            exit_config: ExitConfig::for_rebalancing(),
         }
     }
 
@@ -697,6 +707,7 @@ impl RotationConfig {
             cash_reserve_rate: Decimal::ZERO,
             use_momentum_filter: false,
             min_global_score: default_min_global_score(),
+            exit_config: ExitConfig::for_rebalancing(),
         }
     }
 
@@ -728,6 +739,7 @@ impl RotationConfig {
             cash_reserve_rate: Decimal::ZERO,
             use_momentum_filter: false,
             min_global_score: default_min_global_score(),
+            exit_config: ExitConfig::for_rebalancing(),
         }
     }
 
@@ -1825,6 +1837,10 @@ impl Strategy for RotationStrategy {
     fn set_context(&mut self, context: Arc<RwLock<StrategyContext>>) {
         self.context = Some(context);
         info!("[Rotation] StrategyContext 주입 완료");
+    }
+
+    fn exit_config(&self) -> Option<&ExitConfig> {
+        self.config.as_ref().map(|c| &c.exit_config)
     }
 }
 
