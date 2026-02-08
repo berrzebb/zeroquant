@@ -45,7 +45,7 @@ import {
   getBacktestResult,
   getBacktestStrategies,
 } from '../api/client'
-import type { ExecutionFilter, BacktestResult, BacktestStrategy } from '../api/client'
+import type { ExecutionFilter, BacktestResult, BacktestStrategy, SymbolPnLItem } from '../api/client'
 
 // Lazy load heavy components
 const PositionsTable = lazy(() =>
@@ -231,28 +231,76 @@ function convertBacktestToCumulativePnL(result: BacktestResult) {
   })
 }
 
-/** 백테스트 결과를 종목별 손익 형식으로 변환 */
-function convertBacktestToSymbolPnL(result: BacktestResult) {
-  const symbolMap = new Map<string, { pnl: number; count: number; wins: number }>()
+/** 백테스트 결과를 종목별 손익 형식으로 변환 (SymbolPnLItem 호환) */
+function convertBacktestToSymbolPnL(result: BacktestResult): SymbolPnLItem[] {
+  const symbolMap = new Map<string, {
+    totalTrades: number
+    buyQty: number; sellQty: number
+    buyValue: number; sellValue: number
+    fees: number; pnl: number
+    firstTradeAt: string | null; lastTradeAt: string | null
+  }>()
 
-  for (const trade of result.trades) {
-    const pnl = parseFloat(trade.pnl)
-    const existing = symbolMap.get(trade.symbol) || { pnl: 0, count: 0, wins: 0 }
-    symbolMap.set(trade.symbol, {
-      pnl: existing.pnl + pnl,
-      count: existing.count + 1,
-      wins: existing.wins + (pnl > 0 ? 1 : 0),
-    })
+  // all_trades(개별 체결)가 있으면 매수/매도 수량·금액·수수료 집계
+  if (result.all_trades) {
+    for (const t of result.all_trades) {
+      const qty = parseFloat(t.quantity)
+      const price = parseFloat(t.price)
+      const value = qty * price
+      const fee = parseFloat(t.commission)
+      const existing = symbolMap.get(t.symbol) || {
+        totalTrades: 0, buyQty: 0, sellQty: 0,
+        buyValue: 0, sellValue: 0, fees: 0, pnl: 0,
+        firstTradeAt: null, lastTradeAt: null,
+      }
+      existing.totalTrades += 1
+      existing.fees += fee
+      if (t.side === 'buy') {
+        existing.buyQty += qty
+        existing.buyValue += value
+      } else {
+        existing.sellQty += qty
+        existing.sellValue += value
+      }
+      if (!existing.firstTradeAt || t.timestamp < existing.firstTradeAt) existing.firstTradeAt = t.timestamp
+      if (!existing.lastTradeAt || t.timestamp > existing.lastTradeAt) existing.lastTradeAt = t.timestamp
+      symbolMap.set(t.symbol, existing)
+    }
   }
 
-  return Array.from(symbolMap.entries()).map(([symbol, data]) => ({
+  // trades(라운드트립)에서 실현손익 집계
+  for (const trade of result.trades) {
+    const pnl = parseFloat(trade.pnl)
+    const existing = symbolMap.get(trade.symbol)
+    if (existing) {
+      existing.pnl += pnl
+    } else {
+      // all_trades 없는 경우 폴백
+      const qty = parseFloat(trade.quantity)
+      const entryPrice = parseFloat(trade.entry_price)
+      const exitPrice = parseFloat(trade.exit_price)
+      symbolMap.set(trade.symbol, {
+        totalTrades: 1,
+        buyQty: qty, sellQty: qty,
+        buyValue: qty * entryPrice, sellValue: qty * exitPrice,
+        fees: 0, pnl,
+        firstTradeAt: trade.entry_time, lastTradeAt: trade.exit_time,
+      })
+    }
+  }
+
+  return Array.from(symbolMap.entries()).map(([symbol, d]) => ({
     symbol,
-    total_pnl: data.pnl.toFixed(0),
-    trade_count: data.count,
-    win_rate: data.count > 0 ? ((data.wins / data.count) * 100).toFixed(1) : '0.0',
-    avg_pnl: data.count > 0 ? (data.pnl / data.count).toFixed(0) : '0',
-    winning_trades: data.wins,
-    losing_trades: data.count - data.wins,
+    symbol_name: null,
+    total_trades: BigInt(d.totalTrades),
+    total_buy_qty: d.buyQty.toFixed(4),
+    total_sell_qty: d.sellQty.toFixed(4),
+    total_buy_value: d.buyValue.toFixed(0),
+    total_sell_value: d.sellValue.toFixed(0),
+    total_fees: d.fees.toFixed(0),
+    realized_pnl: d.pnl.toFixed(0),
+    first_trade_at: d.firstTradeAt,
+    last_trade_at: d.lastTradeAt,
   }))
 }
 
