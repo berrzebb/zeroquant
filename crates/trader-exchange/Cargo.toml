@@ -21,6 +21,7 @@ reqwest = { workspace = true }
 # Serialization
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_urlencoded = "0.7"
 
 # Numeric types
 rust_decimal = { workspace = true }
@@ -34,6 +35,7 @@ chrono-tz = { workspace = true }
 hmac = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }
+jsonwebtoken = { workspace = true }
 
 # Security
 secrecy = { workspace = true }

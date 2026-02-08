@@ -26,7 +26,11 @@ pub use circuit_breaker::{
 };
 pub use error::*;
 pub use historical::{HistoricalDataProvider, UnifiedHistoricalProvider};
+pub use connector::bithumb::{BithumbClient, BithumbConfig};
+pub use connector::db_investment::{DbInvestmentClient, DbInvestmentConfig};
+pub use connector::ls_sec::{LsSecClient, LsSecConfig};
 pub use connector::kis::client::KisClient;
+pub use connector::upbit::{UpbitClient, UpbitConfig};
 pub use provider::{BinanceExchangeProvider, BinanceProvider, KisExchangeProvider, KisProvider};
 pub use retry::{
     with_retry, with_retry_context, with_retry_if, RetryConfig, RetryContext, RetryStats,
