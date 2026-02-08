@@ -36,7 +36,7 @@ ZeroQuant는 암호화폐와 주식 시장에서 **24/7 자동화된 거래**를
 
 검증된 **16가지 통합 전략**과 **50개 ML 패턴 인식** (캔들스틱 26개 + 차트 패턴 24개)을 통해 **그리드 트레이딩**, **자산배분**, **모멘텀** 등 다양한 투자 방법론을 지원합니다. 웹 대시보드에서 실시간 모니터링과 전략 제어가 가능하며, 리스크 관리 시스템이 자동으로 자산을 보호합니다.
 
-> ⚠️ **v0.8.2 성능 최적화, 리스크 관리 확장, 데이터 무결성**: 스크리닝 성능을 배치 쿼리 + Redis 캐시로 대폭 개선하고, ExitConfig를 5가지 리스크 타입(StopLoss/TakeProfit/TrailingStop/ProfitLock/DailyLossLimit)으로 확장했습니다. CandleProcessor 공통화, GlobalScore 동시 처리, 심볼 무결성 관리 시스템이 추가되었습니다.
+> ⚠️ **v0.8.3 쿼리 최적화, 백테스트 타임프레임 폴백, UI 성능**: OHLCV 배치 쿼리를 LATERAL JOIN + TimescaleDB 청크 프루닝으로 ~70% 최적화하고, 백테스트/CLI에 전략 기본 타임프레임 자동 폴백을 도입했습니다. 스크리닝 가상 스크롤(11,000+ 행 60fps), 상태/등급/점수 정렬, 매매일지 상세 통계가 추가되었습니다.
 
 ## 주요 기능
 
@@ -63,6 +63,7 @@ ZeroQuant는 암호화폐와 주식 시장에서 **24/7 자동화된 거래**를
   - Singleton 스트림 관리 (credential별 하나의 WebSocket)
   - 동적 구독/해제 (전략 추가/삭제 시 런타임 반영)
   - 프론트엔드 구독 → 거래소 스트림 자동 브릿지
+- **OHLCV 배치 쿼리**: LATERAL JOIN + TimescaleDB 청크 프루닝으로 2,500+ 심볼 동시 조회 300ms 이내
 - **과거 데이터**: TimescaleDB 시계열 저장, 백테스팅 지원
 - **데이터셋 관리**: Yahoo Finance 데이터 다운로드, 캔들 데이터 CRUD
 - **백그라운드 수집**: 펀더멘털 데이터 자동 수집, 심볼 자동 동기화 (KRX/Binance/Yahoo)
@@ -125,6 +126,7 @@ ZeroQuant는 암호화폐와 주식 시장에서 **24/7 자동화된 거래**를
 - **손익 분석**: 실현/미실현 손익, 기간별 수익률
 - **매매 패턴 분석**: 빈도, 성공률, 평균 보유 기간
 - **포트폴리오 비중**: 종목별 비중 시각화 및 리밸런싱 추천
+- **백테스트 인사이트**: 매수/매도 건수, 총 거래량, 활성 거래일, 최대 수익/손실 등 상세 통계
 
 ## 지원 전략
 
@@ -655,6 +657,7 @@ trader backtest --config config/backtest/haa.toml
 - **스마트 심볼 해석**: KR 종목코드를 `.KS`/`.KQ` 접미사로 자동 변환
 - **Signal Analysis Report**: Entry/Exit 균형, 레벨별 분포, 검증 체크리스트 자동 출력
 - **회귀 차트**: `--chart` 옵션으로 equity curve, drawdown, 거래 마커 포함 PNG 생성
+- **타임프레임 자동 폴백**: 전략 기본 타임프레임 → secondary → 일반(1m~1d) 순서로 가용 데이터 자동 탐색
 
 ### 전략 구조
 
@@ -723,7 +726,8 @@ zeroquant/
 │   │   ├── Backtest.tsx     # 백테스트 실행
 │   │   ├── Simulation.tsx   # 시뮬레이션 + Paper Trading [v0.8.0]
 │   │   ├── MLTraining.tsx   # ML 모델 훈련
-│   │   ├── TradingJournal.tsx # 매매일지
+│   │   ├── Screening.tsx   # 종목 스크리닝 (가상 스크롤, 정렬) [v0.8.3]
+│   │   ├── TradingJournal.tsx # 매매일지 (상세 인사이트) [v0.8.3]
 │   │   ├── GlobalRanking.tsx  # 글로벌 랭킹
 │   │   └── Settings.tsx     # 설정 (API 키, 알림, 자격증명)
 │   ├── src/components/

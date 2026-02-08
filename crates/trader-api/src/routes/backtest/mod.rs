@@ -71,7 +71,7 @@ use engine::{
     run_multi_strategy_backtest, run_strategy_backtest,
 };
 use loader::{
-    expand_strategy_symbols, generate_sample_klines, load_klines_from_db,
+    expand_strategy_symbols, generate_sample_klines, load_klines_with_multi_tf_fallback,
     load_multi_klines_from_db, merge_multi_klines,
 };
 // ui_schema 함수들은 get_ui_schema_for_strategy로 대체됨
@@ -209,15 +209,20 @@ pub async fn run_backtest(
     }
 
     // 전략 레지스트리에서 동적으로 전략 확인
-    if StrategyRegistry::find(&request.strategy_id).is_none() {
-        return Err((
+    let strategy_meta = StrategyRegistry::find(&request.strategy_id).ok_or_else(|| {
+        (
             StatusCode::NOT_FOUND,
             Json(BacktestApiError::new(
                 "STRATEGY_NOT_FOUND",
                 format!("전략을 찾을 수 없습니다: {}", request.strategy_id),
             )),
-        ));
-    }
+        )
+    })?;
+
+    // 전략 기본 타임프레임 (시뮬레이션과 동일한 fallback 로직 적용)
+    // primary가 없으면 다음 secondary가 primary가 됨
+    let default_timeframe = strategy_meta.default_timeframe;
+    let secondary_timeframes = strategy_meta.secondary_timeframes;
 
     // 수수료/슬리피지 기본값 설정
     let commission_rate = request.commission_rate.unwrap_or(Decimal::new(1, 3)); // 0.1%
@@ -238,7 +243,7 @@ pub async fn run_backtest(
 
         // 다중 심볼 데이터 로드 (공유 data_provider 사용 - Redis 3계층 캐시)
         let multi_klines = if let Some(data_provider) = &state.data_provider {
-            match load_multi_klines_from_db(data_provider, &expanded_symbols, start_date, end_date).await {
+            match load_multi_klines_from_db(data_provider, &expanded_symbols, start_date, end_date, default_timeframe).await {
                 Ok(data) if !data.is_empty() => {
                     debug!("DB에서 {} 심볼의 데이터 로드 완료", data.len());
                     for (sym, klines) in &data {
@@ -323,8 +328,9 @@ pub async fn run_backtest(
     }
 
     // 단일 심볼 전략 (공유 data_provider 사용 - Redis 3계층 캐시)
+    // primary → secondary → 일반 fallback 순서로 가용 타임프레임 탐색
     let klines = if let Some(data_provider) = &state.data_provider {
-        match load_klines_from_db(data_provider, &request.symbol, start_date, end_date).await {
+        match load_klines_with_multi_tf_fallback(data_provider, &request.symbol, start_date, end_date, default_timeframe, secondary_timeframes).await {
             Ok(data) if !data.is_empty() => {
                 debug!(
                     symbol = %request.symbol,
@@ -542,9 +548,14 @@ pub async fn run_multi_backtest(
         request.strategy_id, request.symbols, expanded_symbols
     );
 
+    // 전략 기본 타임프레임 조회 (시뮬레이션과 동일한 fallback 적용)
+    let default_tf = StrategyRegistry::find(&request.strategy_id)
+        .map(|m| m.default_timeframe)
+        .unwrap_or("1d");
+
     // 다중 심볼 데이터 로드 (공유 data_provider 사용 - Redis 3계층 캐시)
     let multi_klines = if let Some(data_provider) = &state.data_provider {
-        match load_multi_klines_from_db(data_provider, &expanded_symbols, start_date, end_date).await {
+        match load_multi_klines_from_db(data_provider, &expanded_symbols, start_date, end_date, default_tf).await {
             Ok(data) if !data.is_empty() => {
                 debug!(
                     symbol_count = data.len(),
@@ -838,9 +849,16 @@ async fn run_single_strategy_internal(
 ) -> Result<BacktestMetricsResponse, String> {
     use trader_analytics::backtest::BacktestConfig;
 
+    // 전략의 타임프레임 조회 (primary → secondary → 일반 fallback)
+    let strategy_meta = StrategyRegistry::find(strategy_id);
+    let default_tf: &str = strategy_meta.map(|m| m.default_timeframe).unwrap_or("1d");
+    let secondary_tfs: &[&str] = strategy_meta
+        .map(|m| m.secondary_timeframes)
+        .unwrap_or(&[]);
+
     // 데이터 로드 (공유 data_provider 사용 - Redis 3계층 캐시)
     let klines = if let Some(data_provider) = &state.data_provider {
-        match load_klines_from_db(data_provider, symbol, start_date, end_date).await {
+        match load_klines_with_multi_tf_fallback(data_provider, symbol, start_date, end_date, default_tf, secondary_tfs).await {
             Ok(data) if !data.is_empty() => data,
             _ => generate_sample_klines(symbol, start_date, end_date),
         }
@@ -884,9 +902,14 @@ async fn run_multi_strategy_internal(
     // 심볼 확장
     let expanded_symbols = expand_strategy_symbols(strategy_id, symbols);
 
+    // 전략 기본 타임프레임 조회 (시뮬레이션과 동일한 fallback 적용)
+    let default_tf: &str = StrategyRegistry::find(strategy_id)
+        .map(|m| m.default_timeframe)
+        .unwrap_or("1d");
+
     // 다중 심볼 데이터 로드 (공유 data_provider 사용 - Redis 3계층 캐시)
     let multi_klines = if let Some(data_provider) = &state.data_provider {
-        match load_multi_klines_from_db(data_provider, &expanded_symbols, start_date, end_date).await {
+        match load_multi_klines_from_db(data_provider, &expanded_symbols, start_date, end_date, default_tf).await {
             Ok(data) if !data.is_empty() => data,
             Ok(_) => {
                 warn!(strategy = %strategy_id, "배치: DB에 데이터 없음, 샘플 데이터 사용");

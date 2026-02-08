@@ -1,194 +1,105 @@
 # ZeroQuant TODO - 통합 로드맵
 
 > **마지막 업데이트**: 2026-02-08
-> **현재 버전**: v0.8.2
-> **상세 계획**: `.claude/plans/warm-sniffing-waterfall.md`
+> **현재 버전**: v0.8.3
 
 ---
 
-## ✅ P0: 기반 기능 완성 (완료)
+## 남은 작업
 
-> **완료일**: 2026-02-04
-> **원칙**: 전략 재설계 전에 모든 기반 모듈 100% 완성 필수
+### Mock 거래소 KIS 수준 업그레이드 (v0.9.0)
 
-### 0.1 Backend 필수 (6개) - 모두 완료 ✅
+#### Phase 1: 현실적 가격 스트리밍 (`mock_streaming.rs` 신규)
+- [ ] MockPriceMode enum (HistoricalReplay / RandomWalk / YahooLegacy)
+- [ ] MockStreamingConfig 설정 구조체
+- [ ] HistoricalReplayGenerator (DB 1분봉 → 틱 보간 재생)
+- [ ] RandomWalkGenerator (ATR 기반 정규분포 + 평균 회귀 + 호가 단위 라운딩)
+- [ ] MockOrderBookGenerator (KR 10단계 호가, US 1단계 호가)
 
-| 항목 | 상태 | 위치 |
-|------|:----:|------|
-| ✅ **Trigger 필드 연동** | 100% | `trader-core/src/domain/context.rs:322, 670-678` |
-| ✅ Sector RS (섹터 상대강도) | 100% | `trader-analytics/src/sector_rs.rs` |
-| ✅ Survival Days (생존일 추적) | 100% | `trader-analytics/src/survival.rs` |
-| ✅ Weekly MA20 (주봉 20선) | 100% | `trader-analytics/src/indicators/weekly_ma.rs` |
-| ✅ Dynamic Route Tagging | 100% | `trader-analytics/src/route_state_calculator.rs` |
-| ✅ Reality Check (추천 검증) | 100% | `trader-api/src/routes/reality_check.rs` |
+#### Phase 5: 주문 매칭 엔진 (`mock_order_engine.rs` 신규)
+- [ ] MockOrderEngine 구조체 (미체결 큐 + 매칭 로직)
+- [ ] 시장가 즉시 체결 (OrderBook VWAP)
+- [ ] 지정가 주문 매칭 (Limit Buy: ask ≤ limit, Limit Sell: bid ≥ limit)
+- [ ] 스톱 주문 (StopLoss/TakeProfit/StopLossLimit/TakeProfitLimit)
+- [ ] 부분 체결 (OrderBook 호가 잔량 기반)
+- [ ] 주문 취소/정정
 
-### 0.2 Trigger 필드 연동 - 완료 ✅
+#### Phase 2+6: MockExchangeProvider 통합 (`mock.rs` 수정)
+- [ ] StrategyState에 reserved_balance 추가 (잔고 예약 시스템)
+- [ ] MockState에 order_engine 추가
+- [ ] place_order() 재구현 (Market=즉시, Limit/Stop=큐)
+- [ ] cancel_order() / modify_order() 재구현
+- [ ] fetch_pending_orders() 실제 미체결 주문 반환
+- [ ] start_streaming_with_config() (기존 start_streaming 위임)
+- [ ] 스트리밍 루프에 주문 매칭 통합 (매 틱마다 on_price_tick)
+- [ ] 최신 시세/호가 캐시 (latest_tickers, latest_order_books)
 
-- [x] `trader-core/src/domain/analytics_provider.rs` - ScreeningResult에 `trigger_score`, `trigger_label` 추가 (lines 101-104)
-- [x] `trader-core/src/domain/context.rs` - StrategyContext에 `trigger_results: HashMap<String, TriggerResult>` 추가 (line 322)
-- [x] `get_trigger(ticker)` 헬퍼 메서드 추가 (lines 670-672)
-- [x] `update_trigger_results()` 메서드 추가 (lines 675-678)
+#### Phase 3: 모듈 등록 (`mod.rs`)
+- [ ] mock_streaming, mock_order_engine 모듈 등록 + export
 
----
+#### Phase 4: Paper Trading API 통합 (`paper_trading.rs`)
+- [ ] PaperTradingStartRequest에 streaming_config 추가
+- [ ] kline 데이터 로드 (모드별: 1분봉/D1/None)
 
-## ✅ P0.3: 백엔드 기능 완성 (완료)
-
-> **완료일**: 2026-02-04
-
-| 항목 | FE | BE | 위치 |
-|------|:--:|:--:|------|
-| ✅ Volume Profile (매물대) | ✅ | ✅ | `trader-analytics/src/volume_profile.rs` |
-| ✅ Correlation Heatmap | ✅ | ✅ | `trader-analytics/src/correlation.rs` |
-| ✅ Score History | ✅ | ✅ | `trader-api/src/repository/score_history.rs`, `migrations/20_score_history.sql` |
-| 🟡 Interactive Chart 오버레이 연동 | ✅ | 🟡 | Keltner, VWAP 추가 필요 |
-
----
-
-## 🔄 P0.7: 전략 병합 및 일반화 (Day 7-9)
-
-> 유사 패턴 전략 → 베이스 전략 + 설정으로 통합 (코드 ~58% 감소)
-
-### ⚠️ 전략 재작성 규칙
-
-> **핵심 원칙**: 그룹 전략 → 파생 전략 순서로 구현
-
-1. **그룹 전략 먼저 생성** - 공통 로직을 담은 베이스 전략 구현
-2. **파생 전략은 Config 기반** - 기존 전략은 그룹 전략의 Config 조합으로 재구현
-3. **테스트 분리 필수** - `tests/` 디렉토리에 별도 파일로 테스트 작성
-4. **Public API만 테스트** - Strategy trait 메서드 (initialize, on_market_data 등)만 테스트
-5. **기존 전략 파일 제거** - 그룹 전략으로 통합 완료 시 원본 파일 삭제
-
-```rust
-// 예시: HAA 전략은 AssetAllocation 그룹 전략의 Config로 구현
-let haa = AssetAllocationConfig::haa_default();
-let strategy = AssetAllocationStrategy::new();
-strategy.initialize(serde_json::to_value(haa)?).await?;
-```
-
-### 병합 대상 (4개 그룹)
-
-| 그룹 | 대상 전략 | 통합명 | 상태 | 코드 감소 |
-|:----:|----------|--------|:----:|:---------:|
-| 1 | HAA, XAA, BAA, All Weather, Dual Momentum | `AssetAllocation` | ✅ 완료 | 64% |
-| 2 | RSI, Bollinger | `MeanReversion` | ✅ 완료 | 72% |
-| 5 | Grid, MagicSplit, InfinityBot | `DcaStrategy` | ✅ 완료 (v0.8.1) | - |
-| 3 | Sector Momentum, Market Cap Top, Stock Rotation | `RotationStrategy` | ✅ 완료 | 72% |
-| 4 | Volatility Breakout, SMA Crossover, Market Interest Day | `DayTrading` | ✅ 완료 | 57% |
-
-### 완료된 그룹 전략
-
-#### ✅ AssetAllocation (자산배분 그룹)
-- **파일**: `crates/trader-strategy/src/strategies/asset_allocation.rs`
-- **테스트**: `crates/trader-strategy/tests/asset_allocation_test.rs`
-- **지원 Variant**: HAA, XAA, BAA, AllWeather, DualMomentum
-- **Factory 메서드**: `haa_default()`, `xaa_default()`, `baa_default()`, `all_weather_default()`, `dual_momentum_default()`
-
-#### ✅ MeanReversion (평균회귀 그룹)
-- **파일**: `crates/trader-strategy/src/strategies/mean_reversion.rs`
-- **테스트**: `crates/trader-strategy/tests/mean_reversion_test.rs` (32개 테스트)
-- **지원 Variant**: RSI, Bollinger
-- **Factory 메서드**: `rsi_default()`, `bollinger_default()`
-- ⚠️ Grid, MagicSplit은 v0.8.1에서 `DcaStrategy`로 이전됨
-
-#### ✅ RotationStrategy (로테이션 그룹)
-- **파일**: `crates/trader-strategy/src/strategies/rotation.rs`
-- **테스트**: `crates/trader-strategy/tests/rotation_test.rs` (41개 테스트)
-- **지원 Variant**: SectorMomentum, StockMomentum, MarketCapTop
-- **Factory 메서드**: `sector_momentum()`, `stock_rotation()`, `market_cap_top()`
-
-#### ✅ DayTrading (일간모멘텀 그룹)
-- **파일**: `crates/trader-strategy/src/strategies/day_trading.rs`
-- **테스트**: `crates/trader-strategy/tests/day_trading_test.rs` (32개 테스트)
-- **지원 Variant**: Breakout (변동성 돌파), Crossover (SMA 크로스오버), VolumeSurge (거래량 급증)
-- **Factory 메서드**: `breakout()`, `crossover()`, `volume_surge()`
-
-### 선행 작업
-
-- [x] `common/momentum.rs` - MomentumCalculator 통합 (6곳 → 1곳) ✅
-- [x] `common/rebalance.rs` - RebalanceCalculator 통합 (5곳 → 1곳) ✅
-
-### 병합 제외 (독립 유지)
-
-Candle Pattern, US 3X Leverage, Pension Portfolio, Compound Momentum, Small Cap Quant, Range Trading, Momentum Surge (총 7개)
-
-> **v0.8.1 변경**: Grid, MagicSplit, InfinityBot은 `DcaStrategy` 그룹으로 통합됨 (`trader-strategy/src/strategies/dca.rs`)
+#### DB 마이그레이션
+- [ ] mock_pending_orders 테이블 생성
+- [ ] load_state() 미체결 주문 복원
 
 ---
 
-## ✅ P2: 전략 핵심 재설계 + 테스트 (완료)
+### 프론트엔드 통합 및 테스트
 
-> **완료일**: 2026-02-05
-> Python 코드 참조 금지 - 핵심 아이디어만 추출하여 독자 재구현
-
-| 전략 | 재설계 내용 | 상태 |
-|------|------------|:----:|
-| MomentumPower | 리밸런싱 월간화 (30일), 모드 단순화 | ✅ |
-| Infinity Bot v2.0 | 라운드 조건 MarketRegime 기반 단순화 | ✅ |
-| Sector VB v2.0 | KST 시간대 수정, StrategyContext 완전 연동 | ✅ |
-| US 3X Leverage v2.0 | MarketRegime/MacroRisk 기반 환경 판단 | ✅ |
-| CompoundMomentum | 백테스트 엔진 업데이트 | ✅ |
-| RangeTrading | 구간 경계 버그 수정 | ✅ |
-
-### 재설계된 전략 구현 위치
-
-| 전략 | 파일 위치 |
-|------|----------|
-| MomentumPower | `crates/trader-strategy/src/strategies/momentum_power.rs` |
-| Infinity Bot v2.0 | `crates/trader-strategy/src/strategies/infinity_bot.rs` |
-| Sector VB v2.0 | `crates/trader-strategy/src/strategies/sector_vb.rs` |
-| US 3X Leverage v2.0 | `crates/trader-strategy/src/strategies/us_3x_leverage.rs` |
-| CompoundMomentum | `crates/trader-strategy/src/strategies/compound_momentum.rs` |
-| RangeTrading | `crates/trader-strategy/src/strategies/range_trading.rs` |
+- [ ] 스키마 없는 전략 fallback UI (JSON 에디터)
+- [ ] 브라우저 테스트 (Chrome, Firefox, Safari)
+- [ ] 반응형 레이아웃 확인
 
 ---
 
-## ✅ P1.5: 실시간 WebSocket 연동 + Paper Trading (완료)
+---
 
-> **완료일**: 2026-02-07
-> **버전**: v0.8.0
+# 완료된 작업 아카이브
 
-### KIS WebSocket 실시간 연동 (6-Phase)
+> 이하 섹션은 완료된 작업들의 기록입니다. 최신순 정렬.
 
-| Phase | 내용 | 상태 |
-|-------|------|:----:|
-| 1 | 동적 구독 지원 (subscribe_live/unsubscribe_live) | ✅ |
-| 2 | 순차 폴링 → 동시 수신 (Bridge Task + mpsc) | ✅ |
-| 3 | Singleton 스트림 관리 (MarketStreamHandle) | ✅ |
-| 4 | 전략 실행 시 스트림 자동 연결 | ✅ |
-| 5 | 서버 시작 순서 최적화 | ✅ |
-| 6 | 프론트엔드 WebSocket 브릿지 | ✅ |
+---
 
-### Exchange Provider 통합
+## ✅ v0.8.3 — 쿼리 최적화 + 백테스트 타임프레임 폴백 + UI 성능 (2026-02-08)
 
 | 항목 | 상태 |
 |------|:----:|
-| KIS KR/US → 통합 `kis.rs` | ✅ |
-| MockExchangeProvider | ✅ |
-| KIS Client 공통화 (`client.rs`) | ✅ |
-| Core Domain 확장 (Account, ExchangeTypes) | ✅ |
-
-### Paper Trading
-
-| 항목 | 상태 |
-|------|:----:|
-| API 엔드포인트 (5개) | ✅ |
-| Signal Processor 서비스 | ✅ |
-| 프론트엔드 (PaperTrading.tsx) | ✅ |
-| TypeScript 바인딩 (10개) | ✅ |
-
-### Collector 확장
-
-| 항목 | 상태 |
-|------|:----:|
-| Market Breadth 동기화 | ✅ |
-| OHLCV 수집 개선 | ✅ |
+| OHLCV LATERAL JOIN + TimescaleDB 청크 프루닝 (1,040ms → 306ms) | ✅ |
+| 백테스트 다중 타임프레임 폴백 (primary → secondary → 일반) | ✅ |
+| StrategyRegistry 메타 연동 + CLI `to_registry_id()` | ✅ |
+| 스크리닝 상태/등급/점수 정렬 (우선순위 기반) | ✅ |
+| 네이티브 가상 스크롤 (11,451행 → 25행 DOM, 60fps) | ✅ |
+| 매매일지 백테스트 인사이트 강화 (매수/매도, 거래량, 최대 수익/손실) | ✅ |
 
 ---
 
-## ✅ P1.6: StructuralFeatures 통합 + LiveExecutor + DCA 그룹 (완료)
+## ✅ v0.8.2 — 성능 최적화 + 리스크 관리 + 데이터 무결성 (2026-02-08)
 
-> **완료일**: 2026-02-07
-> **버전**: v0.8.1
+### ExitConfig 통합 리스크 관리
+
+| 항목 | 상태 |
+|------|:----:|
+| ExitConfig 5가지 리스크 타입 (StopLoss/TakeProfit/TrailingStop/ProfitLock/DailyLossLimit) | ✅ |
+| TrailingStop 4가지 모드 (FixedPercentage, AtrBased, Step, ParabolicSar) | ✅ |
+| Strategy trait `exit_config()` + `enrich_signal()` 자동 적용 | ✅ |
+| 6가지 프리셋 + SDUI Schema Registry fragment 재작성 | ✅ |
+| 16개 전략 `exit_config()` 기본 구현 + 694줄 테스트 | ✅ |
+
+### CandleProcessor + 스크리닝 + GlobalScore
+
+| 항목 | 상태 |
+|------|:----:|
+| BacktestEngine/SimulationEngine 공통 캔들 처리 추출 (592줄) | ✅ |
+| 배치 kline 쿼리 + Redis 구조적 특성 캐시 (10초 → 서브초) | ✅ |
+| GlobalScore Semaphore(10) 동시 처리 (~50초 → ~5-8초) | ✅ |
+| 심볼 무결성 관리 (cascade delete + orphan cleanup + save_klines 검증) | ✅ |
+
+---
+
+## ✅ v0.8.1 — StructuralFeatures 통합 + LiveExecutor + DCA 그룹 (2026-02-07)
 
 ### StructuralFeatures Decimal 통합
 
@@ -197,323 +108,132 @@ Candle Pattern, US 3X Leverage, Pension Portfolio, Compound Momentum, Small Cap 
 | trader-core Decimal 구조체 보강 (breakout_score, Default) | ✅ |
 | StructuralFeaturesCalculator 3-arg from_candles (IndicatorEngine) | ✅ |
 | indicators/structural.rs 레거시 struct/impl 제거 (-453줄) | ✅ |
-| route_state_calculator Decimal 비교 전환 | ✅ |
-| global_scorer Decimal 비교 전환 | ✅ |
+| route_state_calculator / global_scorer Decimal 비교 전환 | ✅ |
 | backtest/engine.rs IndicatorEngine 통합 | ✅ |
-| 프론트엔드 타입 안전성 개선 (SymbolDetailModal, Screening) | ✅ |
 
 ### LiveExecutor
 
 | 항목 | 상태 |
 |------|:----:|
-| LiveExecutor 구현 (1,026줄) | ✅ |
-| OrderExecutionProvider trait (+95줄) | ✅ |
-| SignalProcessor trait 확장 (+222줄) | ✅ |
-| Mock Provider OrderExecutionProvider 구현 | ✅ |
+| LiveExecutor 구현 (1,026줄) + OrderExecutionProvider trait (+95줄) | ✅ |
+| SignalProcessor trait 확장 (+222줄) + Mock Provider 구현 | ✅ |
 
-### DCA 전략 그룹
+### DCA 전략 그룹 + GlobalScore 재설계
 
 | 항목 | 상태 |
 |------|:----:|
-| Grid/MagicSplit/InfinityBot → DcaStrategy 통합 | ✅ |
-| Position ID / Group ID 시스템 | ✅ |
-| SimulatedExecutor 개별 레벨 청산 버그 수정 | ✅ |
-| is_grid_strategy() 레거시 함수 제거 | ✅ |
+| Grid/MagicSplit/InfinityBot → DcaStrategy 통합 + Position ID / Group ID | ✅ |
+| 고정 심볼 10개 전략 GlobalScore 필터 제거, CandlePattern 강도 조정 전환 | ✅ |
+| Rotation KR만 필터 유지, RouteState 전체 Overheat만 차단 | ✅ |
+| 백테스트 CLI TOML + 멀티에셋 + Signal Analysis Report + 차트 생성 | ✅ |
+| symbol_info 데이터 무결성 관리 (cascade delete + orphan cleanup) | ✅ |
 
-### GlobalScore 활용 재설계
+---
+
+## ✅ v0.8.0 — 실시간 WebSocket + Paper Trading (2026-02-07)
 
 | 항목 | 상태 |
 |------|:----:|
-| 고정 심볼/자체 모멘텀 전략 10개 GlobalScore 필터 제거 | ✅ |
-| CandlePattern GlobalScore → 강도 조정 전환 (0.75x~1.25x) | ✅ |
-| Rotation KR만 GlobalScore 필터 조건부 유지 | ✅ |
-| RouteState 전략 전체 Overheat만 차단으로 완화 | ✅ |
-| Grid `reset_threshold_pct` 신규 파라미터 (min_global_score 대체) | ✅ |
-| InfinityBot 하락장 진입 허용 (DCA 특성 반영) | ✅ |
-| MeanReversion variant fallback 버그 수정 | ✅ |
-
-### 기타
-
-| 항목 | 상태 |
-|------|:----:|
-| Strategy Watched Tickers (마이그레이션 + Repository + API) | ✅ |
-| 백테스트 CLI TOML 설정 파일 지원 (+643줄) | ✅ |
-| 멀티에셋 백테스트 (`run_multi_asset_backtest()`, StrategyContext 통합) | ✅ |
-| 스마트 심볼 해석 (KR 종목코드 → `.KS`/`.KQ` 자동 변환) | ✅ |
-| Signal Analysis Report (`generate_signal_analysis()`, 205줄) | ✅ |
-| Grid warmup_candles 파라미터 (초기 관찰 기간) | ✅ |
-| 백테스트 차트 자동 생성 | ✅ |
-| Collector watchlist_helper 개선 | ✅ |
-| CLI .env 자동 로딩 (dotenvy) | ✅ |
-| symbol_info 기준 데이터 무결성 관리 (연쇄 삭제 + 고아 정리 + save_klines 검증) | ✅ |
+| KIS WebSocket 동적 구독 (6-Phase: subscribe → Bridge Task → Singleton → 자동 연결 → 시작 순서 → FE 브릿지) | ✅ |
+| Exchange Provider 통합 (KIS KR/US → `kis.rs`, Mock, Client 공통화) | ✅ |
+| Paper Trading (API 5개 + Signal Processor + FE + TypeScript 바인딩 10개) | ✅ |
+| Collector 확장 (Market Breadth 동기화, OHLCV 수집 개선) | ✅ |
 
 ---
 
-## P3: 프론트엔드 완성 (Day 17-19)
+## ✅ 전략 재설계 + 병합 (2026-02-04 ~ 2026-02-05)
 
-- [ ] Interactive Chart 오버레이 - Keltner, VWAP, RSI 서브차트 연동
-- [ ] 7-Factor Radar 백엔드 데이터 연동
-- [ ] Score History 차트 연동
+### 전략 병합 (5개 그룹, 코드 ~58% 감소)
 
----
+| 그룹 | 대상 전략 | 통합명 | 코드 감소 |
+|:----:|----------|--------|:---------:|
+| 1 | HAA, XAA, BAA, All Weather, Dual Momentum | `AssetAllocation` | 64% |
+| 2 | RSI, Bollinger | `MeanReversion` | 72% |
+| 3 | Sector Momentum, Market Cap Top, Stock Rotation | `RotationStrategy` | 72% |
+| 4 | Volatility Breakout, SMA Crossover, Market Interest Day | `DayTrading` | 57% |
+| 5 | Grid, MagicSplit, InfinityBot | `DcaStrategy` (v0.8.1) | - |
 
-## ✅ P4: 스크리닝 연동 (완료)
+> 병합 제외 (독립 유지): Candle Pattern, US 3X Leverage, Pension Portfolio, Compound Momentum, Small Cap Quant, Range Trading, Momentum Surge
 
-> **완료일**: 2026-02-05
-> 재설계된 모든 전략에 StrategyContext 연동 완료
+### 전략 핵심 재설계
 
-| 항목 | 적용 전략 | 상태 |
-|------|----------|:----:|
-| `min_global_score` Config | Sector VB, US 3X Leverage, Infinity Bot | ✅ |
-| `RouteState::Attack/Armed` 필터 | Sector VB (진입 필터) | ✅ |
-| `MacroEnvironment` 연동 | US 3X Leverage (Crisis 모드 자동 전환) | ✅ |
-| `MarketRegime` 연동 | Sector VB, US 3X Leverage, Infinity Bot | ✅ |
-
-### StrategyContext 헬퍼 메서드 (async)
-
-```rust
-// 모든 재설계 전략에서 사용 가능
-ctx.get_global_score(ticker)      // GlobalScoreResult
-ctx.get_route_state(ticker)       // RouteState
-ctx.get_market_regime(ticker)     // MarketRegime
-ctx.get_macro_environment()       // MacroEnvironment
-ctx.get_trigger(ticker)           // TriggerResult
-```
+| 전략 | 재설계 내용 |
+|------|------------|
+| MomentumPower | 리밸런싱 월간화 (30일), 모드 단순화 |
+| Infinity Bot v2.0 | 라운드 조건 MarketRegime 기반 단순화 |
+| Sector VB v2.0 | KST 시간대 수정, StrategyContext 완전 연동 |
+| US 3X Leverage v2.0 | MarketRegime/MacroRisk 기반 환경 판단 |
+| CompoundMomentum | 백테스트 엔진 업데이트 |
+| RangeTrading | 구간 경계 버그 수정 |
 
 ---
 
-## P5: 문서 정리 (Day 22)
+## ✅ 기반 기능 + 프론트엔드 + 백엔드 API (2026-02-04)
 
-- [x] Python 참조 주석 모두 제거
-- [ ] 각 전략 docstring에 핵심 개념만 기술
-- [x] STRATEGY_GUIDE.md 통합 완료
-
----
-
-## 6.1 통합 및 테스트 (미완료)
-
-- [ ] 전략 추가 모달에 적용
-- [ ] 백테스트 설정에 적용
-- [ ] 스키마 없는 전략 fallback UI
-- [ ] 브라우저 테스트 (Chrome, Firefox, Safari)
-- [ ] 반응형 레이아웃 확인
-
----
-
----
-
-# 📋 상세 구현 참조
-
-> 이 섹션은 상단 작업 항목의 상세 구현 내용입니다.
-
-## ✅ A~D: 기반 기능 구현 완료 (2026-02-04)
-
-모든 기반 기능이 구현되었습니다:
+### Backend 기반 기능
 
 | 항목 | 구현 파일 |
 |------|----------|
-| **Trigger 연동** | `trader-core/src/domain/context.rs:322, 670-678`, `analytics_provider.rs:101-104` |
-| **Volume Profile** | `trader-analytics/src/volume_profile.rs` (POC, ValueArea 계산) |
-| **Correlation** | `trader-analytics/src/correlation.rs` (Pearson 상관계수) |
-| **Score History** | `trader-api/src/repository/score_history.rs`, `migrations/20_score_history.sql` |
-| **Sector RS** | `trader-analytics/src/sector_rs.rs` (SectorRsCalculator) |
-| **Survival Days** | `trader-analytics/src/survival.rs` (SurvivalTracker) |
-| **Weekly MA20** | `trader-analytics/src/indicators/weekly_ma.rs` (resample_to_weekly, calculate_weekly_ma) |
-| **Dynamic Route Tagging** | `trader-analytics/src/route_state_calculator.rs` (DynamicThresholds, calculate_dynamic) |
-| **Reality Check** | `trader-api/src/routes/reality_check.rs` (5개 API 엔드포인트) |
+| Trigger 연동 | `context.rs:322, 670-678`, `analytics_provider.rs:101-104` |
+| Volume Profile | `volume_profile.rs` |
+| Correlation | `correlation.rs` |
+| Score History | `score_history.rs` |
+| Sector RS | `sector_rs.rs` |
+| Survival Days | `survival.rs` |
+| Weekly MA20 | `indicators/weekly_ma.rs` |
+| Dynamic Route Tagging | `route_state_calculator.rs` |
+| Reality Check | `routes/reality_check.rs` |
+| Keltner Channel | `indicators/volatility.rs` |
+| VWAP | `indicators/volume.rs` |
 
----
+### 프론트엔드 완성
 
-## F. 전략 병합 상세
+| 항목 | 상태 |
+|------|:----:|
+| Screening UI (필터, 프리셋, RouteState 뱃지, 종목 상세) | ✅ |
+| Global Ranking UI (시장별 필터, 레이더 차트) | ✅ |
+| 캔들 차트 신호 시각화 (SignalMarkerOverlay, IndicatorFilterPanel) | ✅ |
+| 7-Factor Radar 연동 (`RadarChart.tsx` + `GET /ranking/7factor`) | ✅ |
+| Score History 차트 연동 (`ScoreHistoryChart.tsx` + `SymbolDetail.tsx`) | ✅ |
+| SDUI 전략 모달 (`SDUIEditModal.tsx` + `AddStrategyModal.tsx` + `SDUIRenderer/`) | ✅ |
+| 백테스트 설정 (`StrategyRegistry` 연동 + 타임프레임 폴백) | ✅ |
 
-### F.1 AssetAllocation (자산배분 통합)
+### 시각화 컴포넌트 (12개)
 
-**대상**: HAA, XAA, BAA, All Weather, Dual Momentum
+FearGreedGauge, MarketBreadthWidget, SurvivalBadge, ScoreWaterfall, SectorTreemap, KellyVisualization, CorrelationHeatmap, OpportunityMap, KanbanBoard, RegimeSummaryTable, SectorMomentumBar, VolumeProfile
 
-```rust
-pub enum SelectionStrategy {
-    TopNByMomentum { n: usize, weights: Option<Vec<Decimal>> },
-    CanaryGated { canary_ticker: String, threshold: Decimal },
-    DualMomentum { absolute: bool, relative: bool },
-    SeasonalAdjusted { base_weights: HashMap<String, Decimal> },
-}
-```
+### 백엔드 API
 
-### F.2 호환성 유지
+| 항목 | 구현 |
+|------|------|
+| 관심종목 | `GET/POST /watchlist`, `POST/DELETE /watchlist/{id}/items` |
+| 전략 symbols 연결 | `PUT /api/v1/strategies/{id}/symbols` |
+| 프리셋 저장/삭제 | `POST/DELETE /api/v1/screening/presets` |
+| 7Factor 데이터 | `GET /api/v1/ranking/7factor/{ticker}`, batch |
+| FIFO 원가 계산 | `GET /api/v1/journal/cost-basis/{symbol}` |
+| 고급 거래 통계 | `max_consecutive_wins/losses`, `max_drawdown` |
 
-```rust
-// 기존 ID 유지 → 통합 전략으로 라우팅
-registry.register_alias("haa", "asset_allocation", HaaConfig::default());
-registry.register_alias("xaa", "asset_allocation", XaaConfig::default());
-```
+### 사용성 개선
 
----
+| 항목 | 상태 |
+|------|:----:|
+| RankChangeIndicator, FavoriteButton, ExportButton, AutoRefreshToggle | ✅ |
+| 대시보드 추가 컴포넌트 (ScoreWaterfall, RegimeSummary, SectorTreemap) | ✅ |
+| Multi Timeframe UI (Selector, Chart, useMultiTimeframeKlines) | ✅ |
+| 상태 관리 리팩토링 (signals → stores, 50~86% 감소) | ✅ |
+| Lazy Loading 11페이지 + manualChunks (1,512KB → 12.5KB, 99% 감소) | ✅ |
 
----
+### 문서 정리
 
-# ✅ 완료된 작업
+- [x] Python 참조 주석 모두 제거
+- [x] 각 전략 docstring에 핵심 개념만 기술
+- [x] STRATEGY_GUIDE.md 통합 완료
 
-> 이 섹션은 완료된 작업들의 기록입니다.
+### 스크리닝 연동
 
----
-
-## ✅ P0.5: 전략 명칭 일반화 (완료)
-
-**완료일**: 2026-02-04
-
-README.md에서 확인 - 이미 일반화된 명칭 사용 중:
-- 실시간: Grid Trading, RSI Mean Reversion, Bollinger Bands, Magic Split, Infinity Bot
-- 일간: Volatility Breakout, SMA Crossover, Compound Momentum, Stock Rotation, Market Interest Day, Candle Pattern
-- 월간: All Weather, HAA, XAA, Momentum Power, Market Cap Top, BAA, Dual Momentum, Pension Portfolio
-- 섹터: Sector Momentum, Sector VB, US 3X Leverage
-- 국내: Momentum Surge, Market BothSide, Small Cap Quant, Range Trading
-
-**추가 작업 불필요** - 파일명/구조체명은 기존 유지 (내부 구현명과 외부 표시명 분리)
-
----
-
-## Phase 2 프론트엔드 UI (완료)
-
-### 2.1. Screening UI ✅
-- 필터 조건 입력 폼, 프리셋 선택 UI
-- 결과 테이블 (정렬/페이지네이션)
-- RouteState 뱃지, 종목 상세 모달
-
-### 2.2. Global Ranking UI ✅
-- 시장별 필터, 레이더 차트, RouteState 필터링
-- `RankingWidget.tsx` → Dashboard.tsx 통합
-
-### 2.3. 캔들 차트 신호 시각화 ✅
-- `SignalMarkerOverlay` 컴포넌트
-- `IndicatorFilterPanel` 컴포넌트
-
----
-
-## Phase 3 백엔드 API (완료)
-
-### 3.1 관심종목 API ✅
-- `watchlist` 테이블 마이그레이션
-- API: `GET/POST /watchlist`, `POST/DELETE /watchlist/{id}/items`
-
-### 3.2 전략 symbols 연결 API ✅
-- `PUT /api/v1/strategies/{id}/symbols`
-
-### 3.3 프리셋 저장/삭제 API ✅
-- `POST /api/v1/screening/presets`
-- `DELETE /api/v1/screening/presets/{id}`
-
-### 3.4 7Factor 데이터 API ✅
-- `SevenFactorCalculator` 구현 (7개 팩터 정규화)
-- `GET /api/v1/ranking/7factor/{ticker}`
-
-### 3.5 FIFO 원가 계산 API ✅
-- `CostBasisTracker` 모듈
-- `GET /api/v1/journal/cost-basis/{symbol}`
-
-### 3.6 고급 거래 통계 API ✅
-- `max_consecutive_wins/losses`, `max_drawdown` 계산
-
----
-
-## Phase 4 시각화 컴포넌트 (완료)
-
-| 컴포넌트 | 상태 |
-|----------|:----:|
-| FearGreedGauge | ✅ |
-| MarketBreadthWidget | ✅ |
-| SurvivalBadge | ✅ |
-| ScoreWaterfall | ✅ |
-| SectorTreemap | ✅ |
-| KellyVisualization | ✅ |
-| CorrelationHeatmap | ✅ |
-| OpportunityMap | ✅ |
-| KanbanBoard | ✅ |
-| RegimeSummaryTable | ✅ |
-| SectorMomentumBar | ✅ |
-| VolumeProfile | ✅ |
-
----
-
-## Phase 6 사용성 개선 (완료)
-
-### 6.5 추가 기능 ✅
-- `RankChangeIndicator.tsx` - 순위 변동 표시
-- `FavoriteButton.tsx` - 종목 즐겨찾기 토글
-- `ExportButton.tsx` - Excel 내보내기
-- `AutoRefreshToggle.tsx` - 자동 갱신 토글
-
-### 6.6 대시보드 추가 컴포넌트 연동 ✅
-- ScoreWaterfall, RegimeSummaryTable, SectorTreemap, SectorMomentumBar
-
-### 6.7 차트 시각화 개선 ✅
-- `TradeConnectionOverlay.tsx` - 진입/청산 연결선
-- `SignalCorrelationChart.tsx` - 신호-수익률 상관관계
-
-### 6.8 Multi Timeframe UI ✅
-- `MultiTimeframeSelector.tsx` - Primary/Secondary TF 선택
-- `MultiTimeframeChart.tsx` - 멀티 TF 차트 동기화
-- `useMultiTimeframeKlines.ts` - API 연동 훅
-
----
-
-## 6.9 상태 관리 및 아키텍처 개선 (완료)
-
-### 6.9.1 상태 관리 리팩토링 ✅ (2026-02-04)
-
-| 페이지 | 변환 전 | 변환 후 | 감소율 |
-|--------|---------|---------|--------|
-| Strategies.tsx | ~15 signals | 4 stores | ~73% |
-| TradingJournal.tsx | ~20 signals | 5 stores | ~75% |
-| Screening.tsx | 29 signals | 4 stores | ~86% |
-| Backtest.tsx | 19 signals | 4 stores | ~79% |
-| Dashboard.tsx | 4 signals | 2 stores | 50% |
-
-### 6.9.2 커스텀 훅 추출 ✅ (2026-02-04)
-- useStrategies, useJournal, useScreening, useMarketSentiment
-
-### 6.9.3 성능 최적화 ✅ (2026-02-04)
-- Lazy Loading: 11개 페이지 모두 적용
-- manualChunks: 번들 index.js 1,512 KB → 12.5 KB (**99% 감소**)
-- VirtualizedTable, LazyImage, 디바운스/쓰로틀 훅
-
----
-
-## Phase 1 핵심 기능 (완료)
-
-### 1.4 Multiple KLine Period (다중 타임프레임) ✅ (2026-02-04)
-
-**백엔드**:
-- Strategy Trait 확장 - `multi_timeframe_config()`, `on_multi_timeframe_data()`
-- StrategyMeta - `isMultiTimeframe` 필드
-- `TimeframeAligner` 모듈 - Look-Ahead Bias 방지
-- 백테스트 엔진 `run_multi_timeframe()` 메서드
-
-**API**:
-- `GET /api/v1/market/klines/multi`
-- `GET/PUT /api/v1/strategies/{id}/timeframes`
-
-**프론트엔드**:
-- `MultiTimeframeSelector.tsx`, `MultiTimeframeChart.tsx`
-- `useMultiTimeframeKlines.ts` (TTL 캐싱)
-
-### 6.8.5 Multi Timeframe 후속 작업 ✅ (2026-02-04)
-- 전략 생성/수정 시 TF 설정 저장
-- 백테스트 설정 TF 선택 UI
-- `BacktestRequest`에 `multi_timeframe_config` 필드
-
-### 6.8.6 백테스트 API Multi Timeframe 지원 ✅ (2026-02-04)
-- `MultiTimeframeRequest`, `SecondaryTimeframeConfig` API 타입
-- `load_secondary_timeframe_klines()` 병렬 로드
-- 통합 테스트 3건
-
----
-
-## 7. 백엔드 API 상세 ✅ (완료)
-
-**프론트엔드 연동 완료**:
-- [x] 관심종목 UI (WatchlistSelectModal)
-- [x] 전략 연결 UI (StrategyLinkModal)
-- [x] 프리셋 저장/삭제 모달 UI (PresetModal)
-- [x] 7Factor 레이더 차트 7축 확장
-- [x] FIFO 원가 표시 (PositionDetailModal)
-- [x] 고급 통계 표시 (TradingInsightsResponse)
+| 항목 | 적용 전략 |
+|------|----------|
+| `min_global_score` Config | Sector VB, US 3X Leverage, Infinity Bot |
+| `RouteState::Attack/Armed` 필터 | Sector VB (진입 필터) |
+| `MacroEnvironment` 연동 | US 3X Leverage (Crisis 모드 자동 전환) |
+| `MarketRegime` 연동 | Sector VB, US 3X Leverage, Infinity Bot |

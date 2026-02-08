@@ -176,14 +176,15 @@ Rust 기반 고성능 다중 시장 자동화 트레이딩 시스템. 국내/해
 
 ---
 
-### 2.3 시뮬레이션 (Paper Trading) ⭐ v0.8.0 구현 완료
+### 2.3 시뮬레이션 (Paper Trading) ⭐ v0.8.0 구현 완료 → v0.9.0 확장
 
 #### 2.3.1 시뮬레이션 실행
 - 실시간 시장 데이터 기반 가상 거래
 - 실제 자금 사용 없이 전략 검증
 - 실행 모드:
-  - **실시간 모드**: WebSocket으로 틱/분봉 데이터 수신
-  - **가속 모드**: 과거 데이터를 빠르게 재생 (선택적)
+  - **실시간 모드**: WebSocket으로 틱/호가 데이터 수신
+  - **과거 리플레이 모드**: DB 1분봉 데이터를 실시간 속도로 재생 (v0.9.0)
+  - **랜덤 워크 모드**: 장외 시간 현실적 가격 변동 생성 (v0.9.0)
 
 #### 2.3.2 포지션 관리
 - 가상 포지션 추적:
@@ -191,7 +192,17 @@ Rust 기반 고성능 다중 시장 자동화 트레이딩 시스템. 국내/해
   - 미실현 손익 (현재가 기준)
 - 가상 주문 실행:
   - 지정가/시장가 주문
-  - 주문 체결 시뮬레이션 (호가창 기반)
+  - 주문 체결 시뮬레이션 (호가창 기반 VWAP)
+  - 부분 체결 지원 (호가 잔량 기반) (v0.9.0)
+  - 스톱 주문: StopLoss, TakeProfit, StopLossLimit, TakeProfitLimit (v0.9.0)
+
+#### 2.3.2.1 주문 관리 (v0.9.0)
+- 미체결 주문 큐 관리 (전략별 독립)
+- 매 가격 틱마다 자동 매칭 (MockOrderEngine)
+- 주문 정정: 수량/가격 변경, 잔고 예약 자동 재계산
+- 주문 취소: 큐 제거 + 예약 잔고 해제
+- 잔고 예약 시스템: 매수 주문 등록 시 필요 금액 예약 (이중 사용 방지)
+- 주문 영속성: DB 저장/복원 (앱 재시작 시 미체결 주문 유지)
 
 #### 2.3.3 성과 모니터링
 - 실시간 대시보드:
@@ -206,7 +217,7 @@ Rust 기반 고성능 다중 시장 자동화 트레이딩 시스템. 국내/해
 
 | 엔드포인트 | 메서드 | 설명 |
 |-----------|--------|------|
-| `/api/v1/paper-trading/start` | POST | 페이퍼 트레이딩 세션 시작 |
+| `/api/v1/paper-trading/start` | POST | 페이퍼 트레이딩 세션 시작 (스트리밍 설정 포함, v0.9.0 확장) |
 | `/api/v1/paper-trading/accounts` | GET | 가상 계좌 목록 조회 |
 | `/api/v1/paper-trading/positions` | GET | 가상 포지션 조회 |
 | `/api/v1/paper-trading/executions` | GET | 가상 체결 내역 조회 |
@@ -947,11 +958,62 @@ trader-analytics/src/indicators/
   - Bridge Task 기반 KR/US 동시 수신
   - DB 기반 자격증명 관리 (환경변수 의존 제거)
 
-### 5.3 Mock Exchange ⭐ v0.8.0 신규
-- **용도**: 개발/테스트용 가상 거래소
-- **기능**: 시뮬레이션 주문 실행, 가상 잔고 관리
-- **구현**: `ExchangeProvider` trait 완전 구현 (`provider/mock.rs`)
-- **Paper Trading**: 실시간 시세 기반 가상 거래 지원
+### 5.3 Mock Exchange ⭐ v0.8.0 신규 → v0.9.0 KIS 수준 업그레이드
+
+- **용도**: 개발/테스트용 가상 거래소 (24시간 페이퍼 트레이딩)
+- **구현**: `ExchangeProvider` + `OrderExecutionProvider` trait 완전 구현 (`provider/mock.rs`)
+
+#### 5.3.1 현실적 가격 스트리밍 (v0.9.0)
+
+장외 시간에도 현실적인 가격 변동을 WebSocket으로 제공:
+
+| 모드 | 설명 | 데이터 소스 |
+|------|------|------------|
+| **HistoricalReplay** | 과거 캔들 데이터를 실시간 속도로 재생 | DB 1분봉 → 틱 보간 |
+| **RandomWalk** | 정규분포 랜덤 워크 + 평균 회귀 | D1 캔들 ATR 기반 |
+| **YahooLegacy** | 기존 Yahoo D1 종가 방식 (하위 호환) | Yahoo Finance |
+
+**스트리밍 데이터 (KIS 수준)**:
+- **Ticker**: 체결가, bid/ask, 거래량, 등락률
+- **OrderBook**: KR 10단계 호가 (`KrxTickSize` 7단계), US 1단계 호가 (`UsEquityTickSize` $0.01)
+
+**설정**: `MockStreamingConfig` (모드, 발행 간격, OrderBook 발행 여부, 변동성 등)
+
+구현 파일: `provider/mock_streaming.rs` (신규)
+
+#### 5.3.2 주문 매칭 엔진 (v0.9.0)
+
+KIS 거래소 수준의 주문 실행 시뮬레이션:
+
+| 기능 | 설명 |
+|------|------|
+| **시장가 주문** | bid/ask 즉시 체결, OrderBook 기반 VWAP |
+| **지정가 주문** | 조건 충족 시 자동 체결 (Limit Buy: ask ≤ limit) |
+| **스톱 주문** | StopLoss/TakeProfit/StopLossLimit/TakeProfitLimit |
+| **미체결 관리** | 주문 큐 + 매 틱마다 자동 매칭 |
+| **부분 체결** | OrderBook 호가 잔량 기반 부분 체결 + VWAP 계산 |
+| **주문 정정/취소** | 수량·가격 변경, 예약 잔고 자동 재계산 |
+| **잔고 예약** | 매수 주문 등록 시 필요 금액 예약 (이중 사용 방지) |
+| **주문 영속성** | DB 저장/복원 (`mock_pending_orders` 테이블) |
+
+**매칭 규칙**:
+
+| 주문 유형 | 트리거 조건 | 체결 방식 |
+|----------|-----------|----------|
+| Limit Buy | ask ≤ limit_price | 지정가 이하 체결 |
+| Limit Sell | bid ≥ limit_price | 지정가 이상 체결 |
+| StopLoss Sell | last ≤ stop_price | 시장가 전환 후 체결 |
+| StopLoss Buy | last ≥ stop_price | 시장가 전환 후 체결 |
+| TakeProfit Sell | last ≥ stop_price | 시장가 전환 후 체결 |
+| StopLossLimit | last crosses stop → Limit 전환 | 지정가 조건 충족 시 체결 |
+
+구현 파일: `provider/mock_order_engine.rs` (신규)
+
+#### 5.3.3 기존 기능 (v0.8.0, 하위 호환)
+
+- 가상 잔고/포지션 관리 (전략별 독립)
+- `process_signal()` 즉시 체결 경로 유지 (SimulatedExecutor용)
+- Yahoo D1 기반 스트리밍 (YahooLegacy 모드)
 
 ### 5.4 추가 거래소 (선택적 확장)
 - Coinbase, Kraken (암호화폐)

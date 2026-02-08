@@ -38,7 +38,7 @@ use trader_strategy::strategies::{
     AssetAllocationStrategy, CompoundMomentumStrategy, DayTradingStrategy, DcaStrategy,
     MeanReversionStrategy, RotationStrategy,
 };
-use trader_strategy::Strategy;
+use trader_strategy::{Strategy, StrategyRegistry};
 
 use crate::commands::download::Market;
 
@@ -133,6 +133,22 @@ impl StrategyType {
             _ => None,
         }
     }
+
+    /// StrategyRegistry의 전략 ID로 변환.
+    pub fn to_registry_id(&self) -> &'static str {
+        match self {
+            Self::Grid => "grid",
+            Self::Rsi => "rsi",
+            Self::Bollinger => "bollinger",
+            Self::Volatility => "volatility_breakout",
+            Self::MagicSplit => "magic_split",
+            Self::InfinityBot => "infinity_bot",
+            Self::CompoundMomentum => "compound_momentum",
+            Self::Haa => "haa",
+            Self::Xaa => "xaa",
+            Self::StockRotation => "stock_rotation",
+        }
+    }
 }
 
 /// 백테스트 실행
@@ -165,7 +181,27 @@ pub async fn run_backtest(config: BacktestCliConfig) -> Result<BacktestReport> {
     info!("Connecting to database...");
     let db = Database::connect(&db_config).await?;
 
-    // 3. OhlcvCache 생성 및 심볼 이름 준비
+    // 3. 전략 타입 파싱 (타임프레임 정보 필요하므로 klines 로드 전 수행)
+    let strategy_type =
+        StrategyType::parse(&strategy_config.strategy_type).ok_or_else(|| {
+            anyhow!(
+                "Unknown strategy type: {}. Use --list-strategies to see available strategies.",
+                strategy_config.strategy_type
+            )
+        })?;
+
+    // 전략 레지스트리에서 타임프레임 메타 정보 조회
+    let registry_meta = StrategyRegistry::find(strategy_type.to_registry_id());
+    let default_tf: &str = registry_meta
+        .as_ref()
+        .map(|m| m.default_timeframe)
+        .unwrap_or("1d");
+    let secondary_tfs: &[&str] = registry_meta
+        .as_ref()
+        .map(|m| m.secondary_timeframes)
+        .unwrap_or(&[]);
+
+    // 4. OhlcvCache 생성 및 심볼 이름 준비
     let ohlcv_cache = OhlcvCache::new(db.pool().clone());
 
     // DB에 저장된 심볼 형식에 맞춰 시도 (Yahoo 형식 → 원본 순서)
@@ -184,7 +220,10 @@ pub async fn run_backtest(config: BacktestCliConfig) -> Result<BacktestReport> {
 
     for symbol in &symbol_candidates {
         info!("Trying symbol: {}", symbol);
-        let loaded = load_klines_from_db(&ohlcv_cache, symbol, config.start_date, config.end_date).await?;
+        let loaded = load_klines_from_db(
+            &ohlcv_cache, symbol, config.start_date, config.end_date,
+            default_tf, secondary_tfs,
+        ).await?;
         if !loaded.is_empty() {
             klines = loaded;
             used_symbol = symbol.clone();
@@ -202,18 +241,7 @@ pub async fn run_backtest(config: BacktestCliConfig) -> Result<BacktestReport> {
 
     info!("Loaded {} klines for {} (symbol: {})", klines.len(), config.symbol, used_symbol);
 
-    info!("Loaded {} klines for backtest", klines.len());
-
-    // 5. 전략 타입 파싱
-    let strategy_type =
-        StrategyType::parse(&strategy_config.strategy_type).ok_or_else(|| {
-            anyhow!(
-                "Unknown strategy type: {}. Use --list-strategies to see available strategies.",
-                strategy_config.strategy_type
-            )
-        })?;
-
-    // 6. 멀티 자산 전략: 추가 심볼 데이터 로드
+    // 5. 멀티 자산 전략: 추가 심볼 데이터 로드
     let mut multi_asset_klines: HashMap<String, Vec<Kline>> = HashMap::new();
     if is_multi_asset_strategy(&strategy_type) {
         let universe = extract_universe(&strategy_type, &strategy_config.parameters);
@@ -226,7 +254,10 @@ pub async fn run_backtest(config: BacktestCliConfig) -> Result<BacktestReport> {
                 continue;
             }
 
-            let loaded = load_klines_from_db(&ohlcv_cache, symbol, config.start_date, config.end_date).await?;
+            let loaded = load_klines_from_db(
+                &ohlcv_cache, symbol, config.start_date, config.end_date,
+                default_tf, secondary_tfs,
+            ).await?;
             if !loaded.is_empty() {
                 info!("  {} 심볼: {} 캔들 로드", symbol, loaded.len());
                 multi_asset_klines.insert(symbol.clone(), loaded);
@@ -743,12 +774,17 @@ fn load_strategy_config(path: &str) -> Result<StrategyConfigFile> {
     }
 }
 
-/// 데이터베이스에서 캔들 데이터 로드 (ohlcv 테이블 사용)
+/// 데이터베이스에서 캔들 데이터 로드 (타임프레임 폴백 지원).
+///
+/// 전략의 default_timeframe → secondary_timeframes → 일반 폴백(1m~1d)
+/// 순서로 데이터가 있는 첫 번째 타임프레임을 사용합니다.
 async fn load_klines_from_db(
     ohlcv_cache: &OhlcvCache,
     symbol: &str,
     start_date: Option<NaiveDate>,
     end_date: Option<NaiveDate>,
+    default_timeframe: &str,
+    secondary_timeframes: &[&str],
 ) -> Result<Vec<Kline>> {
     // 시작/종료 날짜가 없으면 기본값 사용 (최근 1년)
     let now = Utc::now();
@@ -759,15 +795,46 @@ async fn load_klines_from_db(
         .map(|d| d.and_hms_opt(23, 59, 59).unwrap().and_utc())
         .unwrap_or(now);
 
-    // OhlcvCache의 get_cached_klines_range 메서드 사용
-    let klines = ohlcv_cache
-        .get_cached_klines_range(symbol, Timeframe::D1, start, end)
-        .await
-        .map_err(|e| anyhow!("Failed to load klines: {}", e))?;
+    // 타임프레임 우선순위: primary → secondary → 일반 폴백
+    let general_fallbacks = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"];
+    let mut priority: Vec<&str> = Vec::with_capacity(10);
+    priority.push(default_timeframe);
+    priority.extend_from_slice(secondary_timeframes);
+    priority.extend_from_slice(&general_fallbacks);
 
-    debug!("Loaded {} klines from ohlcv table", klines.len());
+    let mut tried = std::collections::HashSet::new();
+    for tf_str in &priority {
+        if !tried.insert(*tf_str) {
+            continue;
+        }
+        let tf = match tf_str.parse::<Timeframe>() {
+            Ok(tf) => tf,
+            Err(_) => continue,
+        };
 
-    Ok(klines)
+        match ohlcv_cache.get_cached_klines_range(symbol, tf, start, end).await {
+            Ok(klines) if !klines.is_empty() => {
+                if *tf_str != default_timeframe {
+                    info!(
+                        "{} 타임프레임 폴백: {} → {} ({} 캔들)",
+                        symbol, default_timeframe, tf_str, klines.len()
+                    );
+                } else {
+                    debug!("Loaded {} klines ({}) from ohlcv table", klines.len(), tf_str);
+                }
+                return Ok(klines);
+            }
+            Ok(_) => {
+                debug!("{} {} 타임프레임: 데이터 없음, 다음 시도", symbol, tf_str);
+            }
+            Err(e) => {
+                debug!("{} {} 타임프레임 로드 실패: {}", symbol, tf_str, e);
+            }
+        }
+    }
+
+    debug!("{}: 모든 타임프레임에서 데이터 없음", symbol);
+    Ok(Vec::new())
 }
 
 /// 백테스트 리포트를 파일로 저장

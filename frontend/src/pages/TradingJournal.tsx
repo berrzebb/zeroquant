@@ -304,14 +304,27 @@ function convertBacktestToInsights(result: BacktestResult) {
   // 고유 종목 수
   const uniqueSymbols = new Set(trades.map(t => t.symbol)).size
 
+  const totalAllTrades = result.all_trades?.length || trades.length * 2
+  const buyTrades = result.all_trades
+    ? result.all_trades.filter(t => t.side === 'buy' || t.side === 'Buy').length
+    : trades.length
+  const sellTrades = result.all_trades
+    ? result.all_trades.filter(t => t.side === 'sell' || t.side === 'Sell').length
+    : trades.length
+  const netPnl = (totalPnl - totalFees).toFixed(0)
+
   return {
-    total_trades: result.all_trades?.length || trades.length * 2,
+    total_trades: totalAllTrades,
+    buy_trades: buyTrades,
+    sell_trades: sellTrades,
     winning_trades: wins.length,
     losing_trades: losses.length,
+    unique_symbols: uniqueSymbols,
+    total_realized_pnl: totalPnl.toFixed(0),
     win_rate_pct: trades.length > 0 ? ((wins.length / trades.length) * 100).toFixed(2) : '0.00',
     total_pnl: totalPnl.toFixed(0),
     total_fees: totalFees.toFixed(0),
-    net_pnl: (totalPnl - totalFees).toFixed(0),
+    net_pnl: netPnl,
     avg_win: avgWin.toFixed(0),
     avg_loss: avgLoss.toFixed(0),
     largest_win: wins.length > 0 ? Math.max(...wins).toFixed(0) : '0',
@@ -323,7 +336,8 @@ function convertBacktestToInsights(result: BacktestResult) {
     max_drawdown_pct: result.metrics?.max_drawdown_pct || '0',
     trading_period_days: tradingPeriodDays,
     active_trading_days: uniqueDates.size,
-    unique_symbols: uniqueSymbols,
+    first_trade_at: dates.length > 0 ? dates[0]! : null,
+    last_trade_at: dates.length > 0 ? dates[dates.length - 1]! : null,
   }
 }
 
@@ -684,23 +698,60 @@ export function TradingJournal() {
   const strategyPerformance = createMemo(() => {
     if (isBacktest()) {
       const result = backtestResult()
-      if (!result) return { strategies: [] }
+      if (!result) return { strategies: [], total: 0 }
+      const ins = insights()
       const summary = convertBacktestToPnLSummary(result)
+      const trades = result.trades
+      const pnls = trades.map(t => parseFloat(t.pnl))
+      const wins = pnls.filter(p => p > 0)
+      const losses = pnls.filter(p => p < 0)
+      const totalPnl = pnls.reduce((a, b) => a + b, 0)
+      const avgWin = wins.length > 0 ? wins.reduce((a, b) => a + b, 0) / wins.length : 0
+      const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((a, b) => a + b, 0) / losses.length) : 0
+
+      // 거래 날짜 계산
+      const dates = trades
+        .map(t => t.entry_time?.split('T')[0])
+        .filter(Boolean)
+        .sort()
+      const uniqueDates = new Set(dates)
+
+      // 총 거래량
+      const totalVolume = result.all_trades
+        ? result.all_trades.reduce((sum, t) => sum + parseFloat(t.quantity) * parseFloat(t.price), 0)
+        : 0
+
       return {
         strategies: [{
           strategy_id: result.strategy_id,
           strategy_name: backtestStrategyName() || result.strategy_id,
           total_trades: summary.total_trades,
-          win_rate: summary.win_rate,
-          total_pnl: summary.net_pnl,
-          avg_pnl: summary.total_trades > 0
-            ? (parseFloat(summary.net_pnl) / summary.total_trades).toFixed(0)
-            : '0',
-          profit_factor: insights()?.profit_factor || '0',
+          buy_trades: result.all_trades
+            ? result.all_trades.filter(t => t.side === 'buy' || t.side === 'Buy').length
+            : trades.length,
+          sell_trades: result.all_trades
+            ? result.all_trades.filter(t => t.side === 'sell' || t.side === 'Sell').length
+            : trades.length,
+          unique_symbols: new Set(trades.map(t => t.symbol)).size,
+          total_volume: totalVolume.toFixed(0),
+          total_fees: summary.total_fees,
+          realized_pnl: totalPnl.toFixed(0),
+          winning_trades: wins.length,
+          losing_trades: losses.length,
+          win_rate_pct: trades.length > 0 ? ((wins.length / trades.length) * 100).toFixed(2) : '0.00',
+          profit_factor: ins?.profit_factor || '0',
+          avg_win: avgWin.toFixed(0),
+          avg_loss: avgLoss.toFixed(0),
+          largest_win: wins.length > 0 ? Math.max(...wins).toFixed(0) : '0',
+          largest_loss: losses.length > 0 ? Math.min(...losses).toFixed(0) : '0',
+          active_trading_days: uniqueDates.size,
+          first_trade_at: dates.length > 0 ? dates[0]! : null,
+          last_trade_at: dates.length > 0 ? dates[dates.length - 1]! : null,
         }],
+        total: 1,
       }
     }
-    return liveStrategyPerformance() || { strategies: [] }
+    return liveStrategyPerformance() || { strategies: [], total: 0 }
   })
 
   // ==================== 파생 상태 (createMemo) ====================

@@ -1,7 +1,7 @@
 import { createMemo, For, Show, onMount, onCleanup, createSignal, lazy, Suspense, createEffect } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { createQuery, createMutation } from '@tanstack/solid-query'
-import { createVirtualizer } from '@tanstack/solid-virtual'
+// 가상 스크롤: SolidJS 네이티브 구현 (tanstack virtual은 <Show> 내 조건부 마운트와 호환 문제)
 import {
   ListFilter, Search, TrendingUp, TrendingDown,
   ChevronUp, ChevronDown, Loader2, RefreshCw, Sparkles, Target,
@@ -48,7 +48,7 @@ import {
 // ==================== 타입 ====================
 
 type ScreeningTab = 'preset' | 'custom' | 'momentum'
-type SortField = 'ticker' | 'name' | 'current_price' | 'market_cap' | 'per' | 'pbr' | 'roe' | 'dividend_yield' | 'change_pct'
+type SortField = 'ticker' | 'name' | 'current_price' | 'market_cap' | 'per' | 'pbr' | 'roe' | 'dividend_yield' | 'change_pct' | 'route_state' | 'grade' | 'overall_score'
 type SortOrder = 'asc' | 'desc'
 type Ma20Position = 'all' | 'above' | 'below'
 type FilterMode = 'and' | 'or'
@@ -651,6 +651,22 @@ export function Screening() {
           aVal = parseFloat(a.current_price || '0')
           bVal = parseFloat(b.current_price || '0')
           break
+        case 'route_state': {
+          const stateOrder: Record<string, number> = { ATTACK: 4, ARMED: 3, WAIT: 2, OVERHEAT: 1, NEUTRAL: 0 }
+          aVal = stateOrder[a.route_state || ''] ?? -1
+          bVal = stateOrder[b.route_state || ''] ?? -1
+          break
+        }
+        case 'grade': {
+          const gradeOrder: Record<string, number> = { BUY: 3, WATCH: 2, HOLD: 1 }
+          aVal = gradeOrder[a.grade || ''] ?? -1
+          bVal = gradeOrder[b.grade || ''] ?? -1
+          break
+        }
+        case 'overall_score':
+          aVal = parseFloat(a.overall_score || '-1')
+          bVal = parseFloat(b.overall_score || '-1')
+          break
       }
 
       if (typeof aVal === 'string' && typeof bVal === 'string') {
@@ -662,23 +678,43 @@ export function Screening() {
     return results
   })
 
-  // 가상 스크롤러 (1000+ 행에서 60fps 유지)
-  const rowVirtualizer = createVirtualizer({
-    get count() {
-      return sortedResults().length
-    },
-    getScrollElement: () => tableScrollRef(),
-    estimateSize: () => ROW_HEIGHT,
-    overscan: 10, // 위아래 10개씩 미리 렌더링
+  // 가상 스크롤 — SolidJS 네이티브 구현
+  const OVERSCAN = 10
+  const [visibleRange, setVisibleRange] = createSignal({ start: 0, end: 50 })
+
+  const updateVisibleRange = (scrollEl?: HTMLDivElement | null) => {
+    const el = scrollEl || tableScrollRef()
+    if (!el) return
+    const scrollTop = el.scrollTop
+    const clientHeight = el.clientHeight
+    const total = sortedResults().length
+    const start = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN)
+    const end = Math.min(total, Math.ceil((scrollTop + clientHeight) / ROW_HEIGHT) + OVERSCAN)
+    setVisibleRange({ start, end })
+  }
+
+  // 스크롤 컨테이너 마운트 시 초기 범위 계산
+  createEffect(() => {
+    const el = tableScrollRef()
+    if (el) updateVisibleRange(el)
   })
 
-  // 가상 아이템 및 전체 높이
-  const virtualItems = createMemo(() => {
-    const items = rowVirtualizer.getVirtualItems()
-    console.log('[Screening] virtualItems:', items.length, 'scrollRef:', !!tableScrollRef(), 'sortedResults:', sortedResults().length)
-    return items
+  // 데이터 변경 시 범위 재계산
+  createEffect(() => {
+    sortedResults().length // 의존성 추적
+    updateVisibleRange()
   })
-  const totalSize = createMemo(() => rowVirtualizer.getTotalSize())
+
+  const visibleRows = createMemo(() => {
+    const { start, end } = visibleRange()
+    return sortedResults().slice(start, end)
+  })
+  const paddingTop = createMemo(() => visibleRange().start * ROW_HEIGHT)
+  const paddingBottom = createMemo(() => {
+    const total = sortedResults().length
+    const { end } = visibleRange()
+    return Math.max(0, (total - end) * ROW_HEIGHT)
+  })
 
   // 서버에서 더 로드할 데이터가 있는지 확인
   const hasMorePresetResults = createMemo(() => presetResults().length < presetTotal())
@@ -690,28 +726,16 @@ export function Screening() {
 
   // 무한 스크롤 핸들러 (서버 측 페이징)
   const handleScroll = (e: Event) => {
-    const target = e.target as HTMLElement
+    const target = e.target as HTMLDivElement
     const { scrollTop, scrollHeight, clientHeight } = target
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight
 
-    // 디버깅: 스크롤 이벤트 발생 확인 (10px 이상 스크롤시에만)
-    if (scrollTop > 10) {
-      console.log('[Screening] Scroll:', {
-        scrollTop: Math.round(scrollTop),
-        scrollHeight,
-        clientHeight,
-        distanceFromBottom: Math.round(distanceFromBottom),
-        tab: ui.activeTab,
-        hasMore: hasMorePresetResults(),
-        loading: presetLoadingMore()
-      })
-    }
+    // 가상 스크롤 범위 업데이트
+    updateVisibleRange(target)
 
     // 스크롤이 하단 100px 이내에 도달하면 더 로드
     if (distanceFromBottom < 100) {
-      console.log('[Screening] Near bottom - triggering load')
       if (ui.activeTab === 'preset' && hasMorePresetResults() && !presetLoadingMore()) {
-        console.log('[Screening] Loading more preset data...')
         loadMorePreset()
       }
     }
@@ -1809,18 +1833,43 @@ export function Screening() {
                       </Show>
                     </button>
                   </th>
-                  <th class="w-[8%] px-4 py-3 text-center font-medium text-[var(--color-text-muted)]">상태</th>
-                  <th class="w-[6%] px-4 py-3 text-center font-medium text-[var(--color-text-muted)]">등급</th>
-                  <th class="w-[10%] px-4 py-3 text-right font-medium text-[var(--color-text-muted)]">점수</th>
+                  <th class="w-[8%] px-4 py-3 text-center font-medium text-[var(--color-text-muted)]">
+                    <button onClick={() => handleSort('route_state')} class="flex items-center gap-1 mx-auto hover:text-[var(--color-text)]">
+                      상태
+                      <Show when={filters.sortField === 'route_state'}>
+                        {filters.sortOrder === 'asc' ? <ChevronUp class="w-3 h-3" /> : <ChevronDown class="w-3 h-3" />}
+                      </Show>
+                    </button>
+                  </th>
+                  <th class="w-[6%] px-4 py-3 text-center font-medium text-[var(--color-text-muted)]">
+                    <button onClick={() => handleSort('grade')} class="flex items-center gap-1 mx-auto hover:text-[var(--color-text)]">
+                      등급
+                      <Show when={filters.sortField === 'grade'}>
+                        {filters.sortOrder === 'asc' ? <ChevronUp class="w-3 h-3" /> : <ChevronDown class="w-3 h-3" />}
+                      </Show>
+                    </button>
+                  </th>
+                  <th class="w-[10%] px-4 py-3 text-right font-medium text-[var(--color-text-muted)]">
+                    <button onClick={() => handleSort('overall_score')} class="flex items-center gap-1 justify-end hover:text-[var(--color-text)]">
+                      점수
+                      <Show when={filters.sortField === 'overall_score'}>
+                        {filters.sortOrder === 'asc' ? <ChevronUp class="w-3 h-3" /> : <ChevronDown class="w-3 h-3" />}
+                      </Show>
+                    </button>
+                  </th>
                 </tr>
               </thead>
-              {/* 일반 렌더링 (가상 스크롤 비활성화) */}
+              {/* 가상 스크롤 — 보이는 행 + overscan만 렌더링 */}
               <tbody>
-                <For each={sortedResults()}>
-                  {(result, index) => (
+                <Show when={paddingTop() > 0}>
+                  <tr><td colspan={11} style={{ height: `${paddingTop()}px`, padding: '0' }} /></tr>
+                </Show>
+                <For each={visibleRows()}>
+                  {(result, idx) => (
                       <tr
+                        style={{ height: `${ROW_HEIGHT}px` }}
                         class={`border-t border-[var(--color-surface-light)] hover:bg-[var(--color-surface-light)]/50 transition cursor-pointer
-                                ${index() % 2 === 0 ? '' : 'bg-[var(--color-surface-light)]/20'}`}
+                                ${(visibleRange().start + idx()) % 2 === 0 ? '' : 'bg-[var(--color-surface-light)]/20'}`}
                         onClick={() => openSymbolDetailModal(result)}
                       >
                         <td class="w-[10%] px-4">
@@ -1888,6 +1937,9 @@ export function Screening() {
                       </tr>
                   )}
                 </For>
+                <Show when={paddingBottom() > 0}>
+                  <tr><td colspan={11} style={{ height: `${paddingBottom()}px`, padding: '0' }} /></tr>
+                </Show>
               </tbody>
             </table>
             {/* 무한 스크롤 센티넬 - 이 요소가 보이면 더 많은 데이터 로드 */}

@@ -10,53 +10,111 @@ use tracing::{debug, warn};
 use trader_core::{Kline, MarketType, Symbol, Timeframe};
 use trader_data::cache::CachedHistoricalDataProvider;
 
-/// CachedHistoricalDataProvider를 통해 Kline 데이터 로드
+/// 전략의 기본 타임프레임을 존중하는 Kline 데이터 로드
 ///
-/// ohlcv 테이블에서 통합 관리되는 데이터를 조회합니다.
-/// 캐시에 데이터가 없으면 자동으로 Yahoo Finance에서 다운로드하여 캐싱합니다.
-pub async fn load_klines_from_db(
+/// 다중 타임프레임 fallback 로직:
+/// `primary` → `secondary[0]` → `secondary[1]` → ... → `1m` → `5m` → ... → `1d`
+///
+/// primary가 없으면 다음 secondary가 primary가 됩니다.
+/// 유료 데이터 플랜 없이는 분봉 데이터가 없을 수 있으므로,
+/// 가장 가까운 가용 타임프레임을 자동으로 선택합니다.
+pub async fn load_klines_with_fallback(
     data_provider: &CachedHistoricalDataProvider,
     symbol_str: &str,
     start_date: NaiveDate,
     end_date: NaiveDate,
+    default_timeframe: &str,
 ) -> Result<Vec<Kline>, String> {
-    let provider = data_provider;
+    load_klines_with_multi_tf_fallback(
+        data_provider,
+        symbol_str,
+        start_date,
+        end_date,
+        default_timeframe,
+        &[],
+    )
+    .await
+}
 
-    // 날짜 범위를 거래일 기준 limit으로 변환 (주말 제외 대략 계산)
-    let total_days = (end_date - start_date).num_days() as usize;
-    let trading_days = (total_days as f64 * 5.0 / 7.0).ceil() as usize;
-    let limit = trading_days.max(100); // 최소 100개
+/// 다중 타임프레임 fallback을 지원하는 Kline 데이터 로드
+///
+/// 우선순위: `primary` → `secondary_timeframes` → 일반 fallback (`1m` → ... → `1d`)
+///
+/// primary가 없으면 다음 secondary가 primary가 됩니다.
+pub async fn load_klines_with_multi_tf_fallback(
+    data_provider: &CachedHistoricalDataProvider,
+    symbol_str: &str,
+    start_date: NaiveDate,
+    end_date: NaiveDate,
+    default_timeframe: &str,
+    secondary_timeframes: &[&str],
+) -> Result<Vec<Kline>, String> {
+    // 우선순위: primary → secondary → 일반 fallback
+    let mut timeframe_priority: Vec<&str> = Vec::with_capacity(10);
+    timeframe_priority.push(default_timeframe);
+    timeframe_priority.extend_from_slice(secondary_timeframes);
+    // 일반 fallback (해상도 높은 순서)
+    for tf in &["1m", "5m", "15m", "30m", "1h", "4h", "1d"] {
+        timeframe_priority.push(tf);
+    }
+
+    // 중복 제거 (default_timeframe이 이미 리스트에 있을 수 있음)
+    let mut tried = std::collections::HashSet::new();
+
+    for tf_str in &timeframe_priority {
+        if !tried.insert(*tf_str) {
+            continue; // 이미 시도한 타임프레임 스킵
+        }
+
+        let tf = match tf_str.parse::<Timeframe>() {
+            Ok(tf) => tf,
+            Err(_) => continue,
+        };
+
+        match load_klines_with_timeframe(data_provider, symbol_str, tf, start_date, end_date).await
+        {
+            Ok(klines) if !klines.is_empty() => {
+                if tf_str != &default_timeframe {
+                    debug!(
+                        symbol = symbol_str,
+                        selected = %tf,
+                        default = default_timeframe,
+                        count = klines.len(),
+                        "기본 타임프레임 데이터 없음, fallback 사용"
+                    );
+                } else {
+                    debug!(
+                        symbol = symbol_str,
+                        timeframe = %tf,
+                        count = klines.len(),
+                        "전략 기본 타임프레임으로 캔들 데이터 로드 완료"
+                    );
+                }
+                return Ok(klines);
+            }
+            Ok(_) => {
+                debug!(
+                    symbol = symbol_str,
+                    timeframe = %tf,
+                    "타임프레임 {} 데이터 없음, 다음 시도", tf_str
+                );
+            }
+            Err(e) => {
+                debug!(
+                    symbol = symbol_str,
+                    timeframe = %tf,
+                    error = %e,
+                    "타임프레임 {} 조회 실패, 다음 시도", tf_str
+                );
+            }
+        }
+    }
 
     debug!(
         symbol = symbol_str,
-        start = %start_date,
-        end = %end_date,
-        limit = limit,
-        "CachedHistoricalDataProvider로 캔들 데이터 로드"
+        "모든 타임프레임에서 데이터를 찾지 못함"
     );
-
-    // CachedHistoricalDataProvider가 캐시 조회 + 자동 다운로드 + 캐싱 처리
-    let klines = provider
-        .get_klines(symbol_str, Timeframe::D1, limit)
-        .await
-        .map_err(|e| format!("캔들 데이터 조회 실패: {}", e))?;
-
-    // 날짜 범위 필터링
-    let start_dt = Utc.from_utc_datetime(&start_date.and_hms_opt(0, 0, 0).unwrap());
-    let end_dt = Utc.from_utc_datetime(&end_date.and_hms_opt(23, 59, 59).unwrap());
-
-    let filtered: Vec<Kline> = klines
-        .into_iter()
-        .filter(|k| k.open_time >= start_dt && k.open_time <= end_dt)
-        .collect();
-
-    debug!(
-        symbol = symbol_str,
-        count = filtered.len(),
-        "캔들 데이터 로드 완료"
-    );
-
-    Ok(filtered)
+    Ok(Vec::new())
 }
 
 /// 샘플 Kline 데이터 생성 (DB 데이터가 없을 경우 사용)
@@ -112,7 +170,6 @@ pub fn generate_sample_klines(
 /// 특정 타임프레임의 Kline 데이터 로드
 ///
 /// ohlcv 테이블에서 지정된 타임프레임의 데이터를 조회합니다.
-#[allow(dead_code)]
 pub async fn load_klines_with_timeframe(
     data_provider: &CachedHistoricalDataProvider,
     symbol_str: &str,
@@ -231,16 +288,26 @@ pub async fn load_secondary_timeframe_klines(
 /// 다중 심볼의 Kline 데이터를 CachedHistoricalDataProvider로 로드
 ///
 /// 각 심볼에 대해 캐시 조회 + 자동 다운로드 + 캐싱이 처리됩니다.
+/// `default_timeframe`에 따라 시뮬레이션과 동일한 fallback 로직이 적용됩니다.
 pub async fn load_multi_klines_from_db(
     data_provider: &CachedHistoricalDataProvider,
     symbols: &[String],
     start_date: NaiveDate,
     end_date: NaiveDate,
+    default_timeframe: &str,
 ) -> Result<HashMap<String, Vec<Kline>>, String> {
     let mut result = HashMap::new();
 
     for symbol_str in symbols {
-        match load_klines_from_db(data_provider, symbol_str, start_date, end_date).await {
+        match load_klines_with_fallback(
+            data_provider,
+            symbol_str,
+            start_date,
+            end_date,
+            default_timeframe,
+        )
+        .await
+        {
             Ok(klines) if !klines.is_empty() => {
                 debug!("심볼 {} 캔들 {} 개 로드 완료", symbol_str, klines.len());
                 result.insert(symbol_str.clone(), klines);

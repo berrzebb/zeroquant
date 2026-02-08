@@ -1,6 +1,72 @@
 # Changelog
 
 
+## [0.8.3] - 2026-02-08
+
+> **OHLCV 쿼리 최적화, 백테스트 타임프레임 폴백, 스크리닝 UI 성능**: OHLCV 배치 쿼리를 LATERAL JOIN + TimescaleDB 청크 프루닝으로 ~70% 최적화(1.04s → 306ms)하고, 백테스트/CLI에 전략 기본 타임프레임 자동 폴백을 도입했습니다. 스크리닝 화면에 네이티브 가상 스크롤(11,000+ 행 60fps)과 상태/등급/점수 정렬을 추가하고, 매매일지에 상세 거래 통계를 제공합니다.
+
+### Added
+
+#### ⚡ OHLCV 배치 쿼리 LATERAL JOIN 최적화
+
+**파일**: `trader-data/src/storage/ohlcv.rs`
+
+- `get_cached_klines_batch()` — ROW_NUMBER() 윈도우 함수를 LATERAL JOIN으로 교체
+- TimescaleDB 청크 프루닝: 타임프레임별 시간 힌트로 불필요한 압축 청크 스캔 방지
+- 2,524 심볼 × 50 캔들 기준: **1,040ms → 306ms** (~70% 성능 향상)
+- 타임프레임별 interval 계산: M1(3일) ~ MN1(365일) 안전 배수 적용
+
+#### 🔄 백테스트 다중 타임프레임 폴백
+
+**파일**: `trader-api/src/routes/backtest/loader.rs`, `backtest/mod.rs`, `trader-cli/src/commands/backtest.rs`
+
+- `load_klines_with_fallback()` — 전략 기본 타임프레임 → secondary → 일반(1m~1d) 자동 폴백
+- `load_klines_with_multi_tf_fallback()` — 다중 타임프레임 우선순위 탐색
+- StrategyRegistry 메타 연동: 전략별 `default_timeframe`, `secondary_timeframes` 자동 적용
+- 기존 `load_klines_from_db()` (하드코딩 D1) 제거
+- CLI `StrategyType::to_registry_id()` 추가 — CLI ↔ StrategyRegistry 연결
+
+#### 📊 스크리닝 상태/등급/점수 정렬
+
+**파일**: `frontend/src/pages/Screening.tsx`
+
+- `SortField` 타입 확장: `route_state`, `grade`, `overall_score` 추가
+- 우선순위 기반 정렬: ATTACK(4) > ARMED(3) > WAIT(2) > OVERHEAT(1) > NEUTRAL(0)
+- 등급 정렬: BUY(3) > WATCH(2) > HOLD(1)
+- 테이블 헤더에 정렬 버튼 + 방향 아이콘 (ChevronUp/ChevronDown)
+
+#### 🚀 스크리닝 네이티브 가상 스크롤
+
+**파일**: `frontend/src/pages/Screening.tsx`
+
+- `@tanstack/solid-virtual` 제거 → SolidJS 네이티브 구현
+  - 원인: `createVirtualizer`가 `<Show>` 조건부 렌더링 내부에서 scroll element null 문제
+- `visibleRange` signal + `slice()` + padding row 패턴
+- OVERSCAN 10행 + ROW_HEIGHT 52px 기반 가시 영역 계산
+- 11,451행에서 25행만 DOM 렌더링 → 60fps 유지
+- `createEffect` 연동: 스크롤 컨테이너 마운트 시 + 데이터 변경 시 자동 범위 재계산
+
+#### 📒 매매일지 백테스트 인사이트 강화
+
+**파일**: `frontend/src/pages/TradingJournal.tsx`
+
+- `convertBacktestToInsights()` 확장: 매수/매도 건수, 고유 종목 수, 총 실현손익, 첫/마지막 거래일
+- `strategyPerformance()` 확장: 거래량, 수수료, 평균 수익/손실, 최대 수익/손실, 활성 거래일
+
+### Changed
+
+- `load_klines_from_db()` → `load_klines_with_fallback()` 리네임 (하드코딩 D1 → 전략별 타임프레임)
+- `load_multi_klines_from_db()` — `default_timeframe` 파라미터 추가
+- `load_klines_with_timeframe()` — `#[allow(dead_code)]` 제거 (실제 사용됨)
+- 스크리닝 디버그 `console.log` 제거
+
+### Performance
+
+- OHLCV 배치 쿼리: 2,524 심볼 기준 **1,040ms → 306ms** (LATERAL JOIN + 청크 프루닝)
+- 스크리닝 렌더링: 11,451행 전체 DOM → 25행 가상 스크롤 (메모리/CPU 대폭 절감)
+
+---
+
 ## [0.8.2] - 2026-02-08
 
 > **성능 최적화, 통합 리스크 관리, CandleProcessor 공통화, 데이터 무결성 관리**: 스크리닝 배치 쿼리 + Redis 구조적 특성 캐시로 10초 → 서브초 성능을 달성하고, ExitConfig를 5가지 리스크 타입으로 확장했습니다. BacktestEngine/SimulationEngine 간 캔들 처리 로직을 CandleProcessor로 공통화하고, GlobalScore 동시 처리(Semaphore 10개)로 ~10배 속도를 개선했습니다. symbol_info 기준 데이터 무결성 관리 시스템(cascade delete, orphan cleanup)을 도입했습니다.

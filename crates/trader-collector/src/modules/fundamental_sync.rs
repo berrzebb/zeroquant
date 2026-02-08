@@ -1192,6 +1192,32 @@ async fn upsert_yahoo_fundamental(
             .await?;
     }
 
+    // 영문 명칭 업데이트 (Yahoo Finance long_name/short_name)
+    if let Some(ref name) = data.name {
+        let name_query = if force {
+            r#"
+            UPDATE symbol_info
+            SET name_en = $2,
+                updated_at = NOW()
+            WHERE id = $1
+            "#
+        } else {
+            // 기존 값 보존: name_en이 NULL인 경우에만 업데이트
+            r#"
+            UPDATE symbol_info
+            SET name_en = COALESCE(name_en, $2),
+                updated_at = NOW()
+            WHERE id = $1
+            "#
+        };
+
+        sqlx::query(name_query)
+            .bind(symbol_info_id)
+            .bind(name)
+            .execute(pool)
+            .await?;
+    }
+
     Ok(())
 }
 
