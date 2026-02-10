@@ -7,8 +7,6 @@
 //! - **체크포인트 저장**: 100개 처리마다 진행 상태 저장
 //! - **중단점 재개**: 중단된 지점부터 이어서 처리
 //! - **Stale 필터링**: N시간 이내 처리된 데이터 스킵
-
-#![allow(clippy::type_complexity)]
 //!
 //! # 사용 예
 //!
@@ -28,6 +26,14 @@
 //! ```
 
 use sqlx::PgPool;
+
+type CheckpointRow = (
+    String,
+    Option<String>,
+    Option<chrono::DateTime<chrono::Utc>>,
+    i32,
+    String,
+);
 
 use crate::Result;
 
@@ -146,13 +152,7 @@ pub async fn clear_checkpoint(pool: &PgPool, workflow: &str) -> Result<()> {
 
 /// 모든 워크플로우의 체크포인트 상태 조회.
 pub async fn list_checkpoints(pool: &PgPool) -> Result<Vec<CheckpointInfo>> {
-    let rows: Vec<(
-        String,
-        Option<String>,
-        Option<chrono::DateTime<chrono::Utc>>,
-        i32,
-        String,
-    )> = sqlx::query_as(
+    let rows: Vec<CheckpointRow> = sqlx::query_as(
         r#"
             SELECT workflow_name, last_ticker, last_processed_at, total_processed, status
             FROM sync_checkpoint
