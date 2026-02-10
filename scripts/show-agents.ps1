@@ -1,15 +1,20 @@
 <# .SYNOPSIS
   ZeroQuant Agent Dashboard
 .DESCRIPTION
-  Parses .claude/agents/*.md and displays agent configuration summary.
+  Parses .claude/agents/*.md, agent-memory/, and git log to display
+  agent configuration, memory contents, and recent work history.
 .EXAMPLE
   .\scripts\show-agents.ps1
   .\scripts\show-agents.ps1 -Detailed
   .\scripts\show-agents.ps1 -Agent lead
+  .\scripts\show-agents.ps1 -Memory
+  .\scripts\show-agents.ps1 -History
 #>
 param(
     [switch]$Detailed,
-    [string]$Agent
+    [string]$Agent,
+    [switch]$Memory,
+    [switch]$History
 )
 
 $OutputEncoding = [System.Text.Encoding]::UTF8

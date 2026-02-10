@@ -54,6 +54,9 @@ use crate::connector::kis::{
 use crate::connector::upbit::websocket::{UpbitWebSocket, UpbitWsCommand, UpbitWsMessage};
 use crate::connector::bithumb::websocket::{BithumbWebSocket, BithumbWsCommand, BithumbWsMessage};
 use crate::connector::ls_sec::websocket::{LsSecWebSocket, LsWsCommand, LsWsMessage};
+use crate::connector::db_investment::websocket::{
+    DbInvestmentWebSocket, DbWsCommand, DbWsMessage,
+};
 use crate::traits::{ExchangeResult, MarketEvent, MarketStream};
 use crate::ExchangeError;
 
@@ -1061,6 +1064,189 @@ impl MarketStream for LsSecMarketStream {
             }
             Some(LsWsMessage::Error(msg)) => {
                 error!("LS증권 WebSocket 에러: {}", msg);
+                Some(MarketEvent::Error(msg))
+            }
+            None => None,
+        }
+    }
+}
+
+// ============================================================================
+// DB증권 MarketStream
+// ============================================================================
+
+/// DB증권 주식용 MarketStream 구현.
+pub struct DbInvestmentMarketStream {
+    ws: Arc<RwLock<DbInvestmentWebSocket>>,
+    rx: Option<mpsc::Receiver<DbWsMessage>>,
+    cmd_tx: mpsc::Sender<DbWsCommand>,
+    subscribed_symbols: Vec<String>,
+    started: bool,
+}
+
+impl DbInvestmentMarketStream {
+    /// 새로운 DB증권 MarketStream 생성.
+    pub fn new(access_token: String, is_prod: bool) -> Self {
+        let mut ws = DbInvestmentWebSocket::new(access_token, is_prod);
+        let rx = ws.take_receiver();
+        let cmd_tx = ws.command_sender();
+
+        Self {
+            ws: Arc::new(RwLock::new(ws)),
+            rx,
+            cmd_tx,
+            subscribed_symbols: Vec::new(),
+            started: false,
+        }
+    }
+
+    /// QuoteData를 Ticker로 변환.
+    fn quote_to_ticker(quote: &trader_core::QuoteData) -> Ticker {
+        Ticker {
+            ticker: quote.symbol.clone(),
+            bid: quote.current_price - dec!(10),
+            ask: quote.current_price + dec!(10),
+            last: quote.current_price,
+            volume_24h: quote.volume,
+            high_24h: quote.high,
+            low_24h: quote.low,
+            change_24h: quote.price_change,
+            change_24h_percent: quote.change_percent,
+            timestamp: quote.timestamp,
+        }
+    }
+}
+
+#[async_trait]
+impl MarketStream for DbInvestmentMarketStream {
+    async fn start(&mut self) -> ExchangeResult<()> {
+        if self.started {
+            return Ok(());
+        }
+
+        let ws = self.ws.clone();
+        self.started = true;
+
+        tokio::spawn(async move {
+            let mut ws_guard = ws.write().await;
+            if let Err(e) = ws_guard.connect().await {
+                error!("DB증권 WebSocket 연결 실패: {}", e);
+            }
+        });
+
+        info!("DB증권 MarketStream 시작됨");
+        Ok(())
+    }
+
+    fn is_started(&self) -> bool {
+        self.started
+    }
+
+    async fn subscribe_ticker(&mut self, symbol: &str) -> ExchangeResult<()> {
+        let code = symbol.to_string();
+
+        if !self.subscribed_symbols.contains(&code) {
+            self.subscribed_symbols.push(code.clone());
+        }
+
+        if self.started {
+            // DB증권 V60: 실시간 체결가
+            self.cmd_tx
+                .send(DbWsCommand::Subscribe {
+                    tr_cd: "V60".to_string(),
+                    tr_key: code.clone(),
+                })
+                .await
+                .map_err(|e| {
+                    ExchangeError::NetworkError(format!("DB증권 구독 전송 실패: {}", e))
+                })?;
+
+            info!("DB증권 티커 동적 구독: {}", code);
+        }
+
+        Ok(())
+    }
+
+    async fn subscribe_kline(
+        &mut self,
+        _symbol: &str,
+        _timeframe: Timeframe,
+    ) -> ExchangeResult<()> {
+        Err(ExchangeError::NotSupported(
+            "DB증권은 실시간 캔들 스트림을 지원하지 않습니다".to_string(),
+        ))
+    }
+
+    async fn subscribe_order_book(&mut self, symbol: &str) -> ExchangeResult<()> {
+        let code = symbol.to_string();
+
+        if self.started {
+            // DB증권 V20: 실시간 호가
+            self.cmd_tx
+                .send(DbWsCommand::Subscribe {
+                    tr_cd: "V20".to_string(),
+                    tr_key: code.clone(),
+                })
+                .await
+                .map_err(|e| {
+                    ExchangeError::NetworkError(format!("DB증권 호가 구독 전송 실패: {}", e))
+                })?;
+
+            info!("DB증권 호가 동적 구독: {}", code);
+        }
+
+        Ok(())
+    }
+
+    async fn subscribe_trades(&mut self, symbol: &str) -> ExchangeResult<()> {
+        self.subscribe_ticker(symbol).await
+    }
+
+    async fn unsubscribe(&mut self, symbol: &str) -> ExchangeResult<()> {
+        let code = symbol.to_string();
+        self.subscribed_symbols.retain(|s| s != &code);
+
+        if self.started {
+            // V60 체결가 구독 해제
+            self.cmd_tx
+                .send(DbWsCommand::Unsubscribe {
+                    tr_cd: "V60".to_string(),
+                    tr_key: code.clone(),
+                })
+                .await
+                .map_err(|e| {
+                    ExchangeError::NetworkError(format!("DB증권 구독 해제 실패: {}", e))
+                })?;
+
+            info!("DB증권 구독 해제: {}", code);
+        }
+
+        Ok(())
+    }
+
+    async fn next_event(&mut self) -> Option<MarketEvent> {
+        let rx = self.rx.as_mut()?;
+
+        match rx.recv().await {
+            Some(DbWsMessage::Trade(quote)) => {
+                debug!("DB증권 Trade: {} @ {}", quote.symbol, quote.current_price);
+                Some(MarketEvent::Ticker(Self::quote_to_ticker(&quote)))
+            }
+            Some(DbWsMessage::Orderbook(ob)) => {
+                debug!("DB증권 Orderbook: {}", ob.ticker);
+                Some(MarketEvent::OrderBook(ob))
+            }
+            Some(DbWsMessage::ConnectionStatus(connected)) => {
+                if connected {
+                    info!("DB증권 WebSocket 연결됨");
+                    Some(MarketEvent::Connected)
+                } else {
+                    warn!("DB증권 WebSocket 연결 해제됨");
+                    Some(MarketEvent::Disconnected)
+                }
+            }
+            Some(DbWsMessage::Error(msg)) => {
+                error!("DB증권 WebSocket 에러: {}", msg);
                 Some(MarketEvent::Error(msg))
             }
             None => None,

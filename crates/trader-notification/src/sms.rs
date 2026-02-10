@@ -11,16 +11,11 @@ use rust_decimal::Decimal;
 use tracing::{debug, error, info, warn};
 
 /// SMS 프로바이더 타입.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SmsProvider {
     /// Twilio SMS API
+    #[default]
     Twilio,
-}
-
-impl Default for SmsProvider {
-    fn default() -> Self {
-        Self::Twilio
-    }
 }
 
 /// SMS 알림 전송 설정.

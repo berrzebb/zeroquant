@@ -866,7 +866,7 @@ mod tests {
         let config = SimulatedConfig::default();
         let exchange = SimulatedExchange::new(config);
         let symbol = create_test_symbol();
-        let ticker = symbol.to_string();
+        let _ticker = symbol.to_string();
 
         // 샘플 데이터 로드
         let klines = generate_sample_klines(

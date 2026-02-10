@@ -46,6 +46,9 @@ pub use simulated::{
     DataFeed, DataFeedConfig, FillType, MatchingEngine, OrderMatch, SimulatedConfig,
     SimulatedExchange, SimulatedMarketStream, SimulatedUserStream,
 };
-pub use stream::{KisKrMarketStream, KisUsMarketStream, UnifiedMarketStream};
+pub use stream::{
+    DbInvestmentMarketStream, KisKrMarketStream, KisUsMarketStream, LsSecMarketStream,
+    UnifiedMarketStream,
+};
 pub use traits::*;
 pub use yahoo::YahooFinanceProvider;
