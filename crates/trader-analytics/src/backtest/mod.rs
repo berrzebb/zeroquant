@@ -16,7 +16,9 @@ pub mod engine;
 pub mod screening_provider;
 pub mod slippage;
 
-pub use candle_processor::{CandleProcessor, PartitionedSignals, MIN_CANDLES_FOR_INDICATORS};
+pub use candle_processor::{
+    CandleProcessor, PartitionedSignals, ProcessCandleContext, MIN_CANDLES_FOR_INDICATORS,
+};
 pub use engine::{BacktestConfig, BacktestEngine, BacktestError, BacktestReport, BacktestResult};
 pub use screening_provider::{BacktestScreeningConfig, BacktestScreeningProvider, MIN_CANDLES_FOR_SCREENING};
 pub use slippage::{SlippageModel, SlippageResult, SlippageTier};

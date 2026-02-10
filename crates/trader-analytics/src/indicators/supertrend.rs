@@ -385,8 +385,8 @@ mod tests {
         assert_eq!(atr.len(), high.len());
 
         // 처음 9개는 None
-        for i in 0..9 {
-            assert!(atr[i].is_none());
+        for val in &atr[0..9] {
+            assert!(val.is_none());
         }
 
         // 10번째부터 값이 있어야 함

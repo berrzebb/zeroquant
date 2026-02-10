@@ -3,6 +3,34 @@
 
 ## [Unreleased]
 
+### Added
+
+#### P3: DB증권 WebSocket 구현 완료
+- **DB증권 WebSocket 클라이언트** — `DbInvestmentWebSocket`
+  - 운영/모의투자 환경 지원 (wss://openapi.dbsec.co.kr:7070/17070)
+  - 재연결 루프 (최대 3회, 5초 간격)
+  - 동적 구독/해제 (command 채널)
+  - tokio::select! 병렬 처리 (메시지, 명령, Ping)
+- **채널 구현**
+  - V60: 실시간 체결가 → `QuoteData`
+  - V20: 실시간 호가 → `OrderBook`
+  - V22: 주문체결통보 (구조만 구현)
+- **MarketStream 통합** — `DbInvestmentMarketStream`
+  - `MarketStream` trait 완전 구현
+  - `start()`, `subscribe_ticker()`, `subscribe_order_book()`, `next_event()`
+  - `lib.rs`에서 public export
+
+### Fixed
+- **Clippy 워크스페이스 전체 클린업** — 117개 에러 → 0개 (100% 해결)
+  - `unnecessary_cast`, `len_zero`, `derivable_impls`, `needless_borrow` 제거
+  - `new_without_default`, `wrong_self_convention`, `cloned_ref_to_slice_refs` 수정
+  - `unnecessary_lazy_evaluations`, `type_complexity`, `manually_reimplementing_div_ceil` 수정
+  - `doc_lazy_continuation` 수정
+  - 영향 받은 crate: trader-core (56개), trader-cli (10개), trader-analytics (1개)
+- **trader-notification** — `SmsProvider` Default derive로 변경 (clippy::derivable_impls)
+- **trader-exchange** — unused variable 경고 수정 (simulated/exchange.rs)
+- **trader-execution** — `ConversionConfig` 구조체 초기화 패턴 수정 (컴파일 에러 해결)
+
 ---
 
 ## [0.10.0] - 2026-02-10

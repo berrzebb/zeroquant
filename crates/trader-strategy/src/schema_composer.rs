@@ -237,7 +237,7 @@ mod tests {
 
         assert!(catalog["fragments"].is_array());
         let fragments = catalog["fragments"].as_array().unwrap();
-        assert!(fragments.len() > 0);
+        assert!(!fragments.is_empty());
 
         // RSI fragment가 있는지 확인
         let rsi_fragment = fragments.iter().find(|f| f["id"] == "indicator.rsi");

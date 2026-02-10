@@ -12,6 +12,8 @@ mcpServers:
 
 ZeroQuant 프로젝트의 Rust 코드를 구현합니다.
 
+> **참조 문서**: `docs/ai/architecture-reference.md` · `docs/ai/api-reference.md` · `docs/ai/strategy-reference.md` · `docs/ai/infra-reference.md`
+
 작업 시작 전 반드시 agent memory를 확인하여 이전에 발견한 패턴과 결정사항을 참고하세요.
 작업 완료 후 새로 발견한 코드 패턴, 아키텍처 결정, 트러블슈팅 경험을 memory에 기록하세요.
 
@@ -25,13 +27,10 @@ ZeroQuant 프로젝트의 Rust 코드를 구현합니다.
 6. **Repository 패턴**: 데이터 접근은 Repository 모듈 사용.
 7. **에러 타입**: API 핸들러는 `Result<_, ApiErrorResponse>` 반환.
 
-## 코드 작성 후 검증
+## 코드 작성 후
 
-구현 완료 후 반드시:
-```bash
-cargo check -p <package>
-cargo clippy -p <package> -- -D warnings
-```
+- 빌드 검증은 **validator**가 전담. 직접 `cargo check/clippy` 실행하지 않는다.
+- 컴파일 에러가 의심되면 `cargo check -p <package>` 1회만 실행하여 확인.
 
 ## 프로젝트 구조 참조
 

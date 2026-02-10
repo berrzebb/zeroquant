@@ -44,8 +44,7 @@
       "Bash(tee *)",
       "Bash(netstat *)",
       "Bash(tasklist *)",
-      "Bash(powershell *)",
-      "Bash(powershell.exe *)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File *)",
       "WebFetch(domain:*)",
       "WebSearch",
       "mcp__context7__*",
@@ -95,6 +94,11 @@
             "type": "command",
             "command": "powershell.exe -ExecutionPolicy Bypass -File .claude/hooks/pre-bash-guard.ps1",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "powershell.exe -ExecutionPolicy Bypass -File .claude/hooks/pre-commit-check.ps1",
+            "timeout": 120000
           }
         ]
       },
@@ -114,28 +118,7 @@
         ]
       }
     ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell.exe -ExecutionPolicy Bypass -File .claude/hooks/post-edit-rust-check.ps1",
-            "timeout": 30000
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell.exe -ExecutionPolicy Bypass -File .claude/hooks/pre-commit-check.ps1",
-            "timeout": 120000
-          }
-        ]
-      }
-    ]
+    "PostToolUse": []
   },
 
   "attribution": {

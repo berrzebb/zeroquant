@@ -14,7 +14,16 @@ $command = if ($toolInput.command) { $toolInput.command } else { "" }
 
 if (-not $command) { exit 0 }
 
-# 1. 호스트 직접 DB/Redis 접속 차단 (podman exec 필수)
+# 1. powershell 중첩 명령 우회 차단
+if ($command -match "powershell(.exe)?\s+(-c|-Command)\s") {
+    Write-Host ""
+    Write-Host "[Hook] powershell -c 중첩 명령은 차단되었습니다." -ForegroundColor Red
+    Write-Host "   → 명령을 직접 실행하세요." -ForegroundColor Cyan
+    Write-Host ""
+    exit 2
+}
+
+# 2. 호스트 직접 DB/Redis 접속 차단 (podman exec 필수)
 if ($command -match "^\s*(psql|redis-cli|pg_dump|pg_restore)\s") {
     Write-Host ""
     Write-Host "🚫 [Hook] 호스트에서 직접 DB/Redis 접속이 차단되었습니다." -ForegroundColor Red

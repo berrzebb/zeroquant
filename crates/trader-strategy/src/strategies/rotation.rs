@@ -1059,17 +1059,13 @@ impl RotationStrategy {
 
         // RouteState 체크 - Overheat 시만 진입 제한
         if let Some(route_state) = ctx_lock.get_route_state(ticker) {
-            match route_state {
-                RouteState::Overheat => {
-                    debug!(
-                        ticker = %ticker,
-                        route_state = ?route_state,
-                        "[Rotation] 시장 과열 - 진입 제한"
-                    );
-                    return false;
-                }
-                // 나머지 상태는 진입 허용
-                _ => {}
+            if route_state == &RouteState::Overheat {
+                debug!(
+                    ticker = %ticker,
+                    route_state = ?route_state,
+                    "[Rotation] 시장 과열 - 진입 제한"
+                );
+                return false;
             }
         }
 
@@ -1728,7 +1724,7 @@ impl Strategy for RotationStrategy {
 
         // 리밸런싱 신호 생성 (GlobalScore가 있을 때만)
         let has_global_scores = self.context.as_ref().map_or(false, |ctx| {
-            ctx.try_read().map_or(false, |lock| {
+            ctx.try_read().is_ok_and(|lock| {
                 self.asset_data
                     .keys()
                     .any(|ticker| lock.get_global_score(ticker).is_some())

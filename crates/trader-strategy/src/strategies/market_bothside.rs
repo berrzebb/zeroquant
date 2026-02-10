@@ -361,12 +361,9 @@ impl MarketBothSideStrategy {
         // RouteState 체크 (레버리지 티커 기준) - Overheat 시만 진입 제한
         if let Some(ticker) = &self.leverage_ticker {
             if let Some(route) = ctx.get_route_state(ticker) {
-                match route {
-                    RouteState::Overheat => {
-                        debug!("[MarketBothSide] 시장 과열 - 진입 제한");
-                        return false;
-                    }
-                    _ => {}
+                if route == &RouteState::Overheat {
+                    debug!("[MarketBothSide] 시장 과열 - 진입 제한");
+                    return false;
                 }
             }
         }

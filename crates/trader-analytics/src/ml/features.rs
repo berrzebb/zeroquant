@@ -618,7 +618,7 @@ mod tests {
 
         let (percent_b, bandwidth) = extractor.calculate_bollinger(&data, 20, 2.0);
 
-        assert!(percent_b >= 0.0 && percent_b <= 1.0);
+        assert!((0.0..=1.0).contains(&percent_b));
         assert!(bandwidth >= 0.0);
     }
 

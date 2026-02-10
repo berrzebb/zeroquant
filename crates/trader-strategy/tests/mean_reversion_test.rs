@@ -14,10 +14,8 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use trader_core::types::Timeframe;
-use trader_core::{Kline, MarketData, MarketDataType, Position, Side, StrategyContext, StructuralFeatures, Ticker};
-use trader_strategy::strategies::mean_reversion::{
-    BollingerConfig, MeanReversionConfig, MeanReversionStrategy, MeanReversionVariant, RsiConfig,
-};
+use trader_core::{Kline, MarketData, MarketDataType, StrategyContext, Ticker};
+use trader_strategy::strategies::mean_reversion::MeanReversionStrategy;
 use trader_strategy::Strategy;
 
 // ================================================================================================

@@ -26,7 +26,11 @@
 //! }
 //!
 //! // SimulationEngine에서:
-//! let signals = processor.process_candle(idx, kline, historical, &context, ticker, exchange, &mut strategy, screening_calc).await?;
+//! let ctx = ProcessCandleContext {
+//!     idx, kline, historical_klines: historical, context: &context,
+//!     ticker, exchange_name: exchange, screening_calculator: screening_calc,
+//! };
+//! let signals = processor.process_candle(ctx, &mut strategy).await?;
 //! // engine-specific: process signals, update equity
 //! processor.sync_positions(&mut strategy, executor.positions(), kline, exchange, ticker).await?;
 //! ```
@@ -93,6 +97,26 @@ impl PartitionedSignals {
         result.extend(self.exit_signals);
         result
     }
+}
+
+/// process_candle 메서드의 컨텍스트 파라미터
+///
+/// 너무 많은 인자를 피하기 위해 관련 파라미터를 그룹화합니다.
+pub struct ProcessCandleContext<'a> {
+    /// 현재 캔들 인덱스
+    pub idx: usize,
+    /// 현재 캔들
+    pub kline: &'a Kline,
+    /// 과거 캔들 (idx까지 포함)
+    pub historical_klines: &'a [Kline],
+    /// 전략 컨텍스트
+    pub context: &'a Arc<RwLock<StrategyContext>>,
+    /// 심볼 티커
+    pub ticker: &'a str,
+    /// 거래소 이름
+    pub exchange_name: &'a str,
+    /// 스크리닝 계산기 (옵션)
+    pub screening_calculator: Option<&'a dyn ScreeningCalculator>,
 }
 
 impl CandleProcessor {
@@ -345,23 +369,30 @@ impl CandleProcessor {
     /// SimulationEngine처럼 한 번에 호출이 필요한 경우 사용합니다.
     pub async fn process_candle<S>(
         &mut self,
-        idx: usize,
-        kline: &Kline,
-        historical_klines: &[Kline],
-        context: &Arc<RwLock<StrategyContext>>,
-        ticker: &str,
-        exchange_name: &str,
+        ctx: ProcessCandleContext<'_>,
         strategy: &mut S,
-        screening_calculator: Option<&dyn ScreeningCalculator>,
     ) -> Result<PartitionedSignals, BacktestError>
     where
         S: trader_strategy::Strategy + ?Sized,
     {
         // 1. StrategyContext 업데이트
-        self.update_context(idx, kline, historical_klines, context, ticker, screening_calculator).await?;
+        self.update_context(
+            ctx.idx,
+            ctx.kline,
+            ctx.historical_klines,
+            ctx.context,
+            ctx.ticker,
+            ctx.screening_calculator,
+        ).await?;
 
         // 2. 시그널 생성
-        let signals = self.generate_signals(strategy, kline, context, ticker, exchange_name).await?;
+        let signals = self.generate_signals(
+            strategy,
+            ctx.kline,
+            ctx.context,
+            ctx.ticker,
+            ctx.exchange_name,
+        ).await?;
 
         Ok(signals)
     }

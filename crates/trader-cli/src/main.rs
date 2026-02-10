@@ -803,7 +803,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if charts {
                     use commands::strategy_test::generate_charts_from_results;
                     let chart_path = std::path::PathBuf::from(&charts_dir);
-                    generate_charts_from_results(&[results.clone()], &chart_path)?;
+                    generate_charts_from_results(std::slice::from_ref(&results), &chart_path)?;
                 }
 
                 if results.failed > 0 {
@@ -813,7 +813,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             // 일반 전략 테스트 실행 시 필수 인자 검증
-            let strategy = strategy.ok_or_else(|| {
+            let strategy = strategy.ok_or({
                 "전략 ID가 필요합니다. --strategy <ID> 또는 --list-strategies 사용"
             })?;
 

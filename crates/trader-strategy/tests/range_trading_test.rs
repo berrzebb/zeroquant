@@ -205,7 +205,7 @@ async fn test_config_defaults() {
 
     assert_eq!(config.div_num, 15);
     assert_eq!(config.target_period, 20);
-    assert_eq!(config.use_ma_filter, true);
+    assert!(config.use_ma_filter);
     assert_eq!(config.buy_ma_period, 20);
     assert_eq!(config.sell_ma_period, 5);
     assert_eq!(config.min_global_score, dec!(50));

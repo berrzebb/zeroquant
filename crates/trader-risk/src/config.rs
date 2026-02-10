@@ -355,13 +355,17 @@ mod tests {
         assert!(config.validate().is_ok());
 
         // 유효하지 않은 max_position_pct
-        let mut invalid = RiskConfig::default();
-        invalid.max_position_pct = 150.0;
+        let invalid = RiskConfig {
+            max_position_pct: 150.0,
+            ..Default::default()
+        };
         assert!(invalid.validate().is_err());
 
         // 유효하지 않은 stop_loss_pct
-        let mut invalid = RiskConfig::default();
-        invalid.default_stop_loss_pct = -1.0;
+        let invalid = RiskConfig {
+            default_stop_loss_pct: -1.0,
+            ..Default::default()
+        };
         assert!(invalid.validate().is_err());
     }
 

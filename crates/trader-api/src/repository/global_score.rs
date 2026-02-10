@@ -15,6 +15,11 @@ use ts_rs::TS;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+/// Fundamental 데이터 행 타입 (복잡한 타입 alias)
+type FundamentalRow = (Uuid, Option<i64>, Option<Decimal>, Option<Decimal>);
+/// Fundamental 데이터 맵 타입 (복잡한 타입 alias)
+type FundamentalData = (Option<i64>, Option<Decimal>, Option<Decimal>);
+
 use trader_analytics::{
     GlobalScorer, GlobalScorerParams, IndicatorEngine, SevenFactorCalculator,
     SevenFactorInput, SevenFactorScores,
@@ -196,7 +201,7 @@ impl GlobalScoreRepository {
 
         // 2. Fundamental 데이터 배치 조회 (N+1 제거)
         let symbol_ids: Vec<Uuid> = symbols.iter().map(|s| s.id).collect();
-        let fundamentals_rows: Vec<(Uuid, Option<i64>, Option<Decimal>, Option<Decimal>)> =
+        let fundamentals_rows: Vec<FundamentalRow> =
             sqlx::query_as(
                 r#"
                 SELECT symbol_info_id, avg_volume_10d, week_52_high, week_52_low
@@ -208,7 +213,7 @@ impl GlobalScoreRepository {
             .fetch_all(pool)
             .await?;
 
-        let fundamentals: HashMap<Uuid, (Option<i64>, Option<Decimal>, Option<Decimal>)> =
+        let fundamentals: HashMap<Uuid, FundamentalData> =
             fundamentals_rows
                 .into_iter()
                 .map(|(id, vol, high, low)| (id, (vol, high, low)))

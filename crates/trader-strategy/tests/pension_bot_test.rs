@@ -67,27 +67,6 @@ fn create_position(ticker: &str, quantity: Decimal) -> Position {
     }
 }
 
-/// 상승 추세 가격 데이터 생성 및 입력 (모멘텀 양수 유도)
-/// PensionBot은 240일(12개월) 데이터가 필요함
-async fn feed_rising_prices(
-    strategy: &mut PensionBotStrategy,
-    ticker: &str,
-    days: usize,
-    base_price: Decimal,
-    start_year: i32,
-    start_month: u32,
-) {
-    for day in 0..days {
-        let price = base_price + Decimal::from(day);
-        let current_day = day as u32 % 28 + 1;
-        let current_month = ((start_month - 1 + (day as u32 / 28)) % 12) + 1;
-        let current_year = start_year + ((start_month - 1 + (day as u32 / 28)) / 12) as i32;
-
-        let data = create_kline_at_month(ticker, price, current_year, current_month, current_day);
-        let _ = strategy.on_market_data(&data).await;
-    }
-}
-
 /// 단순 테스트용 포트폴리오 (자산 수 감소)
 fn simple_test_portfolio() -> Vec<PensionAsset> {
     vec![

@@ -16,6 +16,12 @@ use crate::error::CollectorError;
 use crate::stats::CollectionStats;
 use crate::Result;
 
+/// 신호 성과 조회 결과 타입 (N일 후 종가 + MFE/MAE)
+type SignalPerformanceRow = (
+    Option<Decimal>, Option<Decimal>, Option<Decimal>, Option<Decimal>, Option<Decimal>,
+    Option<Decimal>, Option<Decimal>,
+);
+
 /// 신호 성과 동기화 옵션
 #[derive(Debug, Clone)]
 pub struct SignalPerformanceSyncOptions {
@@ -201,10 +207,7 @@ async fn calculate_and_save_performance(
     let mfe_end = (signal.timestamp + Duration::days(max_days as i64)).date_naive();
 
     // 단일 쿼리로 N일 후 가격 + MFE/MAE 한번에 조회
-    let row: Option<(
-        Option<Decimal>, Option<Decimal>, Option<Decimal>, Option<Decimal>, Option<Decimal>,
-        Option<Decimal>, Option<Decimal>,
-    )> = sqlx::query_as(
+    let row: Option<SignalPerformanceRow> = sqlx::query_as(
         r#"
         SELECT
             -- N일 후 종가 (각 목표일 이후 첫 거래일 기준)

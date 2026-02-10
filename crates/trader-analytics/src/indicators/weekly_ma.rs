@@ -342,7 +342,7 @@ mod tests {
             // 주말 스킵
             let weekday = current_date.weekday();
             if weekday == Weekday::Sat || weekday == Weekday::Sun {
-                current_date = current_date + chrono::Duration::days(1);
+                current_date += chrono::Duration::days(1);
                 continue;
             }
 
@@ -364,7 +364,7 @@ mod tests {
                 num_trades: None,
             });
 
-            current_date = current_date + chrono::Duration::days(1);
+            current_date += chrono::Duration::days(1);
         }
 
         klines

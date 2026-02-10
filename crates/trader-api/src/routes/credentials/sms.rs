@@ -206,8 +206,7 @@ pub async fn save_sms_settings(
     })?;
 
     let notification_settings = request.notification_settings.as_ref()
-        .map(|s| serde_json::to_value(s).ok())
-        .flatten();
+        .and_then(|s| serde_json::to_value(s).ok());
 
     let to_numbers_json = serde_json::to_value(&request.to_numbers)
         .unwrap_or(serde_json::json!([]));

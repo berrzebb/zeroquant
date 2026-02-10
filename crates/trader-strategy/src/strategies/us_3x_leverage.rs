@@ -372,12 +372,9 @@ impl Us3xLeverageStrategy {
         // RouteState 체크 - Overheat 시만 진입 제한
         if config.use_route_filter {
             if let Some(route) = self.get_route_state(ticker).await {
-                match route {
-                    RouteState::Overheat => {
-                        debug!(ticker, ?route, "시장 과열 - 진입 제한");
-                        return false;
-                    }
-                    _ => {}
+                if route == RouteState::Overheat {
+                    debug!(ticker, ?route, "시장 과열 - 진입 제한");
+                    return false;
                 }
             }
         }

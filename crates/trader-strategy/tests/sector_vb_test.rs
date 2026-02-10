@@ -367,7 +367,7 @@ async fn test_position_cleared_on_zero_quantity() {
     let zero_position = create_position("091160", dec!(0), dec!(0));
     strategy.on_position_update(&zero_position).await.unwrap();
 
-    let state = strategy.get_state();
+    let _state = strategy.get_state();
     // positions에서 삭제되거나 수량이 0이어야 함
 }
 
@@ -576,7 +576,7 @@ async fn test_full_trading_day_scenario() {
         1,
     );
 
-    let signals = strategy.on_market_data(&today_data).await.unwrap();
+    let _signals = strategy.on_market_data(&today_data).await.unwrap();
 
     // 전략이 정상 동작
     let state = strategy.get_state();

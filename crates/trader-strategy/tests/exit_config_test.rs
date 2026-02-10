@@ -456,11 +456,13 @@ fn enrich_signal_trailing_stop_in_metadata() {
 
 #[test]
 fn enrich_signal_profit_lock_in_metadata() {
-    let mut config = ExitConfig::default();
-    config.profit_lock = ProfitLockConfig {
-        enabled: true,
-        threshold_pct: dec!(10.0),
-        lock_pct: dec!(70.0),
+    let config = ExitConfig {
+        profit_lock: ProfitLockConfig {
+            enabled: true,
+            threshold_pct: dec!(10.0),
+            lock_pct: dec!(70.0),
+        },
+        ..Default::default()
     };
 
     let mut signal = create_entry_signal(Side::Buy);
@@ -473,10 +475,12 @@ fn enrich_signal_profit_lock_in_metadata() {
 
 #[test]
 fn enrich_signal_daily_loss_limit_in_metadata() {
-    let mut config = ExitConfig::default();
-    config.daily_loss_limit = DailyLossLimitConfig {
-        enabled: true,
-        max_loss_pct: dec!(5.0),
+    let config = ExitConfig {
+        daily_loss_limit: DailyLossLimitConfig {
+            enabled: true,
+            max_loss_pct: dec!(5.0),
+        },
+        ..Default::default()
     };
 
     let mut signal = create_entry_signal(Side::Buy);
@@ -503,13 +507,15 @@ fn enrich_signal_exit_on_opposite_in_metadata() {
 
 #[test]
 fn enrich_signal_atr_mode_stores_config_in_metadata() {
-    let mut config = ExitConfig::default();
-    config.stop_loss = StopLossConfig {
-        enabled: true,
-        mode: StopLossMode::AtrBased,
-        pct: dec!(2.0),
-        atr_multiplier: dec!(2.5),
-        atr_period: 20,
+    let config = ExitConfig {
+        stop_loss: StopLossConfig {
+            enabled: true,
+            mode: StopLossMode::AtrBased,
+            pct: dec!(2.0),
+            atr_multiplier: dec!(2.5),
+            atr_period: 20,
+        },
+        ..Default::default()
     };
 
     let mut signal = create_entry_signal(Side::Buy);

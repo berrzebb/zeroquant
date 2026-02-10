@@ -396,10 +396,8 @@ impl ScreeningBasedStrategy {
                 }
 
                 // RouteState 필터 (옵션)
-                if config.use_route_filter {
-                    if !matches!(r.route_state, RouteState::Attack | RouteState::Armed) {
-                        return false;
-                    }
+                if config.use_route_filter && !matches!(r.route_state, RouteState::Attack | RouteState::Armed) {
+                    return false;
                 }
 
                 true
@@ -438,7 +436,7 @@ impl ScreeningBasedStrategy {
                 SelectedAsset {
                     ticker: result.ticker.clone(),
                     score: result.overall_score,
-                    route_state: result.route_state.clone(),
+                    route_state: result.route_state,
                     current_price,
                     target_weight: weight,
                 }

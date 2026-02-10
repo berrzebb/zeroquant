@@ -1053,8 +1053,10 @@ mod tests {
         let config = RiskConfig::default();
         let risk_manager = RiskManager::new(config, dec!(10000));
 
-        let mut exec_config = ConversionConfig::default();
-        exec_config.default_quantity = default_quantity;
+        let exec_config = ConversionConfig {
+            default_quantity,
+            ..Default::default()
+        };
 
         OrderExecutor::new_complete(risk_manager, "test_exchange", exec_config)
     }
@@ -1076,9 +1078,11 @@ mod tests {
 
     #[test]
     fn test_signal_converter_limit_order() {
-        let mut config = ConversionConfig::default();
-        config.use_market_orders = false;
-        config.slippage_tolerance_pct = 0.1;
+        let config = ConversionConfig {
+            use_market_orders: false,
+            slippage_tolerance_pct: 0.1,
+            ..Default::default()
+        };
 
         let converter = SignalConverter::new(config);
         let signal = create_test_signal(Side::Buy, SignalType::Entry);
@@ -1121,8 +1125,10 @@ mod tests {
 
     #[test]
     fn test_signal_converter_low_strength_rejected() {
-        let mut config = ConversionConfig::default();
-        config.min_strength = 0.7;
+        let config = ConversionConfig {
+            min_strength: 0.7,
+            ..Default::default()
+        };
 
         let converter = SignalConverter::new(config);
         let mut signal = create_test_signal(Side::Buy, SignalType::Entry);
@@ -1186,10 +1192,12 @@ mod tests {
         let config = RiskConfig::default();
         let risk_manager = RiskManager::new(config, dec!(10000));
 
-        let mut exec_config = ConversionConfig::default();
-        exec_config.default_quantity = dec!(0.01);
-        exec_config.auto_stop_loss = true;
-        exec_config.auto_take_profit = true;
+        let exec_config = ConversionConfig {
+            default_quantity: dec!(0.01),
+            auto_stop_loss: true,
+            auto_take_profit: true,
+            ..Default::default()
+        };
 
         let executor = OrderExecutor::new_complete(risk_manager, "test", exec_config);
         let signal = create_test_signal(Side::Buy, SignalType::Entry);

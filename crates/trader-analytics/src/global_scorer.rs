@@ -873,7 +873,7 @@ mod tests {
 
         let params = GlobalScorerParams::default(); // structural_features = None
         let score = scorer.calculate_momentum(&candles, &params).unwrap();
-        assert!(score >= 0.0 && score <= 100.0);
+        assert!((0.0..=100.0).contains(&score));
     }
 
     #[test]
@@ -957,7 +957,7 @@ mod tests {
         };
 
         let score = scorer.calculate_momentum(&candles, &params).unwrap();
-        assert!(score >= 0.0 && score <= 100.0);
+        assert!((0.0..=100.0).contains(&score));
     }
 
     #[test]
@@ -970,7 +970,7 @@ mod tests {
         let score = scorer.calculate_momentum(&candles, &params).unwrap();
 
         // ERS 없어도 동작해야 함 (RSI + MACD만으로 최대 70점)
-        assert!(score >= 0.0 && score <= 70.0);
+        assert!((0.0..=70.0).contains(&score));
     }
 
     #[test]

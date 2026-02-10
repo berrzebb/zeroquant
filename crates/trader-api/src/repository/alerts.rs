@@ -250,8 +250,8 @@ impl AlertsRepository {
             RETURNING *
             "#,
         )
-        .bind(&request.rule_id)
-        .bind(&request.signal_marker_id)
+        .bind(request.rule_id)
+        .bind(request.signal_marker_id)
         .bind(&request.alert_type)
         .bind(&request.channel)
         .bind(&request.title)

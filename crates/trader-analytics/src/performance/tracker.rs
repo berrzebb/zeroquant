@@ -75,7 +75,7 @@ pub type TrackerResult<T> = Result<T, TrackerError>;
 pub enum PerformanceEvent {
     /// 새로운 라운드트립 완료
     RoundTripCompleted {
-        round_trip: RoundTrip,
+        round_trip: Box<RoundTrip>,
         current_equity: Decimal,
     },
 
@@ -771,7 +771,7 @@ impl PerformanceTracker {
 
         // 이벤트 발생
         self.emit_event(PerformanceEvent::RoundTripCompleted {
-            round_trip: round_trip.clone(),
+            round_trip: Box::new(round_trip.clone()),
             current_equity: self.current_equity,
         });
 

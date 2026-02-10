@@ -1127,21 +1127,12 @@ pub fn discover_fixtures(fixtures_dir: &Path) -> Result<Vec<std::path::PathBuf>>
 }
 
 /// 회귀 테스트 설정
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RegressionTestOptions {
     /// 차트 출력 디렉토리 (None이면 차트 생성 안함)
     pub chart_output_dir: Option<std::path::PathBuf>,
     /// 데이터베이스 URL
     pub db_url: Option<String>,
-}
-
-impl Default for RegressionTestOptions {
-    fn default() -> Self {
-        Self {
-            chart_output_dir: None,
-            db_url: None,
-        }
-    }
 }
 
 /// 회귀 테스트 실행
@@ -1759,7 +1750,7 @@ pub async fn run_init_only_regression_tests(fixtures_dir: &Path) -> Result<Vec<R
         let mut failed = 0;
 
         for strategy_fixture in &fixture.strategies {
-            let test_passed = test_strategy_init_only(&strategy_fixture);
+            let test_passed = test_strategy_init_only(strategy_fixture);
 
             if test_passed {
                 passed += 1;

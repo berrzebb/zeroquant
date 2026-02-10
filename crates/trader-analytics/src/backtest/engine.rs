@@ -747,8 +747,8 @@ impl BacktestEngine {
     async fn close_all_positions(&mut self, kline: &Kline) -> BacktestResult<()> {
         // executor에서 포지션 정보 가져오기 (symbol, position_id 포함)
         let positions: Vec<_> = self.executor.positions()
-            .iter()
-            .map(|(_key, pos)| (pos.symbol.clone(), pos.position_id.clone(), pos.side, pos.quantity))
+            .values()
+            .map(|pos| (pos.symbol.clone(), pos.position_id.clone(), pos.side, pos.quantity))
             .collect();
 
         if !positions.is_empty() {
@@ -1181,6 +1181,12 @@ pub mod test_strategies {
     /// 항상 매수하는 전략 (테스트용)
     pub struct AlwaysBuyStrategy {
         bought: bool,
+    }
+
+    impl Default for AlwaysBuyStrategy {
+        fn default() -> Self {
+            Self::new()
+        }
     }
 
     impl AlwaysBuyStrategy {

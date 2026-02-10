@@ -306,7 +306,7 @@ async fn test_leverage_exit_on_dead_cross() {
             let sell_signals: Vec<_> = signals.iter().filter(|s| s.side == Side::Sell).collect();
 
             if !sell_signals.is_empty() {
-                assert!(sell_signals[0].metadata.get("action").is_some());
+                assert!(sell_signals[0].metadata.contains_key("action"));
                 return;
             }
         }

@@ -414,7 +414,7 @@ mod tests {
 
         // 하락 후 반등 패턴 (RSI가 30 → 60으로 상승)
         for i in 0..10 {
-            let price = dec!(100) - Decimal::from(i as i64);
+            let price = dec!(100) - Decimal::from(i);
             klines.push(create_test_kline(
                 price,
                 price + dec!(1),
@@ -427,7 +427,7 @@ mod tests {
 
         // 반등 시작
         for i in 10..30 {
-            let price = dec!(90) + Decimal::from(i as i64 - 10) * dec!(2);
+            let price = dec!(90) + Decimal::from(i - 10) * dec!(2);
             klines.push(create_test_kline(
                 price,
                 price + dec!(2),
@@ -450,7 +450,7 @@ mod tests {
         let mut klines = Vec::new();
 
         for i in 0..30 {
-            let price = dec!(100) + Decimal::from(i as i64);
+            let price = dec!(100) + Decimal::from(i);
             klines.push(create_test_kline(
                 price,
                 price + dec!(2),

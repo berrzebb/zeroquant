@@ -75,15 +75,68 @@ function Parse-AgentFile {
 function Get-MemoryStatus {
     param([string]$AgentName)
     
+    # Claude Code agent memory: folder-based (.claude/agent-memory/<agent>/*.md)
+    $memDir = Join-Path $memoryDir $AgentName
+    if (Test-Path $memDir) {
+        $files = Get-ChildItem -Path $memDir -Filter "*.md" -ErrorAction SilentlyContinue
+        if ($files.Count -gt 0) {
+            $totalSize = ($files | Measure-Object -Property Length -Sum).Sum
+            $size = if ($totalSize -gt 1024) { "{0:N1}KB" -f ($totalSize / 1024) } else { "{0}B" -f $totalSize }
+            $latest = $files | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            $lastWrite = $latest.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
+            return @{ Exists = $true; Size = $size; LastWrite = $lastWrite; FileCount = $files.Count; Files = $files; Dir = $memDir }
+        }
+    }
+    # Fallback: single file (.claude/agent-memory/<agent>.md)
     $memFile = Join-Path $memoryDir "$AgentName.md"
     if (Test-Path $memFile) {
         $info = Get-Item $memFile
         $sizeVal = $info.Length
         $size = if ($sizeVal -gt 1024) { "{0:N1}KB" -f ($sizeVal / 1024) } else { "{0}B" -f $sizeVal }
         $lastWrite = $info.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
-        return @{ Exists = $true; Size = $size; LastWrite = $lastWrite }
+        return @{ Exists = $true; Size = $size; LastWrite = $lastWrite; FileCount = 1; Files = @($info); Dir = $null }
     }
-    return @{ Exists = $false; Size = "-"; LastWrite = "-" }
+    return @{ Exists = $false; Size = "-"; LastWrite = "-"; FileCount = 0; Files = @(); Dir = $null }
+}
+
+function Get-MemoryPreview {
+    param([string]$FilePath, [int]$MaxLines = 3)
+    
+    $lines = Get-Content $FilePath -Encoding UTF8 -TotalCount 20 -ErrorAction SilentlyContinue
+    $preview = @()
+    foreach ($line in $lines) {
+        $trimmed = $line.Trim()
+        if ($trimmed -eq "" -or $trimmed -eq "---") { continue }
+        if ($trimmed -match '^#') { 
+            $preview += $trimmed
+            continue
+        }
+        if ($trimmed -match '^\*\*' -or $trimmed -match '^>' -or $trimmed -match '^-\s') {
+            $preview += $trimmed
+        }
+        if ($preview.Count -ge $MaxLines) { break }
+    }
+    return $preview
+}
+
+function Get-GitHistory {
+    param([string]$AgentName, [int]$MaxCommits = 5)
+    
+    try {
+        # Search for commits mentioning agent name or Co-Authored-By Claude
+        $logOutput = git log --oneline --all --grep="$AgentName" -n $MaxCommits 2>$null
+        if (-not $logOutput) {
+            # Fallback: recent Claude co-authored commits
+            $logOutput = git log --oneline -n $MaxCommits --author="Claude" 2>$null
+        }
+        if (-not $logOutput) {
+            $logOutput = git log --oneline -n $MaxCommits --grep="Co-Authored-By: Claude" 2>$null
+        }
+        if ($logOutput) {
+            return ($logOutput -split '\n' | Where-Object { $_.Trim() })
+        }
+    } catch {}
+    return @()
 }
 
 function Get-ModelIcon {
@@ -152,14 +205,34 @@ if ($Agent) {
     Write-Host ""
     Write-Host "  --- Memory Status ---" -ForegroundColor DarkGray
     if ($mem.Exists) {
-        Write-Host "  Size:         $($mem.Size)" -ForegroundColor Green
+        Write-Host "  Size:         $($mem.Size) ($($mem.FileCount) file(s))" -ForegroundColor Green
         Write-Host "  Last Updated: $($mem.LastWrite)" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "  --- Memory Contents ---" -ForegroundColor DarkGray
+        foreach ($mf in $mem.Files) {
+            $relName = $mf.Name
+            $fSize = if ($mf.Length -gt 1024) { "{0:N1}KB" -f ($mf.Length / 1024) } else { "{0}B" -f $mf.Length }
+            Write-Host "  [$relName] ($fSize, $($mf.LastWriteTime.ToString('yyyy-MM-dd HH:mm')))" -ForegroundColor Cyan
+            $preview = Get-MemoryPreview $mf.FullName
+            foreach ($p in $preview) {
+                Write-Host "    $p" -ForegroundColor Gray
+            }
+        }
     } else {
         Write-Host "  No memory file (never used)" -ForegroundColor DarkGray
     }
+    
+    # Git history
     Write-Host ""
-    Write-Host "  --- Description ---" -ForegroundColor DarkGray
-    Write-Host "  $($target.Description)" -ForegroundColor Gray
+    Write-Host "  --- Recent Git Activity ---" -ForegroundColor DarkGray
+    $gitHistory = Get-GitHistory $target.Name
+    if ($gitHistory.Count -gt 0) {
+        foreach ($commit in $gitHistory) {
+            Write-Host "    $commit" -ForegroundColor Gray
+        }
+    } else {
+        Write-Host "    No commits found" -ForegroundColor DarkGray
+    }
     Write-Host ""
     exit 0
 }
@@ -179,9 +252,9 @@ Write-Host "  Models: [*] opus($opusCount)  [o] sonnet($sonnetCount)  [.] haiku(
 Write-Host ""
 
 # Table header
-$header = "  {0,-4} {1,-15} {2,-8} {3,-5} {4,-12} {5,-22} {6,-8} {7}" -f "","AGENT","MODEL","COST","ACCESS","MCP SERVERS","MEMORY","LAST ACTIVE"
+$header = "  {0,-4} {1,-15} {2,-8} {3,-5} {4,-12} {5,-18} {6,-10} {7}" -f "","AGENT","MODEL","COST","ACCESS","MCP SERVERS","MEMORY","LAST ACTIVE"
 Write-Host $header -ForegroundColor DarkCyan
-Write-Host "  $('-' * 88)" -ForegroundColor DarkGray
+Write-Host "  $('-' * 86)" -ForegroundColor DarkGray
 
 foreach ($a in $agents) {
     $icon = Get-ModelIcon $a.Model
@@ -189,7 +262,7 @@ foreach ($a in $agents) {
     $mcps = if ($a.McpServers.Count -gt 0) { ($a.McpServers -join ",") } else { "-" }
     $access = Get-AccessMode $a
     $mem = Get-MemoryStatus $a.Name
-    $memStatus = if ($mem.Exists) { $mem.Size } else { "-" }
+    $memLabel = if ($mem.Exists) { "$($mem.Size)($($mem.FileCount))" } else { "-" }
     $lastWrite = if ($mem.Exists) { $mem.LastWrite } else { "-" }
     
     $color = switch ($a.Model) {
@@ -199,7 +272,7 @@ foreach ($a in $agents) {
         default  { "White" }
     }
     
-    $line = "  {0,-4} {1,-15} {2,-8} {3,-5} {4,-12} {5,-22} {6,-8} {7}" -f $icon, $a.Name, $a.Model, $cost, $access, $mcps, $memStatus, $lastWrite
+    $line = "  {0,-4} {1,-15} {2,-8} {3,-5} {4,-12} {5,-18} {6,-10} {7}" -f $icon, $a.Name, $a.Model, $cost, $access, $mcps, $memLabel, $lastWrite
     Write-Host $line -ForegroundColor $color
 }
 
@@ -227,9 +300,99 @@ if ($Detailed) {
     Write-Host ""
 }
 
+# Memory overview mode
+if ($Memory) {
+    Write-Host "===============================================================================" -ForegroundColor Cyan
+    Write-Host "  Agent Memory Overview" -ForegroundColor White
+    Write-Host "===============================================================================" -ForegroundColor Cyan
+    
+    $hasAnyMemory = $false
+    foreach ($a in $agents) {
+        $mem = Get-MemoryStatus $a.Name
+        if (-not $mem.Exists) { continue }
+        $hasAnyMemory = $true
+        
+        $icon = Get-ModelIcon $a.Model
+        Write-Host ""
+        Write-Host "  $icon $($a.Name) - $($mem.Size) ($($mem.FileCount) file(s)) - Last: $($mem.LastWrite)" -ForegroundColor White
+        
+        foreach ($mf in $mem.Files) {
+            $relName = $mf.Name
+            $fSize = if ($mf.Length -gt 1024) { "{0:N1}KB" -f ($mf.Length / 1024) } else { "{0}B" -f $mf.Length }
+            Write-Host ""
+            Write-Host "    [$relName] $fSize  $($mf.LastWriteTime.ToString('yyyy-MM-dd HH:mm'))" -ForegroundColor Cyan
+            $preview = Get-MemoryPreview $mf.FullName 5
+            foreach ($p in $preview) {
+                Write-Host "      $p" -ForegroundColor Gray
+            }
+        }
+    }
+    if (-not $hasAnyMemory) {
+        Write-Host ""
+        Write-Host "  No agent has memory data yet." -ForegroundColor DarkGray
+    }
+    Write-Host ""
+}
+
+# Git history mode
+if ($History) {
+    Write-Host "===============================================================================" -ForegroundColor Cyan
+    Write-Host "  Recent Claude Commits (last 15)" -ForegroundColor White
+    Write-Host "===============================================================================" -ForegroundColor Cyan
+    Write-Host ""
+    
+    try {
+        $commits = git log --oneline -n 15 --grep="Co-Authored-By: Claude" 2>$null
+        if (-not $commits) {
+            $commits = git log --oneline -n 15 --author="Claude" 2>$null
+        }
+        if ($commits) {
+            foreach ($c in ($commits -split '\n')) {
+                if ($c.Trim()) {
+                    Write-Host "    $($c.Trim())" -ForegroundColor Gray
+                }
+            }
+        } else {
+            Write-Host "    No Claude-authored commits found." -ForegroundColor DarkGray
+            Write-Host "    (Looking for 'Co-Authored-By: Claude' in commit messages)" -ForegroundColor DarkGray
+        }
+    } catch {
+        Write-Host "    [ERROR] git not available or not a git repo" -ForegroundColor Red
+    }
+    
+    # Also show per-agent file change stats
+    Write-Host ""
+    Write-Host "  --- Agent-Related File Changes (last 7 days) ---" -ForegroundColor DarkGray
+    
+    foreach ($a in $agents) {
+        $agentDir = ""
+        switch ($a.Name) {
+            "rust-impl"     { $agentDir = "crates/" }
+            "ts-impl"       { $agentDir = "frontend/src/" }
+            "ux-reviewer"   { $agentDir = "frontend/src/components/" }
+            "debugger"      { $agentDir = "crates/" }
+            "validator"     { $agentDir = "" }
+            "lead"          { $agentDir = "" }
+            "code-reviewer" { $agentDir = "" }
+        }
+        
+        if ($agentDir) {
+            try {
+                $count = (git log --oneline --since="7 days ago" -- $agentDir 2>$null | Measure-Object -Line).Lines
+                if ($count -gt 0) {
+                    Write-Host "    $($a.Name): $count commits in $agentDir" -ForegroundColor Yellow
+                }
+            } catch {}
+        }
+    }
+    Write-Host ""
+}
+
 # Usage hint
 Write-Host "  Usage:" -ForegroundColor DarkGray
 Write-Host "    .\scripts\show-agents.ps1              # Summary table" -ForegroundColor DarkGray
-Write-Host "    .\scripts\show-agents.ps1 -Detailed    # With details" -ForegroundColor DarkGray
+Write-Host "    .\scripts\show-agents.ps1 -Detailed    # Config details" -ForegroundColor DarkGray
+Write-Host "    .\scripts\show-agents.ps1 -Memory      # Memory contents" -ForegroundColor DarkGray
+Write-Host "    .\scripts\show-agents.ps1 -History     # Git activity" -ForegroundColor DarkGray
 Write-Host "    .\scripts\show-agents.ps1 -Agent lead  # Single agent" -ForegroundColor DarkGray
 Write-Host ""

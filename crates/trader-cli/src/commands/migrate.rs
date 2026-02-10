@@ -232,7 +232,7 @@ fn generate_mermaid_graph(graph: &DependencyGraph, files: &[trader_core::migrati
 
     let mut shown = std::collections::HashSet::new();
     for (obj, deps) in &graph.dependencies {
-        if deps.len() > 0 && !obj.starts_with("idx_") && !obj.starts_with("v_") {
+        if !deps.is_empty() && !obj.starts_with("idx_") && !obj.starts_with("v_") {
             for dep in deps {
                 if !dep.starts_with("idx_") && shown.len() < 50 {
                     output.push_str(&format!(

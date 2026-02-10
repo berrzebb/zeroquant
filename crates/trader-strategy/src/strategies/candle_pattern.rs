@@ -286,10 +286,8 @@ impl CandlePatternStrategy {
 
         // RouteState 체크 - 시장 과열 시 진입 제한
         if let Some(route_state) = ctx_lock.get_route_state(ticker) {
-            match route_state {
-                RouteState::Overheat => return false,
-                // Wait, Neutral, Armed, Attack: 진입 허용
-                _ => {}
+            if route_state == &RouteState::Overheat {
+                return false;
             }
         }
 

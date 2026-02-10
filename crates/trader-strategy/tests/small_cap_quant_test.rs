@@ -235,7 +235,7 @@ async fn test_multiple_positions() {
         strategy.on_position_update(pos).await.unwrap();
     }
 
-    let state = strategy.get_state();
+    let _state = strategy.get_state();
     // 포지션 수 확인
 }
 
@@ -256,8 +256,7 @@ async fn test_position_cleared_on_zero_quantity() {
     let zero_position = create_position("035720", dec!(0), dec!(0));
     strategy.on_position_update(&zero_position).await.unwrap();
 
-    let state = strategy.get_state();
-    let holdings = &state["holdings"];
+    let _state = strategy.get_state();
     // 035720이 제거되었거나 수량이 0이어야 함
 }
 

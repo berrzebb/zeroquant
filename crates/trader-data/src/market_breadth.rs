@@ -163,10 +163,4 @@ mod tests {
 
     // 통합 테스트는 실제 DB가 필요하므로 건너뜁니다.
     // 실제 테스트는 integration test로 작성하세요.
-
-    #[test]
-    fn test_module_exists() {
-        // 모듈 컴파일 확인용 더미 테스트
-        assert!(true);
-    }
 }

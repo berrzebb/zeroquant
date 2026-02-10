@@ -605,17 +605,13 @@ impl DcaStrategy {
         };
 
         if let Some(route_state) = ctx_lock.get_route_state(&config.ticker) {
-            match route_state {
-                RouteState::Overheat => {
-                    debug!(
-                        ticker = %config.ticker,
-                        route_state = ?route_state,
-                        "시장 과열 - 진입 제한"
-                    );
-                    return false;
-                }
-                // Wait, Neutral, Armed, Attack: 진입 허용
-                _ => {}
+            if route_state == &RouteState::Overheat {
+                debug!(
+                    ticker = %config.ticker,
+                    route_state = ?route_state,
+                    "시장 과열 - 진입 제한"
+                );
+                return false;
             }
         }
 
@@ -765,12 +761,11 @@ impl DcaStrategy {
                     if let Some((idx, _)) = self.grid_levels.iter().enumerate()
                         .filter(|(_, l)| l.state == GridLevelState::WaitingBuy)
                         .min_by_key(|(_, l)| {
-                            let diff = if l.buy_price > entry_price {
+                            if l.buy_price > entry_price {
                                 l.buy_price - entry_price
                             } else {
                                 entry_price - l.buy_price
-                            };
-                            diff
+                            }
                         })
                     {
                         // 해당 레벨을 WaitingSell로 변경 (진입가격은 원래 값 유지)

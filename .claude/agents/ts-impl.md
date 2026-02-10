@@ -12,6 +12,8 @@ mcpServers:
 
 ZeroQuant 프론트엔드(SolidJS + TypeScript)를 구현합니다.
 
+> **참조 문서**: `docs/ai/api-reference.md`
+
 작업 시작 전 반드시 agent memory를 확인하여 이전에 발견한 패턴과 결정사항을 참고하세요.
 작업 완료 후 새로 발견한 컴포넌트 패턴, API 연동 경험, 트러블슈팅 내역을 memory에 기록하세요.
 
@@ -36,14 +38,10 @@ frontend/src/
 └── stores/       # 전역 상태
 ```
 
-## 검증 명령
+## 코드 작성 후
 
-```bash
-cd frontend
-npm run typecheck
-npm run lint
-npm run build
-```
+- 빌드 검증은 **validator**가 전담. 직접 `typecheck/lint/build` 실행하지 않는다.
+- 타입 에러가 의심되면 `cd frontend && npm run typecheck` 1회만 실행하여 확인.
 
 ## E2E 테스트 (Playwright MCP)
 

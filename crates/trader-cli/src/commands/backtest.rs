@@ -135,7 +135,7 @@ impl StrategyType {
     }
 
     /// StrategyRegistry의 전략 ID로 변환.
-    pub fn to_registry_id(&self) -> &'static str {
+    pub fn to_registry_id(self) -> &'static str {
         match self {
             Self::Grid => "grid",
             Self::Rsi => "rsi",

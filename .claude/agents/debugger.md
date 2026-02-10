@@ -13,6 +13,8 @@ mcpServers:
 
 ZeroQuant 프로젝트의 에러를 디버깅하고 근본 원인을 분석합니다.
 
+> **참조 문서**: `docs/ai/troubleshooting-reference.md` · `docs/ai/architecture-reference.md` · `docs/ai/api-reference.md`
+
 이전 디버깅에서 발견한 패턴이 memory에 있으면 먼저 참조하세요.
 
 ## 디버깅 워크플로우

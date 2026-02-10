@@ -39,6 +39,9 @@ use trader_execution::{ConversionConfig, OrderExecutor};
 use trader_risk::{RiskConfig, RiskManager};
 use trader_strategy::{EngineConfig, StrategyEngine};
 
+/// Telegram 설정 DB 조회 결과 타입
+type TelegramSettingsRow = (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, bool);
+
 /// 서버 설정 구조체.
 struct ServerConfig {
     /// 바인딩할 호스트 주소
@@ -209,7 +212,7 @@ async fn create_app_state(config: &ServerConfig) -> AppState {
     let telegram_config_opt: Option<TelegramConfig> =
         if let (Some(pool), Some(encryptor)) = (&state.db_pool, &state.encryptor) {
             // DB에서 telegram_settings 조회
-            let row: Option<(Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, bool)> = sqlx::query_as(
+            let row: Option<TelegramSettingsRow> = sqlx::query_as(
                 r#"
                 SELECT encrypted_bot_token, encryption_nonce_token,
                        encrypted_chat_id, encryption_nonce_chat, is_enabled

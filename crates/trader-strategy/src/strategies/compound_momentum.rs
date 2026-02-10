@@ -532,17 +532,13 @@ impl CompoundMomentumStrategy {
 
         // RouteState 체크 - Overheat 시만 진입 제한
         if let Some(route_state) = ctx_lock.get_route_state(ticker) {
-            match route_state {
-                RouteState::Overheat => {
-                    debug!(
-                        ticker = %ticker,
-                        route_state = ?route_state,
-                        "시장 과열 - 진입 제한"
-                    );
-                    return false;
-                }
-                // 나머지 상태는 진입 허용
-                _ => {}
+            if route_state == &RouteState::Overheat {
+                debug!(
+                    ticker = %ticker,
+                    route_state = ?route_state,
+                    "시장 과열 - 진입 제한"
+                );
+                return false;
             }
         }
 

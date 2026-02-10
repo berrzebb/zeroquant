@@ -50,23 +50,8 @@ fn create_position(ticker: &str, quantity: Decimal, entry_price: Decimal) -> Pos
     Position::new("test", ticker.to_string(), Side::Buy, quantity, entry_price)
 }
 
-/// 상승 추세 가격 데이터 입력.
-async fn feed_rising_prices(
-    strategy: &mut MomentumPowerStrategy,
-    ticker: &str,
-    days: usize,
-    base_price: Decimal,
-    start_day: i64,
-) {
-    for day in 0..days {
-        let price = base_price + Decimal::from(day as i32 * 2);
-        let data = create_kline_at(ticker, price, start_day + day as i64);
-        let _ = strategy.on_market_data(&data).await;
-    }
-}
-
 /// 하락 추세 가격 데이터 입력.
-async fn feed_falling_prices(
+async fn _feed_falling_prices(
     strategy: &mut MomentumPowerStrategy,
     ticker: &str,
     days: usize,
@@ -402,7 +387,7 @@ mod rebalance_signal_tests {
         // 선행 조건: 신호가 있어야 함
         if !signals.is_empty() {
             // US 시장 자산: TQQQ, QQQ, BIL 등
-            let valid_tickers = vec!["TQQQ/USD", "QQQ/USD", "BIL/USD", "TLT/USD", "UPRO/USD"];
+            let valid_tickers = ["TQQQ/USD", "QQQ/USD", "BIL/USD", "TLT/USD", "UPRO/USD"];
             for signal in &signals {
                 assert!(
                     valid_tickers.contains(&signal.ticker.as_str()),

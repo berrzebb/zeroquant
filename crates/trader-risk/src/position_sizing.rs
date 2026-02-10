@@ -482,8 +482,10 @@ mod tests {
 
     #[test]
     fn test_validate_max_concurrent_positions() {
-        let mut config = RiskConfig::default();
-        config.max_concurrent_positions = 2;
+        let config = RiskConfig {
+            max_concurrent_positions: 2,
+            ..Default::default()
+        };
         let sizer = PositionSizer::new(config);
 
         let btc_symbol = Symbol::crypto("BTC", "USDT");

@@ -420,7 +420,7 @@ mod tests {
 
     fn create_filled_order(ticker: &str, side: Side, qty: Decimal, price: Decimal) -> Order {
         // 테스트용 심볼 파싱 (예: "BTCUSDT" -> BTC/USDT)
-        let (base, quote) = if ticker.ends_with("USDT") {
+        let (base, _quote) = if ticker.ends_with("USDT") {
             (ticker.strip_suffix("USDT").unwrap(), "USDT")
         } else if ticker.ends_with("USD") {
             (ticker.strip_suffix("USD").unwrap(), "USD")

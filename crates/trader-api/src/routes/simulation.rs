@@ -636,8 +636,18 @@ impl SimulationEngine {
         let strategy = self.strategy.as_mut()
             .ok_or_else(|| "전략이 초기화되지 않았습니다".to_string())?;
 
+        let ctx = trader_analytics::ProcessCandleContext {
+            idx,
+            kline: &kline,
+            historical_klines,
+            context: &context,
+            ticker: &ticker,
+            exchange_name,
+            screening_calculator: None,
+        };
+
         let signals = candle_processor
-            .process_candle(idx, &kline, historical_klines, &context, &ticker, exchange_name, strategy.as_mut(), None)
+            .process_candle(ctx, strategy.as_mut())
             .await
             .map_err(|e| format!("캔들 처리 오류: {}", e))?;
 

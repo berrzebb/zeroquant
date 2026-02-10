@@ -98,6 +98,7 @@ async fn run_external_api_workflow(pool: &PgPool, config: &CollectorConfig) {
 /// 매크로 데이터 + Market Breadth 동기화 (Redis 캐시 사용)
 /// - USD/KRW 환율, NASDAQ 지수
 /// - Market Breadth (20일선 상회 비율)
+///
 /// 시장 시간과 무관하게 항상 최신 데이터 유지
 async fn run_macro_data_sync(pool: &PgPool, redis_cache: &Option<std::sync::Arc<trader_data::cache::RedisCache>>) {
     if let Some(cache) = redis_cache {

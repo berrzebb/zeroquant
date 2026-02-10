@@ -498,11 +498,11 @@ async fn test_full_trading_cycle() {
     // Phase 2: 상승 추세
     for day in 10..25 {
         let tqqq_price = dec!(50) + Decimal::from((day - 10) * 3);
-        let sqqq_price = dec!(30) - Decimal::from((day - 10) * 1);
-        let sqqq_price = if sqqq_price < dec!(15) {
+        let sqqq_price_calc = dec!(30) - Decimal::from(day - 10);
+        let sqqq_price = if sqqq_price_calc < dec!(15) {
             dec!(15)
         } else {
-            sqqq_price
+            sqqq_price_calc
         };
 
         let tqqq_data = create_market_data("TQQQ", tqqq_price, day);

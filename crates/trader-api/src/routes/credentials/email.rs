@@ -202,8 +202,7 @@ pub async fn save_email_settings(
     })?;
 
     let notification_settings = request.notification_settings.as_ref()
-        .map(|s| serde_json::to_value(s).ok())
-        .flatten();
+        .and_then(|s| serde_json::to_value(s).ok());
 
     let to_emails_json = serde_json::to_value(&request.to_emails)
         .unwrap_or(serde_json::json!([]));

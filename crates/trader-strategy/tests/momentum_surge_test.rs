@@ -514,10 +514,9 @@ async fn test_leverage_exit_on_ma_bearish() {
             // MA 역배열 시 레버리지 청산 신호
             if day >= 60 && !signals.is_empty() {
                 for signal in &signals {
-                    if signal.side == Side::Sell && signal.ticker.to_string() == "122630/KRW" {
-                        let reason = signal.metadata.get("exit_reason");
-                        if reason.is_some() {
-                            let reason_str = reason.unwrap().as_str().unwrap_or("");
+                    if signal.side == Side::Sell && signal.ticker == "122630/KRW" {
+                        if let Some(reason) = signal.metadata.get("exit_reason") {
+                            let reason_str = reason.as_str().unwrap_or("");
                             if reason_str == "ma_bearish" || reason_str == "obv_down" {
                                 return;
                             }

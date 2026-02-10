@@ -538,7 +538,7 @@ pub async fn create_signal(
         id: Uuid::new_v4(),
         ticker: req.symbol.clone(),
         timestamp: Utc::now(),
-        signal_type: signal_type.clone(),
+        signal_type,
         side,
         price,
         strength: req.strength,

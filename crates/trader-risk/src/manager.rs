@@ -522,8 +522,10 @@ mod tests {
 
     #[test]
     fn test_volatility_filter() {
-        let mut config = RiskConfig::default();
-        config.volatility_threshold = 5.0; // 5% threshold
+        let config = RiskConfig {
+            volatility_threshold: 5.0, // 5% threshold
+            ..Default::default()
+        };
         let mut manager = RiskManager::new(config, dec!(10000));
 
         // No volatility data = allowed
@@ -540,8 +542,10 @@ mod tests {
 
     #[test]
     fn test_validate_order_high_volatility() {
-        let mut config = RiskConfig::default();
-        config.volatility_threshold = 5.0;
+        let config = RiskConfig {
+            volatility_threshold: 5.0,
+            ..Default::default()
+        };
         let mut manager = RiskManager::new(config, dec!(10000));
 
         // Set high volatility

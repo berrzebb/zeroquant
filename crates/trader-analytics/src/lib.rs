@@ -186,3 +186,10 @@ pub use ml::{
     PredictorConfig,
     PricePredictor,
 };
+
+// Backtest 모듈 re-exports (backtest feature 필요)
+#[cfg(feature = "backtest")]
+pub use backtest::{
+    BacktestConfig, BacktestEngine, BacktestError, BacktestReport, BacktestResult,
+    CandleProcessor, PartitionedSignals, ProcessCandleContext, MIN_CANDLES_FOR_INDICATORS,
+};

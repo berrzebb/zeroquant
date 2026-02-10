@@ -45,7 +45,7 @@ fn test_multi_timeframe_in_memory_performance() {
     let start = Instant::now();
 
     let mut total_candles = 0;
-    for (_tf, klines) in &data {
+    for klines in data.values() {
         total_candles += klines.len();
         // 간단한 처리: 마지막 종가 확인
         let _last_close = klines.last().map(|k| k.close);
@@ -208,27 +208,4 @@ fn create_mock_klines(timeframe: Timeframe, count: usize) -> Vec<Kline> {
 // =============================================================================
 // DB 연결 필요 테스트 (환경변수 DATABASE_URL 필요)
 // =============================================================================
-
-#[cfg(feature = "db_test")]
-mod db_tests {
-    use super::*;
-    use sqlx::PgPool;
-    use std::env;
-
-    async fn get_pool() -> Option<PgPool> {
-        let url = env::var("DATABASE_URL").ok()?;
-        PgPool::connect(&url).await.ok()
-    }
-
-    #[tokio::test]
-    async fn test_multi_timeframe_db_performance() {
-        let Some(pool) = get_pool().await else {
-            println!("DATABASE_URL 환경변수가 설정되지 않아 테스트 스킵");
-            return;
-        };
-
-        // TODO: 실제 DB 조회 테스트 구현
-        // KlinesRepository::get_latest_multi_timeframe 호출 후 성능 측정
-        println!("DB 성능 테스트: 구현 예정");
-    }
-}
+// DB 성능 테스트는 향후 구현 예정

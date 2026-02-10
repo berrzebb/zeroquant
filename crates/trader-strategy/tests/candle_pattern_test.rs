@@ -348,7 +348,7 @@ async fn test_doji_pattern_neutral_no_signal() {
         dec!(150000),
         3,
     );
-    let signals = strategy.on_market_data(&doji).await.unwrap();
+    let _signals = strategy.on_market_data(&doji).await.unwrap();
 
     // Doji는 Neutral 방향이므로 신호가 생성되지 않아야 함
     // (generate_signals에서 Neutral 방향은 신호 생성 안함)
@@ -505,7 +505,7 @@ async fn test_pattern_strength_filter() {
         dec!(69900), dec!(71000), dec!(69500), dec!(70600), // body = 700, strength ≈ 700/500 = 1.4 but capped at 1.0
         dec!(200000), 1,
     );
-    let signals = strategy.on_market_data(&weak_engulfing).await.unwrap();
+    let _signals = strategy.on_market_data(&weak_engulfing).await.unwrap();
 
     // strength가 0.95 미만이면 필터링됨
     // 실제 strength는 1.0으로 cap되므로 통과할 수 있음
@@ -555,7 +555,7 @@ async fn test_volume_confirmation_filter() {
         dec!(100000), // 평균과 동일 (1.2배 미만)
         10,
     );
-    let signals = strategy.on_market_data(&low_volume_engulfing).await.unwrap();
+    let _signals = strategy.on_market_data(&low_volume_engulfing).await.unwrap();
 
     // 볼륨 확인 실패 → 신호 생성 안함
     // (이전 캔들이 음봉이 아니라서 Engulfing 아닐 수 있음)

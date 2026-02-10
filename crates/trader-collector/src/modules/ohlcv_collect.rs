@@ -31,6 +31,15 @@ use uuid::Uuid;
 use super::checkpoint::{self, CheckpointStatus};
 use super::utils::{calculate_ttm_squeeze, to_screaming_snake_case};
 
+/// OHLCV 데이터 범위 조회 결과 타입
+type OhlcvDateRange = Option<(Option<chrono::DateTime<Utc>>, Option<chrono::DateTime<Utc>>)>;
+
+/// OHLCV 메타데이터 조회 결과 타입
+type OhlcvMetadataRow = (String, Option<chrono::DateTime<Utc>>, Option<chrono::DateTime<Utc>>);
+
+/// 날짜 범위 계산 결과 타입 (앞쪽 구간, 뒤쪽 구간)
+type DateRangeGaps = (Option<(NaiveDate, NaiveDate)>, Option<(NaiveDate, NaiveDate)>);
+
 /// ETA 및 시장별 진행률을 추적하는 트래커.
 struct ProgressTracker {
     overall_start: Instant,
@@ -975,7 +984,7 @@ async fn get_existing_date_range(
     ticker: &str,
     timeframe: &str,
 ) -> (Option<NaiveDate>, Option<NaiveDate>) {
-    let result: Option<(Option<chrono::DateTime<Utc>>, Option<chrono::DateTime<Utc>>)> = sqlx::query_as(
+    let result: OhlcvDateRange = sqlx::query_as(
         r#"
         SELECT MIN(open_time), MAX(open_time)
         FROM ohlcv
@@ -1010,7 +1019,7 @@ async fn get_all_existing_ranges(
         return result_map;
     }
 
-    let rows: Vec<(String, Option<chrono::DateTime<Utc>>, Option<chrono::DateTime<Utc>>)> =
+    let rows: Vec<OhlcvMetadataRow> =
         sqlx::query_as(
             r#"
             SELECT symbol, first_cached_time, last_cached_time
@@ -1050,7 +1059,7 @@ fn calculate_missing_ranges(
     requested_end: NaiveDate,
     existing_start: Option<NaiveDate>,
     existing_end: Option<NaiveDate>,
-) -> (Option<(NaiveDate, NaiveDate)>, Option<(NaiveDate, NaiveDate)>) {
+) -> DateRangeGaps {
     match (existing_start, existing_end) {
         (None, None) => {
             // 데이터 없음 - 전체 구간 수집 필요

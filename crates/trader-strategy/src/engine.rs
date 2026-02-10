@@ -54,7 +54,7 @@ impl SignalConflictEvent {
         Self {
             strategy_id: strategy_id.to_string(),
             ticker: signal.ticker.clone(),
-            signal_type: signal.signal_type.clone(),
+            signal_type: signal.signal_type,
             conflict_type: conflict_type.to_string(),
             message: error.to_string(),
             timestamp: Utc::now(),

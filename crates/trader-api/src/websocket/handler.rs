@@ -27,6 +27,9 @@ use crate::metrics::{decrement_websocket_connections, increment_websocket_connec
 use crate::services::MarketStreamHandle;
 use crate::state::AppState;
 
+/// MarketStream 핸들 맵 타입 (복잡한 타입 alias)
+type MarketStreamMap = HashMap<Uuid, Arc<MarketStreamHandle>>;
+
 /// WebSocket 상태.
 ///
 /// 구독 관리자를 포함한 WebSocket 서버 상태.
@@ -39,7 +42,7 @@ pub struct WsState {
     /// credential_id별 MarketStream 핸들 (실시간 구독 전달용).
     ///
     /// 프론트엔드에서 `market:{symbol}` 구독 시 거래소 스트림에도 구독을 전달합니다.
-    pub market_streams: Option<Arc<RwLock<HashMap<Uuid, Arc<MarketStreamHandle>>>>>,
+    pub market_streams: Option<Arc<RwLock<MarketStreamMap>>>,
 }
 
 impl WsState {

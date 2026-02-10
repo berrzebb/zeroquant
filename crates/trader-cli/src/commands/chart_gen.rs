@@ -398,9 +398,9 @@ impl RegressionChartGenerator {
                         &color,
                         &move |coord, size, style| {
                             let tri_size = if offset > 0 {
-                                size as i32
+                                size
                             } else {
-                                -(size as i32)
+                                -size
                             };
                             EmptyElement::at(coord)
                                 + TriangleMarker::new((0, offset), tri_size, style.filled())
@@ -860,7 +860,7 @@ impl RegressionChartGenerator {
                             let triangle = if offset < 0 {
                                 TriangleMarker::new((0, offset), size, style.filled())
                             } else {
-                                TriangleMarker::new((0, offset), -(size as i32), style.filled())
+                                TriangleMarker::new((0, offset), -size, style.filled())
                             };
                             EmptyElement::at(coord) + triangle
                         },

@@ -1,0 +1,723 @@
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Vec::is_empty", default)]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Vec::is_empty", default)]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Vec::is_empty", default)]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Vec::is_empty", default)]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+    Checking trader-strategy v0.10.0 (D:\Trader\crates\trader-strategy)
+    Checking trader-data v0.10.0 (D:\Trader\crates\trader-data)
+    Checking trader-execution v0.10.0 (D:\Trader\crates\trader-execution)
+    Checking trader-risk v0.10.0 (D:\Trader\crates\trader-risk)
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Vec::is_empty", default)]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Vec::is_empty", default)]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Vec::is_empty", default)]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Vec::is_empty", default)]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+    Checking trader-analytics v0.10.0 (D:\Trader\crates\trader-analytics)
+    Checking trader-api v0.10.0 (D:\Trader\crates\trader-api)
+    Checking trader-collector v0.1.0 (D:\Trader\crates\trader-collector)
+error: function `feed_rising_prices` is never used
+  --> crates\trader-strategy\tests\momentum_power_test.rs:54:10
+   |
+54 | async fn feed_rising_prices(
+   |          ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `-D dead-code` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(dead_code)]`
+
+error: function `feed_falling_prices` is never used
+  --> crates\trader-strategy\tests\momentum_power_test.rs:69:10
+   |
+69 | async fn feed_falling_prices(
+   |          ^^^^^^^^^^^^^^^^^^^
+
+error: useless use of `vec!`
+   --> crates\trader-strategy\tests\momentum_power_test.rs:405:33
+    |
+405 |             let valid_tickers = vec!["TQQQ/USD", "QQQ/USD", "BIL/USD", "TLT/USD", "UPRO/USD"];
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `["TQQQ/USD", "QQQ/USD", "BIL/USD", "TLT/USD", "UPRO/USD"]`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#useless_vec
+    = note: `-D clippy::useless-vec` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::useless_vec)]`
+
+error: could not compile `trader-strategy` (test "momentum_power_test") due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: useless use of `vec!`
+   --> crates\trader-strategy\tests\asset_allocation_test.rs:725:33
+    |
+725 |         let offensive_tickers = vec!["SPY", "VEA"];
+    |                                 ^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `["SPY", "VEA"]`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#useless_vec
+    = note: `-D clippy::useless-vec` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::useless_vec)]`
+
+error: could not compile `trader-strategy` (test "asset_allocation_test") due to 1 previous error
+error: field assignment outside of initializer for an instance created with Default::default()
+   --> crates\trader-strategy\tests\exit_config_test.rs:460:5
+    |
+460 | /     config.profit_lock = ProfitLockConfig {
+461 | |         enabled: true,
+462 | |         threshold_pct: dec!(10.0),
+463 | |         lock_pct: dec!(70.0),
+464 | |     };
+    | |______^
+    |
+note: consider initializing the variable with `trader_strategy::strategies::ExitConfig { profit_lock: ProfitLockConfig {
+              enabled: true,
+              threshold_pct: dec!(10.0),
+              lock_pct: dec!(70.0),
+          }, ..Default::default() }` and removing relevant reassignments
+   --> crates\trader-strategy\tests\exit_config_test.rs:459:5
+    |
+459 |     let mut config = ExitConfig::default();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#field_reassign_with_default
+    = note: `-D clippy::field-reassign-with-default` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::field_reassign_with_default)]`
+
+error: field assignment outside of initializer for an instance created with Default::default()
+   --> crates\trader-strategy\tests\exit_config_test.rs:477:5
+    |
+477 | /     config.daily_loss_limit = DailyLossLimitConfig {
+478 | |         enabled: true,
+479 | |         max_loss_pct: dec!(5.0),
+480 | |     };
+    | |______^
+    |
+note: consider initializing the variable with `trader_strategy::strategies::ExitConfig { daily_loss_limit: DailyLossLimitConfig {
+              enabled: true,
+              max_loss_pct: dec!(5.0),
+          }, ..Default::default() }` and removing relevant reassignments
+   --> crates\trader-strategy\tests\exit_config_test.rs:476:5
+    |
+476 |     let mut config = ExitConfig::default();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#field_reassign_with_default
+
+error: field assignment outside of initializer for an instance created with Default::default()
+   --> crates\trader-strategy\tests\exit_config_test.rs:507:5
+    |
+507 | /     config.stop_loss = StopLossConfig {
+508 | |         enabled: true,
+509 | |         mode: StopLossMode::AtrBased,
+510 | |         pct: dec!(2.0),
+511 | |         atr_multiplier: dec!(2.5),
+512 | |         atr_period: 20,
+513 | |     };
+    | |______^
+    |
+note: consider initializing the variable with `trader_strategy::strategies::ExitConfig { stop_loss: StopLossConfig {
+              enabled: true,
+              mode: StopLossMode::AtrBased,
+              pct: dec!(2.0),
+              atr_multiplier: dec!(2.5),
+              atr_period: 20,
+          }, ..Default::default() }` and removing relevant reassignments
+   --> crates\trader-strategy\tests\exit_config_test.rs:506:5
+    |
+506 |     let mut config = ExitConfig::default();
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#field_reassign_with_default
+
+error: this operation has no effect
+   --> crates\trader-strategy\tests\us_3x_leverage_test.rs:501:51
+    |
+501 |         let sqqq_price = dec!(30) - Decimal::from((day - 10) * 1);
+    |                                                   ^^^^^^^^^^^^^^ help: consider reducing it to: `((day - 10))`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#identity_op
+    = note: `-D clippy::identity-op` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::identity_op)]`
+
+error: unused variable: `signals`
+   --> crates\trader-strategy\tests\candle_pattern_test.rs:351:9
+    |
+351 |     let signals = strategy.on_market_data(&doji).await.unwrap();
+    |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_signals`
+    |
+    = note: `-D unused-variables` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(unused_variables)]`
+
+error: could not compile `trader-strategy` (test "exit_config_test") due to 3 previous errors
+error: unused variable: `signals`
+   --> crates\trader-strategy\tests\candle_pattern_test.rs:508:9
+    |
+508 |     let signals = strategy.on_market_data(&weak_engulfing).await.unwrap();
+    |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_signals`
+
+error: unused variable: `signals`
+   --> crates\trader-strategy\tests\candle_pattern_test.rs:558:9
+    |
+558 |     let signals = strategy.on_market_data(&low_volume_engulfing).await.unwrap();
+    |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_signals`
+
+error: could not compile `trader-strategy` (test "us_3x_leverage_test") due to 1 previous error
+error: could not compile `trader-strategy` (test "candle_pattern_test") due to 3 previous errors
+error: length comparison to one
+    --> crates\trader-strategy\tests\dca_test.rs:1235:9
+     |
+1235 |         buy_signals.len() >= 1,
+     |         ^^^^^^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!buy_signals.is_empty()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#len_zero
+     = note: `-D clippy::len-zero` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::len_zero)]`
+
+error: accessing first element with `buy_signals.get(0)`
+    --> crates\trader-strategy\tests\dca_test.rs:1380:29
+     |
+1380 |     if let Some(group_id) = buy_signals.get(0).and_then(|s| s.group_id.as_ref()) {
+     |                             ^^^^^^^^^^^^^^^^^^ help: try: `buy_signals.first()`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#get_first
+     = note: `-D clippy::get-first` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::get_first)]`
+
+error: could not compile `trader-strategy` (test "dca_test") due to 2 previous errors
+error: field assignment outside of initializer for an instance created with Default::default()
+   --> crates\trader-risk\src\config.rs:359:9
+    |
+359 |         invalid.max_position_pct = 150.0;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: consider initializing the variable with `config::RiskConfig { max_position_pct: 150.0, ..Default::default() }` and removing relevant reassignments
+   --> crates\trader-risk\src\config.rs:358:9
+    |
+358 |         let mut invalid = RiskConfig::default();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#field_reassign_with_default
+    = note: `-D clippy::field-reassign-with-default` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::field_reassign_with_default)]`
+
+error: field assignment outside of initializer for an instance created with Default::default()
+   --> crates\trader-risk\src\config.rs:364:9
+    |
+364 |         invalid.default_stop_loss_pct = -1.0;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: consider initializing the variable with `config::RiskConfig { default_stop_loss_pct: -1.0, ..Default::default() }` and removing relevant reassignments
+   --> crates\trader-risk\src\config.rs:363:9
+    |
+363 |         let mut invalid = RiskConfig::default();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#field_reassign_with_default
+
+error: field assignment outside of initializer for an instance created with Default::default()
+   --> crates\trader-risk\src\manager.rs:526:9
+    |
+526 |         config.volatility_threshold = 5.0; // 5% threshold
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: consider initializing the variable with `config::RiskConfig { volatility_threshold: 5.0, ..Default::default() }` and removing relevant reassignments
+   --> crates\trader-risk\src\manager.rs:525:9
+    |
+525 |         let mut config = RiskConfig::default();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#field_reassign_with_default
+
+error: field assignment outside of initializer for an instance created with Default::default()
+   --> crates\trader-risk\src\manager.rs:544:9
+    |
+544 |         config.volatility_threshold = 5.0;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: consider initializing the variable with `config::RiskConfig { volatility_threshold: 5.0, ..Default::default() }` and removing relevant reassignments
+   --> crates\trader-risk\src\manager.rs:543:9
+    |
+543 |         let mut config = RiskConfig::default();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#field_reassign_with_default
+
+error: field assignment outside of initializer for an instance created with Default::default()
+   --> crates\trader-risk\src\position_sizing.rs:486:9
+    |
+486 |         config.max_concurrent_positions = 2;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: consider initializing the variable with `config::RiskConfig { max_concurrent_positions: 2, ..Default::default() }` and removing relevant reassignments
+   --> crates\trader-risk\src\position_sizing.rs:485:9
+    |
+485 |         let mut config = RiskConfig::default();
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#field_reassign_with_default
+
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none", default)]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none", default)]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+error: could not compile `trader-risk` (lib test) due to 5 previous errors
+error: field assignment outside of initializer for an instance created with Default::default()
+    --> crates\trader-execution\src\executor.rs:1057:9
+     |
+1057 |         exec_config.default_quantity = default_quantity;
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+note: consider initializing the variable with `executor::ConversionConfig { default_quantity: default_quantity, ..Default::default() }` and removing relevant reassignments
+    --> crates\trader-execution\src\executor.rs:1056:9
+     |
+1056 |         let mut exec_config = ConversionConfig::default();
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#field_reassign_with_default
+     = note: `-D clippy::field-reassign-with-default` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::field_reassign_with_default)]`
+
+error: field assignment outside of initializer for an instance created with Default::default()
+    --> crates\trader-execution\src\executor.rs:1080:9
+     |
+1080 |         config.use_market_orders = false;
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+note: consider initializing the variable with `executor::ConversionConfig { use_market_orders: false, slippage_tolerance_pct: 0.1, ..Default::default() }` and removing relevant reassignments
+    --> crates\trader-execution\src\executor.rs:1079:9
+     |
+1079 |         let mut config = ConversionConfig::default();
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#field_reassign_with_default
+
+error: field assignment outside of initializer for an instance created with Default::default()
+    --> crates\trader-execution\src\executor.rs:1125:9
+     |
+1125 |         config.min_strength = 0.7;
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+note: consider initializing the variable with `executor::ConversionConfig { min_strength: 0.7, ..Default::default() }` and removing relevant reassignments
+    --> crates\trader-execution\src\executor.rs:1124:9
+     |
+1124 |         let mut config = ConversionConfig::default();
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#field_reassign_with_default
+
+error: field assignment outside of initializer for an instance created with Default::default()
+    --> crates\trader-execution\src\executor.rs:1190:9
+     |
+1190 |         exec_config.default_quantity = dec!(0.01);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+note: consider initializing the variable with `executor::ConversionConfig { default_quantity: dec!(0.01), auto_stop_loss: true, auto_take_profit: true, ..Default::default() }` and removing relevant reassignments
+    --> crates\trader-execution\src\executor.rs:1189:9
+     |
+1189 |         let mut exec_config = ConversionConfig::default();
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#field_reassign_with_default
+
+error: could not compile `trader-execution` (lib test) due to 4 previous errors
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+error: very complex type used. Consider factoring parts into `type` definitions
+   --> crates\trader-collector\src\modules\ohlcv_collect.rs:978:17
+    |
+978 |     let result: Option<(Option<chrono::DateTime<Utc>>, Option<chrono::DateTime<Utc>>)> = sqlx::query_as(
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#type_complexity
+    = note: `-D clippy::type-complexity` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::type_complexity)]`
+
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+error: very complex type used. Consider factoring parts into `type` definitions
+    --> crates\trader-collector\src\modules\ohlcv_collect.rs:1013:15
+     |
+1013 |     let rows: Vec<(String, Option<chrono::DateTime<Utc>>, Option<chrono::DateTime<Utc>>)> =
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#type_complexity
+
+error: very complex type used. Consider factoring parts into `type` definitions
+    --> crates\trader-collector\src\modules\ohlcv_collect.rs:1053:6
+     |
+1053 | ) -> (Option<(NaiveDate, NaiveDate)>, Option<(NaiveDate, NaiveDate)>) {
+     |      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#type_complexity
+
+error: very complex type used. Consider factoring parts into `type` definitions
+   --> crates\trader-collector\src\modules\signal_performance_sync.rs:204:14
+    |
+204 |       let row: Option<(
+    |  ______________^
+205 | |         Option<Decimal>, Option<Decimal>, Option<Decimal>, Option<Decimal>, Option<Decimal>,
+206 | |         Option<Decimal>, Option<Decimal>,
+207 | |     )> = sqlx::query_as(
+    | |______^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#type_complexity
+
+error: manually reimplementing `div_ceil`
+   --> crates\trader-collector\src\modules\symbol_sync.rs:119:19
+    |
+119 |         batches = (symbols.len() + BATCH_SIZE - 1) / BATCH_SIZE,
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.div_ceil()`: `symbols.len().div_ceil(BATCH_SIZE)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#manual_div_ceil
+    = note: `-D clippy::manual-div-ceil` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_div_ceil)]`
+
+warning: failed to parse serde attribute
+  | 
+  | #[serde(rename = "multiTimeframeConfig", skip_serializing_if =
+"Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(rename = "credentialId", skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(rename = "credentialName", skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+error: could not compile `trader-collector` (lib) due to 5 previous errors
+warning: failed to parse serde attribute
+  | 
+  | #[serde(rename = "multiTimeframeConfig", skip_serializing_if =
+"Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(rename = "credentialId", skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(rename = "credentialName", skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+error: could not compile `trader-collector` (lib test) due to 5 previous errors
+error: you should consider adding a `Default` implementation for `AlwaysBuyStrategy`
+    --> crates\trader-analytics\src\backtest\engine.rs:1187:9
+     |
+1187 | /         pub fn new() -> Self {
+1188 | |             Self { bought: false }
+1189 | |         }
+     | |_________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#new_without_default
+     = note: `-D clippy::new-without-default` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::new_without_default)]`
+help: try adding this
+     |
+1186 ~     impl Default for AlwaysBuyStrategy {
+1187 +         fn default() -> Self {
+1188 +             Self::new()
+1189 +         }
+1190 +     }
+1191 + 
+1192 ~     impl AlwaysBuyStrategy {
+     |
+
+error: this assertion is always `true`
+   --> crates\trader-data\src\market_breadth.rs:170:9
+    |
+170 |         assert!(true);
+    |         ^^^^^^^^^^^^^
+    |
+    = help: remove the assertion
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#assertions_on_constants
+    = note: `-D clippy::assertions-on-constants` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::assertions_on_constants)]`
+
+error: could not compile `trader-analytics` (lib test) due to 1 previous error
+error: could not compile `trader-data` (lib test) due to 1 previous error
+error: the borrowed expression implements the required traits
+   --> crates\trader-api\src\repository\alerts.rs:253:15
+    |
+253 |         .bind(&request.rule_id)
+    |               ^^^^^^^^^^^^^^^^ help: change this to: `request.rule_id`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#needless_borrows_for_generic_args
+    = note: `-D clippy::needless-borrows-for-generic-args` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_borrows_for_generic_args)]`
+
+error: the borrowed expression implements the required traits
+   --> crates\trader-api\src\repository\alerts.rs:254:15
+    |
+254 |         .bind(&request.signal_marker_id)
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^ help: change this to: `request.signal_marker_id`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#needless_borrows_for_generic_args
+
+error: very complex type used. Consider factoring parts into `type` definitions
+   --> crates\trader-api\src\repository\credentials.rs:798:14
+    |
+798 |     let row: Option<(Vec<u8>, Vec<u8>, bool, Option<serde_json::Value>)> = sqlx::query_as(
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#type_complexity
+    = note: `-D clippy::type-complexity` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::type_complexity)]`
+
+error: very complex type used. Consider factoring parts into `type` definitions
+   --> crates\trader-api\src\repository\global_score.rs:199:32
+    |
+199 |         let fundamentals_rows: Vec<(Uuid, Option<i64>, Option<Decimal>, Option<Decimal>)> =
+    |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#type_complexity
+
+error: very complex type used. Consider factoring parts into `type` definitions
+   --> crates\trader-api\src\repository\global_score.rs:211:27
+    |
+211 |         let fundamentals: HashMap<Uuid, (Option<i64>, Option<Decimal>, Option<Decimal>)> =
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#type_complexity
+
+error: called `map(..).flatten()` on `Option`
+   --> crates\trader-api\src\routes\credentials\discord.rs:181:10
+    |
+181 |           .map(|s| serde_json::to_value(s).ok())
+    |  __________^
+182 | |         .flatten();
+    | |__________________^ help: try replacing `map` with `and_then` and remove the `.flatten()`: `and_then(|s| serde_json::to_value(s).ok())`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#map_flatten
+    = note: `-D clippy::map-flatten` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::map_flatten)]`
+
+error: called `map(..).flatten()` on `Option`
+   --> crates\trader-api\src\routes\credentials\email.rs:205:10
+    |
+205 |           .map(|s| serde_json::to_value(s).ok())
+    |  __________^
+206 | |         .flatten();
+    | |__________________^ help: try replacing `map` with `and_then` and remove the `.flatten()`: `and_then(|s| serde_json::to_value(s).ok())`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#map_flatten
+
+error: called `map(..).flatten()` on `Option`
+   --> crates\trader-api\src\routes\credentials\slack.rs:180:10
+    |
+180 |           .map(|s| serde_json::to_value(s).ok())
+    |  __________^
+181 | |         .flatten();
+    | |__________________^ help: try replacing `map` with `and_then` and remove the `.flatten()`: `and_then(|s| serde_json::to_value(s).ok())`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#map_flatten
+
+error: called `map(..).flatten()` on `Option`
+   --> crates\trader-api\src\routes\credentials\sms.rs:209:10
+    |
+209 |           .map(|s| serde_json::to_value(s).ok())
+    |  __________^
+210 | |         .flatten();
+    | |__________________^ help: try replacing `map` with `and_then` and remove the `.flatten()`: `and_then(|s| serde_json::to_value(s).ok())`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#map_flatten
+
+error: using `clone` on type `SignalType` which implements the `Copy` trait
+   --> crates\trader-api\src\routes\signals.rs:541:22
+    |
+541 |         signal_type: signal_type.clone(),
+    |                      ^^^^^^^^^^^^^^^^^^^ help: try removing the `clone` call: `signal_type`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#clone_on_copy
+    = note: `-D clippy::clone-on-copy` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::clone_on_copy)]`
+
+error: very complex type used. Consider factoring parts into `type` definitions
+  --> crates\trader-api\src\websocket\handler.rs:42:25
+   |
+42 |     pub market_streams: Option<Arc<RwLock<HashMap<Uuid, Arc<MarketStreamHandle>>>>>,
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.93.0/index.html#type_complexity
+
+error: could not compile `trader-api` (lib) due to 11 previous errors
+error: could not compile `trader-api` (lib test) due to 11 previous errors

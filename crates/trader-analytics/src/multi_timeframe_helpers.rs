@@ -422,7 +422,6 @@ pub enum DivergenceType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::Utc;
 
     #[test]
     fn test_trend_direction_score() {

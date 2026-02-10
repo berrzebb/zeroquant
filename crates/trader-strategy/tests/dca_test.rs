@@ -1232,7 +1232,7 @@ async fn test_grid_multiple_level_buy() {
     let buy_signals: Vec<_> = signals.iter().filter(|s| s.side == Side::Buy).collect();
 
     assert!(
-        buy_signals.len() >= 1,
+        !buy_signals.is_empty(),
         "급락 시 최소 1개 이상의 매수 시그널 발생"
     );
 
@@ -1377,7 +1377,7 @@ async fn test_grid_group_id() {
     }
 
     // group_id 형식 검증
-    if let Some(group_id) = buy_signals.get(0).and_then(|s| s.group_id.as_ref()) {
+    if let Some(group_id) = buy_signals.first().and_then(|s| s.group_id.as_ref()) {
         assert!(
             group_id.starts_with("grid_"),
             "group_id 형식: grid_{{base_price}}_{{timestamp}}, 실제: {}",

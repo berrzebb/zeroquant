@@ -442,17 +442,13 @@ impl MeanReversionStrategy {
 
         // RouteState 체크 - 지표 기반 전략에서 시장 과열 시 진입 제한
         if let Some(route_state) = ctx_lock.get_route_state(&config.ticker) {
-            match route_state {
-                RouteState::Overheat => {
-                    debug!(
-                        ticker = %config.ticker,
-                        route_state = ?route_state,
-                        "시장 과열 - 진입 제한"
-                    );
-                    return false;
-                }
-                // Wait, Neutral, Armed, Attack: 진입 허용
-                _ => {}
+            if route_state == &RouteState::Overheat {
+                debug!(
+                    ticker = %config.ticker,
+                    route_state = ?route_state,
+                    "시장 과열 - 진입 제한"
+                );
+                return false;
             }
         }
 
@@ -519,18 +515,16 @@ impl MeanReversionStrategy {
         let mut signals = vec![];
 
         // 진입 체크
-        if !self.has_position() && !self.is_in_cooldown() && self.can_enter() {
-            if rsi < config.oversold {
-                let base_strength = ((config.oversold - rsi) / config.oversold).to_f64().unwrap_or(0.5);
-                let strength = self.get_adjusted_strength(base_strength);
-                signals.push(
-                    Signal::new("mean_reversion", config.ticker.clone(), Side::Buy, SignalType::Entry)
-                        .with_strength(strength)
-                        .with_prices(Some(price), None, None)
-                        .with_metadata("variant", json!("rsi"))
-                        .with_metadata("rsi", json!(rsi.to_string())),
-                );
-            }
+        if !self.has_position() && !self.is_in_cooldown() && self.can_enter() && rsi < config.oversold {
+            let base_strength = ((config.oversold - rsi) / config.oversold).to_f64().unwrap_or(0.5);
+            let strength = self.get_adjusted_strength(base_strength);
+            signals.push(
+                Signal::new("mean_reversion", config.ticker.clone(), Side::Buy, SignalType::Entry)
+                    .with_strength(strength)
+                    .with_prices(Some(price), None, None)
+                    .with_metadata("variant", json!("rsi"))
+                    .with_metadata("rsi", json!(rsi.to_string())),
+            );
         }
 
         // 청산 체크
@@ -608,24 +602,22 @@ impl MeanReversionStrategy {
         let mut signals = vec![];
 
         // 진입 체크
-        if !self.has_position() && !self.is_in_cooldown() && self.can_enter() {
-            if price <= lower {
-                let rsi_ok = if config.use_rsi_confirmation {
-                    self.prev_rsi.map(|r| r < dec!(30)).unwrap_or(false)
-                } else {
-                    true
-                };
+        if !self.has_position() && !self.is_in_cooldown() && self.can_enter() && price <= lower {
+            let rsi_ok = if config.use_rsi_confirmation {
+                self.prev_rsi.map(|r| r < dec!(30)).unwrap_or(false)
+            } else {
+                true
+            };
 
-                if rsi_ok {
-                    let strength = self.get_adjusted_strength(0.8);
-                    signals.push(
-                        Signal::new("mean_reversion", config.ticker.clone(), Side::Buy, SignalType::Entry)
-                            .with_strength(strength)
-                            .with_prices(Some(price), None, None)
-                            .with_metadata("variant", json!("bollinger"))
-                            .with_metadata("lower_band", json!(lower.to_string())),
-                    );
-                }
+            if rsi_ok {
+                let strength = self.get_adjusted_strength(0.8);
+                signals.push(
+                    Signal::new("mean_reversion", config.ticker.clone(), Side::Buy, SignalType::Entry)
+                        .with_strength(strength)
+                        .with_prices(Some(price), None, None)
+                        .with_metadata("variant", json!("bollinger"))
+                        .with_metadata("lower_band", json!(lower.to_string())),
+                );
             }
         }
 

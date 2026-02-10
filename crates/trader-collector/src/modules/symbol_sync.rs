@@ -116,7 +116,7 @@ async fn sync_krx_symbols(pool: &PgPool) -> Result<usize> {
     tracing::info!(
         total = symbols.len(),
         affected = total_affected,
-        batches = (symbols.len() + BATCH_SIZE - 1) / BATCH_SIZE,
+        batches = symbols.len().div_ceil(BATCH_SIZE),
         "KRX 심볼 배치 UPSERT 완료"
     );
 

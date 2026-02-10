@@ -25,6 +25,9 @@ use trader_exchange::provider::{
     MockConfig, MockExchangeProvider, UpbitProvider,
 };
 
+/// KIS credential 조회 결과 타입 (복잡한 타입 alias)
+type KisCredentialRow = (Vec<u8>, Vec<u8>, bool, Option<serde_json::Value>);
+
 /// Exchange 및 MarketData Provider 번들.
 ///
 /// 하나의 credential에 대해 두 가지 provider를 모두 제공합니다.
@@ -795,7 +798,7 @@ async fn create_kis_client(
     credential_id: Uuid,
 ) -> Result<Arc<KisClient>, String> {
     // credential 정보 조회
-    let row: Option<(Vec<u8>, Vec<u8>, bool, Option<serde_json::Value>)> = sqlx::query_as(
+    let row: Option<KisCredentialRow> = sqlx::query_as(
         r#"
         SELECT encrypted_credentials, encryption_nonce, is_testnet, settings
         FROM exchange_credentials

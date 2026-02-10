@@ -625,7 +625,7 @@ mod signal_generation_tests {
                 "신호에 가격 정보가 있어야 함"
             );
             assert!(
-                signal.metadata.get("mode").is_some(),
+                signal.metadata.contains_key("mode"),
                 "신호 메타데이터에 mode가 있어야 함"
             );
         }
@@ -722,7 +722,7 @@ mod signal_generation_tests {
         );
 
         // Offensive 자산: SPY, VEA
-        let offensive_tickers = vec!["SPY", "VEA"];
+        let offensive_tickers = ["SPY", "VEA"];
         let has_offensive_signal = all_signals
             .iter()
             .any(|s| offensive_tickers.contains(&s.ticker.as_str()));

@@ -177,8 +177,7 @@ pub async fn save_slack_settings(
     })?;
 
     let notification_settings = request.notification_settings.as_ref()
-        .map(|s| serde_json::to_value(s).ok())
-        .flatten();
+        .and_then(|s| serde_json::to_value(s).ok());
 
     let settings_id = Uuid::new_v4();
 
