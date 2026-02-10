@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE paper_trading_sessions\n            SET current_balance = initial_balance, status = 'stopped', stopped_at = NOW(), updated_at = NOW()\n            WHERE strategy_id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9e86470b786549fd9d8e246a7b8d9055a28626eb47ea50042550e4842249e86c"
+}

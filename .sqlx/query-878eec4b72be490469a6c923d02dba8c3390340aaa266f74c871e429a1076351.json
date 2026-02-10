@@ -1,0 +1,137 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                si.id as symbol_info_id,\n                si.ticker,\n                si.name,\n                sgs.market,\n                sgs.overall_score,\n                sgs.grade,\n                sgs.component_scores,\n                sgs.calculated_at,\n                -- Fundamental 데이터\n                sf.per,\n                sf.pbr,\n                sf.psr,\n                sf.roe,\n                sf.roa,\n                sf.operating_margin,\n                sf.net_profit_margin,\n                sf.revenue_growth_yoy,\n                sf.earnings_growth_yoy,\n                sf.week_52_high,\n                sf.week_52_low,\n                sf.avg_volume_10d\n            FROM symbol_info si\n            LEFT JOIN symbol_global_score sgs ON sgs.symbol_info_id = si.id\n            LEFT JOIN symbol_fundamental sf ON sf.symbol_info_id = si.id\n            WHERE si.ticker = $1 AND (sgs.market = $2 OR sgs.market IS NULL)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "symbol_info_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "ticker",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "market",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "overall_score",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "grade",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "component_scores",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "calculated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "per",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "pbr",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "psr",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "roe",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 12,
+        "name": "roa",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 13,
+        "name": "operating_margin",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 14,
+        "name": "net_profit_margin",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 15,
+        "name": "revenue_growth_yoy",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 16,
+        "name": "earnings_growth_yoy",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 17,
+        "name": "week_52_high",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 18,
+        "name": "week_52_low",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 19,
+        "name": "avg_volume_10d",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "878eec4b72be490469a6c923d02dba8c3390340aaa266f74c871e429a1076351"
+}

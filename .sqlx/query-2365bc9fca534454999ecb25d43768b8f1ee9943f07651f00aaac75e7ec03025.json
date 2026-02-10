@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM mock_pending_orders WHERE strategy_id = $1 AND credential_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2365bc9fca534454999ecb25d43768b8f1ee9943f07651f00aaac75e7ec03025"
+}

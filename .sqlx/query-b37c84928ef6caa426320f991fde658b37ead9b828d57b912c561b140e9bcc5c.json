@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO paper_trading_sessions (strategy_id, credential_id, status, initial_balance, current_balance, started_at, updated_at)\n        VALUES ($1, $2, 'running', $3, $3, NOW(), NOW())\n        ON CONFLICT (strategy_id) DO UPDATE SET\n            credential_id = $2,\n            status = 'running',\n            initial_balance = $3,\n            current_balance = $3,\n            started_at = NOW(),\n            updated_at = NOW()\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Uuid",
+        "Numeric"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b37c84928ef6caa426320f991fde658b37ead9b828d57b912c561b140e9bcc5c"
+}

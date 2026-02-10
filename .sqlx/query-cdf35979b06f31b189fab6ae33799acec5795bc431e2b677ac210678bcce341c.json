@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT s.config\n        FROM paper_trading_sessions pts\n        JOIN strategies s ON s.id = pts.strategy_id\n        WHERE pts.credential_id = $1 AND pts.status = 'running'\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "config",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "cdf35979b06f31b189fab6ae33799acec5795bc431e2b677ac210678bcce341c"
+}

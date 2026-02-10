@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT COALESCE(SUM(realized_pnl), 0) as \"value!\"\n            FROM mock_executions\n            WHERE credential_id = $1 AND realized_pnl IS NOT NULL\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "value!",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "2ba315e667239222ff428bdd9790b84333f8558feb5fa6147030dc6eb98eff8d"
+}

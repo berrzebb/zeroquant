@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                CURRENT_DATE as \"check_date!\",\n                COUNT(*) as \"total_count!\",\n                COUNT(*) FILTER (WHERE is_profitable) as \"win_count!\",\n                ROUND(COUNT(*) FILTER (WHERE is_profitable)::NUMERIC / COUNT(*) * 100, 2) as \"win_rate!\",\n                ROUND(AVG(actual_return), 4) as \"avg_return!\",\n                ROUND(AVG(actual_return) FILTER (WHERE is_profitable), 4) as avg_win_return,\n                ROUND(AVG(actual_return) FILTER (WHERE NOT is_profitable), 4) as avg_loss_return,\n                ROUND(MAX(actual_return), 4) as \"max_return!\",\n                ROUND(MIN(actual_return), 4) as \"min_return!\",\n                ROUND(STDDEV(actual_return), 4) as return_stddev\n            FROM reality_check\n            WHERE check_date >= CURRENT_DATE - ($1 || ' days')::interval\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "check_date!",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "win_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "win_rate!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "avg_return!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "avg_win_return",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "avg_loss_return",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "max_return!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "min_return!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "return_stddev",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "cab6104c7654f5bc9a5dde246ce2acc59789ccecc95388e5f4577ed972b3ce89"
+}

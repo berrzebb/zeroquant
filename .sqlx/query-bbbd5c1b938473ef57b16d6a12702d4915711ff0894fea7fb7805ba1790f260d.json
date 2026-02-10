@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            ec.id,\n            ec.exchange_name,\n            ec.exchange_id,\n            ec.settings,\n            ec.is_active,\n            mes.current_balance as \"current_balance?: rust_decimal::Decimal\",\n            COALESCE(\n                (SELECT COUNT(*) FROM strategies s WHERE s.credential_id = ec.id),\n                0\n            ) as strategy_count\n        FROM exchange_credentials ec\n        LEFT JOIN mock_exchange_state mes ON mes.credential_id = ec.id\n        WHERE ec.id = $1 AND ec.exchange_id = 'mock'\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "exchange_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "exchange_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "settings",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "current_balance?: rust_decimal::Decimal",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "strategy_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "bbbd5c1b938473ef57b16d6a12702d4915711ff0894fea7fb7805ba1790f260d"
+}

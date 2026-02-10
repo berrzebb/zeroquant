@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM mock_executions WHERE strategy_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "20635d98e53c1c882e677002164fb9c09010871ea1ac24cd0ddfce1b034a2835"
+}

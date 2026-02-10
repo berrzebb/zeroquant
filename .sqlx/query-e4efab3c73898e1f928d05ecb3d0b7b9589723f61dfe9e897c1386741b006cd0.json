@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                recommend_rank,\n                total_count,\n                win_rate,\n                avg_return\n            FROM v_reality_check_rank_stats\n            ORDER BY recommend_rank\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "recommend_rank",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "win_rate",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "avg_return",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "e4efab3c73898e1f928d05ecb3d0b7b9589723f61dfe9e897c1386741b006cd0"
+}

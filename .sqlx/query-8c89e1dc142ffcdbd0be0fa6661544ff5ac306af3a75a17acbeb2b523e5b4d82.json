@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            pts.strategy_id,\n            pts.credential_id,\n            pts.status,\n            pts.initial_balance,\n            pts.current_balance,\n            pts.started_at,\n            COALESCE((SELECT COUNT(*) FROM mock_positions mp WHERE mp.strategy_id = pts.strategy_id), 0) as position_count,\n            COALESCE((SELECT COUNT(*) FROM mock_executions me WHERE me.strategy_id = pts.strategy_id), 0) as trade_count,\n            COALESCE((SELECT SUM(realized_pnl) FROM mock_executions me WHERE me.strategy_id = pts.strategy_id AND realized_pnl IS NOT NULL), 0) as realized_pnl\n        FROM paper_trading_sessions pts\n        WHERE pts.strategy_id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "strategy_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "credential_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "initial_balance",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "current_balance",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "started_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "position_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "trade_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "realized_pnl",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "8c89e1dc142ffcdbd0be0fa6661544ff5ac306af3a75a17acbeb2b523e5b4d82"
+}

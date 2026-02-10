@@ -88,14 +88,15 @@ Desktop.ini
 
 archives/
 
-# Base Migrations (to be generated as needed)
-migrations/
 # Generated regression charts
 regression_charts/
 
 # Base Data
 data/
-.sqlx/*
+
+# Note: migrations/ and .sqlx/ must be tracked for sqlx offline mode (CI builds)
+# migrations/ - 마이그레이션 파일 (sqlx::migrate! 매크로에서 필요)
+# .sqlx/ - 쿼리 메타데이터 캐시 (SQLX_OFFLINE=true 시 필요)
 # =====================================================
 # Project Specific - Tools & MCP
 # =====================================================

@@ -13,7 +13,7 @@ reorder_imports = true
 reorder_modules = true
 
 # 함수/메서드 인자
-fn_args_layout = "Tall"
+fn_params_layout = "Tall"
 fn_single_line = false
 
 # 구조체/열거형

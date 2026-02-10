@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT symbol, quantity, entry_price, side\n            FROM mock_positions\n            WHERE credential_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "quantity",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "entry_price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "side",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a6b3b19e7a35db5f97ee610c960eb23ee9c16cc8e9213e7d6adec0f3da61a35a"
+}

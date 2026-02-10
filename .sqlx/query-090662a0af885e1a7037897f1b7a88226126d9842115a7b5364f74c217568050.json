@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                check_date,\n                total_count,\n                win_count,\n                win_rate,\n                avg_return,\n                avg_win_return,\n                avg_loss_return,\n                max_return,\n                min_return,\n                return_stddev\n            FROM v_reality_check_daily_stats\n            ORDER BY check_date DESC\n            LIMIT $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "check_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "win_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "win_rate",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "avg_return",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "avg_win_return",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "avg_loss_return",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "max_return",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "min_return",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "return_stddev",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "090662a0af885e1a7037897f1b7a88226126d9842115a7b5364f74c217568050"
+}

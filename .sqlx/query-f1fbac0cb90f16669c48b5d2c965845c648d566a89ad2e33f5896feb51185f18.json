@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT symbol, side, quantity, price, commission, realized_pnl, executed_at\n            FROM mock_executions\n            WHERE credential_id = $1\n            ORDER BY executed_at DESC\n            LIMIT 100\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "side",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "quantity",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "commission",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "realized_pnl",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "executed_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "f1fbac0cb90f16669c48b5d2c965845c648d566a89ad2e33f5896feb51185f18"
+}

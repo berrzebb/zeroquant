@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                snapshot_date,\n                symbol,\n                close_price,\n                volume,\n                recommend_source,\n                recommend_rank,\n                recommend_score,\n                expected_return,\n                expected_holding_days,\n                market,\n                sector,\n                created_at\n            FROM price_snapshot\n            WHERE snapshot_date = $1\n            ORDER BY recommend_rank NULLS LAST, recommend_score DESC NULLS LAST\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "snapshot_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "close_price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "volume",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "recommend_source",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "recommend_rank",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "recommend_score",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "expected_return",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "expected_holding_days",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "market",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "sector",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "94c499cd0b1f98ccd0ebd8892782c6ca6d846a700156c7b9d252e44025ba6557"
+}

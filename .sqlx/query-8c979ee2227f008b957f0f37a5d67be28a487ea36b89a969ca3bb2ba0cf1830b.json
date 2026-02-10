@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT settings FROM exchange_credentials WHERE id = $1 AND exchange_id = 'mock'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "settings",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "8c979ee2227f008b957f0f37a5d67be28a487ea36b89a969ca3bb2ba0cf1830b"
+}

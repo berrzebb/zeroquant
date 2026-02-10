@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT order_id, symbol, side, order_type, quantity, remaining_quantity,\n                   price, stop_price, strategy_id, reserved_amount, created_at\n            FROM mock_pending_orders\n            WHERE credential_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "order_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "side",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "order_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "quantity",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "remaining_quantity",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "stop_price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "strategy_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "reserved_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3e942a869edd95d1a2495b30c2741dcb14a8853c04514a0ee677f258b5ea114f"
+}

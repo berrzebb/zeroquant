@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO price_snapshot (\n                    snapshot_date, symbol, close_price, volume,\n                    recommend_source, recommend_rank, recommend_score,\n                    expected_return, expected_holding_days,\n                    market, sector\n                )\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n                ON CONFLICT (snapshot_date, symbol) DO UPDATE SET\n                    close_price = EXCLUDED.close_price,\n                    volume = EXCLUDED.volume,\n                    recommend_source = EXCLUDED.recommend_source,\n                    recommend_rank = EXCLUDED.recommend_rank,\n                    recommend_score = EXCLUDED.recommend_score,\n                    expected_return = EXCLUDED.expected_return,\n                    expected_holding_days = EXCLUDED.expected_holding_days,\n                    market = EXCLUDED.market,\n                    sector = EXCLUDED.sector\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Varchar",
+        "Numeric",
+        "Int8",
+        "Varchar",
+        "Int4",
+        "Numeric",
+        "Numeric",
+        "Int4",
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "321d31c066d7fe27933249629ebff357505aa52a3d30a25dc5cb4690587603cc"
+}

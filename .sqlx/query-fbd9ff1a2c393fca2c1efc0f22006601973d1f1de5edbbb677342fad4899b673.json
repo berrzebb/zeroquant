@@ -1,0 +1,144 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT\n                    check_date,\n                    recommend_date,\n                    symbol,\n                    recommend_source,\n                    recommend_rank,\n                    recommend_score,\n                    entry_price,\n                    exit_price,\n                    actual_return,\n                    is_profitable,\n                    entry_volume,\n                    exit_volume,\n                    volume_change,\n                    expected_return,\n                    return_error,\n                    max_profit,\n                    max_drawdown,\n                    volatility,\n                    market,\n                    sector,\n                    created_at\n                FROM reality_check\n                WHERE check_date >= $1\n                    AND check_date <= $2\n                    AND recommend_source = $3\n                ORDER BY check_date DESC, actual_return DESC\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "check_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "recommend_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 2,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "recommend_source",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "recommend_rank",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "recommend_score",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "entry_price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "exit_price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "actual_return",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_profitable",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "entry_volume",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "exit_volume",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "volume_change",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 13,
+        "name": "expected_return",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 14,
+        "name": "return_error",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 15,
+        "name": "max_profit",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 16,
+        "name": "max_drawdown",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 17,
+        "name": "volatility",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 18,
+        "name": "market",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 19,
+        "name": "sector",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 20,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Date",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "fbd9ff1a2c393fca2c1efc0f22006601973d1f1de5edbbb677342fad4899b673"
+}

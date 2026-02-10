@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT symbol, quantity, entry_price FROM mock_positions WHERE strategy_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "quantity",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "entry_price",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8782dd4699e0d1f68bbf65723c8be5c4e39b86fa1351db20578f46cdbea8d0b0"
+}

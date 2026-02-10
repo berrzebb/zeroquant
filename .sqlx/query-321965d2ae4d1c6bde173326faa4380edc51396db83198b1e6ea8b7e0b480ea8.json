@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM mock_exchange_state WHERE credential_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "321965d2ae4d1c6bde173326faa4380edc51396db83198b1e6ea8b7e0b480ea8"
+}

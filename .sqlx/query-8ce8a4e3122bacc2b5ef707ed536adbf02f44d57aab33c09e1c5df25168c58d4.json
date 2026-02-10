@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM mock_executions WHERE credential_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8ce8a4e3122bacc2b5ef707ed536adbf02f44d57aab33c09e1c5df25168c58d4"
+}
