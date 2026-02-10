@@ -9,7 +9,7 @@
  * 심볼 정보가 없으면 티커만 표시합니다.
  * 모든 심볼 텍스트 표시는 이 컴포넌트를 통해 수행합니다.
  */
-import { createSignal, createEffect, on, Show, onCleanup } from 'solid-js'
+import { createSignal, createEffect, on, Show } from 'solid-js'
 import { searchSymbols, type SymbolSearchResult } from '../api/client'
 import { createLogger } from '../utils/logger'
 

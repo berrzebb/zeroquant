@@ -19,7 +19,6 @@
 const isDev = import.meta.env.DEV
 
 // no-op 함수 (프로덕션에서 로그 비활성화)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const noop = (..._args: unknown[]) => {}
 
 export interface Logger {

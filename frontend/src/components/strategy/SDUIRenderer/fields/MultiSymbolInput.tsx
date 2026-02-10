@@ -22,7 +22,6 @@ import {
   Show,
   For,
   createMemo,
-  onCleanup,
 } from 'solid-js';
 import { SymbolSearch } from '../../../../components/SymbolSearch';
 import { getSymbolsBatch, type SymbolSearchResult } from '../../../../api/client';

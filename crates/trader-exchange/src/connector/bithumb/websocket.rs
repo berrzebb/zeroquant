@@ -37,6 +37,12 @@ pub struct BithumbWebSocket {
     subscribed_tickers: Arc<RwLock<Vec<String>>>,
 }
 
+impl Default for BithumbWebSocket {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BithumbWebSocket {
     pub fn new() -> Self {
         let (tx, rx) = mpsc::channel(100);
@@ -87,6 +93,9 @@ impl BithumbWebSocket {
         
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
         info!("Connected to Bithumb WebSocket");
+
+        // 접속 안정화 대기 (서버 초기화 완료 대기)
+        tokio::time::sleep(Duration::from_millis(200)).await;
 
         self.send_subscription(&mut ws_tx).await?;
 

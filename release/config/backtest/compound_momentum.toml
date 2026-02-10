@@ -1,0 +1,29 @@
+# Compound Momentum 전략 백테스트 설정
+# TQQQ/SCHD/PFIX/TMF 기반 복합 모멘텀 자산배분 전략
+name = "Compound Momentum Backtest"
+strategy_type = "compound_momentum"
+
+[parameters]
+# 시장 타입
+market = "US"
+
+# 자산 구성
+aggressive_asset = "TQQQ"       # 공격 자산 (레버리지 나스닥)
+aggressive_weight = 0.5         # 공격 자산 비중
+dividend_asset = "SCHD"         # 배당 자산
+dividend_weight = 0.2           # 배당 자산 비중
+rate_hedge_asset = "PFIX"       # 금리 헤지 자산
+rate_hedge_weight = 0.15        # 금리 헤지 비중
+bond_leverage_asset = "TMF"     # 채권 레버리지 자산
+bond_leverage_weight = 0.15     # 채권 레버리지 비중
+
+# 기술적 지표
+ma_period = 130                 # MA 기간
+
+# 리밸런싱 설정
+rebalance_interval_months = 1   # 리밸런싱 주기 (월)
+invest_rate = 1.0               # 투자 비율
+rebalance_threshold = 0.03      # 리밸런싱 임계값
+
+# 필터
+min_global_score = 0            # GlobalScore 필터 비활성화 (백테스트)

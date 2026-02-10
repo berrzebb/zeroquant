@@ -37,7 +37,7 @@ export function WatchlistSelectModal(props: WatchlistSelectModalProps) {
   const [loading, setLoading] = createSignal(false)
 
   // 관심종목 그룹 목록 로드
-  const [watchlists, { refetch }] = createResource(
+  const [watchlists] = createResource(
     () => props.isOpen,
     async (isOpen) => {
       if (!isOpen) return { watchlists: [], containingIds: new Set<string>() }
@@ -113,8 +113,9 @@ export function WatchlistSelectModal(props: WatchlistSelectModalProps) {
       setIsCreating(false)
       props.onSuccess?.()
       props.onClose()
-    } catch (err: any) {
-      if (err?.response?.status === 409) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number } }
+      if (axiosErr?.response?.status === 409) {
         toast.error('이미 존재하는 그룹 이름입니다')
       } else {
         toast.error('그룹 생성 실패')

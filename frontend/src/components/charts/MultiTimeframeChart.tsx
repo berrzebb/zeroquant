@@ -25,7 +25,7 @@ import type {
   LogicalRange,
   MouseEventParams,
 } from 'lightweight-charts'
-import type { CandlestickDataPoint, LineDataPoint, IndicatorOverlay } from './PriceChart'
+import type { CandlestickDataPoint, IndicatorOverlay } from './PriceChart'
 import type { Timeframe } from '../../api/client'
 
 /** 레이아웃 모드 */
@@ -205,9 +205,6 @@ export function MultiTimeframeChart(props: MultiTimeframeChartProps) {
     const allIndices = props.secondaryData.map((_, i) => i)
     setCollapsedPanels(new Set(allIndices))
   }
-
-  // 접힌 패널 높이
-  const collapsedHeight = 32
 
   const defaultColors = {
     background: 'transparent',

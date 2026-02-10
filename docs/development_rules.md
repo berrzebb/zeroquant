@@ -362,6 +362,72 @@ pub async fn save_result(pool: &PgPool, result: &BacktestResult) -> Result<Strin
 }
 ```
 
+### 8. Clippy 워닝 제로 정책
+
+> **`#[allow(clippy::...)]`로 워닝을 우회하지 않는다. 코드를 직접 수정한다.**
+
+**원칙**: 코드 작성 시점부터 clippy 워닝이 발생하지 않아야 한다. 사후에 `#[allow]`로 억제하는 것은 기술 부채다.
+
+**자주 발생하는 clippy 워닝과 올바른 수정 방법**:
+
+```rust
+// ❌ type_complexity → #[allow]로 우회 금지
+#[allow(clippy::type_complexity)]
+fn query() -> Result<Vec<(String, Option<i64>, Option<Decimal>)>, Error> { ... }
+
+// ✅ type alias 사용
+type FundamentalRow = (String, Option<i64>, Option<Decimal>);
+fn query() -> Result<Vec<FundamentalRow>, Error> { ... }
+
+// ❌ new_without_default → #[allow]로 우회 금지
+#[allow(clippy::new_without_default)]
+impl Foo {
+    pub fn new() -> Self { Self { x: 0 } }
+}
+
+// ✅ Default 구현 후 new()에서 위임
+impl Default for Foo {
+    fn default() -> Self { Self { x: 0 } }
+}
+impl Foo {
+    pub fn new() -> Self { Self::default() }
+}
+
+// ✅ 단순 구조체는 #[derive(Default)] 사용
+#[derive(Default)]
+struct Config { verbose: bool }
+
+// ❌ map().flatten() 사용 금지
+let x = opt.map(|v| transform(v)).flatten();
+
+// ✅ and_then() 사용
+let x = opt.and_then(|v| transform(v));
+
+// ❌ 불필요한 clone/borrow
+let val = copy_type.clone();   // Copy 타입에 clone()
+.bind(&integer_value)          // Copy 타입에 & 참조
+
+// ✅ Copy 타입은 직접 전달
+let val = copy_type;
+.bind(integer_value)
+
+// ❌ 수동 범위 비교
+if score >= 0.0 && score <= 100.0 { ... }
+
+// ✅ contains 사용
+if (0.0..=100.0).contains(&score) { ... }
+
+// ❌ len() > 0
+if vec.len() > 0 { ... }
+
+// ✅ !is_empty()
+if !vec.is_empty() { ... }
+```
+
+**`#[allow]` 허용 예외** (극히 제한적):
+- `#[allow(clippy::too_many_arguments)]`: 8개 이상 제네릭 파라미터로 구조체 분리가 비현실적일 때만
+- `#![allow(unexpected_cfgs)]`: 테스트 전용 feature flag (파일 최상단)
+
 ---
 
 ## TypeScript 프론트엔드 규칙
@@ -476,7 +542,52 @@ type OrderSide = 'buy' | 'sell';
 type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d' | '1w' | '1M';
 ```
 
-### 3. 에러 처리
+### 3. ESLint 워닝/에러 제로 정책
+
+> **코드 작성 시점부터 ESLint 에러가 0이어야 한다.**
+
+**no-unused-vars (미사용 변수/임포트)**:
+
+```typescript
+// ❌ 사용하지 않는 import 절대 금지
+import { createSignal, onMount, onCleanup } from 'solid-js'; // onMount, onCleanup 미사용
+
+// ✅ 사용하는 것만 import
+import { createSignal } from 'solid-js';
+
+// ❌ 사용하지 않는 변수 선언 금지
+const [value, setValue] = createSignal(0); // value 미사용
+
+// ✅ 미사용 부분은 _ 접두사
+const [_value, setValue] = createSignal(0);
+
+// ❌ catch 블록의 미사용 에러 변수
+} catch (err) { console.log('failed'); }
+
+// ✅ 에러 변수 미사용 시 생략
+} catch { console.log('failed'); }
+```
+
+**no-explicit-any (any 타입 금지)**:
+
+```typescript
+// ❌ any 사용 금지
+const data: any = response.data;
+function process(items: any[]) { ... }
+
+// ✅ 구체적 타입 또는 unknown 사용
+const data: ApiResponse = response.data;
+function process(items: unknown[]) { ... }
+
+// ✅ 외부 라이브러리 콜백 등 불가피한 경우 Record 사용
+function handler(event: Record<string, unknown>) { ... }
+```
+
+**eslint-disable 주석 사용 금지**:
+- `// eslint-disable-next-line` 주석으로 에러를 우회하지 않는다
+- 코드를 직접 수정하여 근본적으로 해결한다
+
+### 4. 에러 처리
 
 ```typescript
 <Show when={resource.loading}>

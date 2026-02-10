@@ -35,11 +35,6 @@ const NUMBER_FORMATTER = new Intl.NumberFormat('ko-KR', {
   maximumFractionDigits: 4,
 })
 
-const COMPACT_FORMATTER_KR = new Intl.NumberFormat('ko-KR', {
-  notation: 'compact',
-  maximumFractionDigits: 1,
-})
-
 // ==================== 통화 포맷팅 ====================
 
 /**

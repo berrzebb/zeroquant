@@ -1,0 +1,42 @@
+{
+  "id": "H-2",
+  "title": "Bithumb 주문 실행 (OrderExecutionProvider)",
+  "group": "H",
+  "description": "Bithumb 거래소에 주문/취소 기능 구현. POST /v1/orders (주문 생성, HMAC-SHA512 인증), DELETE /v1/orders/{uuid} (주문 취소). modify_order는 cancel+re-place 패턴. Upbit과 유사한 API 구조 (Upbit 기반 거래소). KIS Provider 패턴 참조하여 OrderExecutionProvider trait 구현.",
+  "relevant_crates": ["trader-exchange"],
+  "has_db_changes": false,
+  "depends_on": [],
+  "reference_files": [
+    "crates/trader-exchange/src/connector/bithumb/client.rs",
+    "crates/trader-exchange/src/provider/bithumb.rs",
+    "crates/trader-exchange/src/provider/kis.rs",
+    "crates/trader-exchange/src/connector/upbit/client.rs",
+    "crates/trader-core/src/domain/exchange_provider.rs",
+    "docs/exchange/bithumb_openapi_spec.md"
+  ],
+  "api_spec": {
+    "place_order": {
+      "method": "POST",
+      "path": "/v1/orders",
+      "body": {"market": "string", "side": "bid|ask", "volume": "string", "price": "string", "ord_type": "limit|price|market", "time_in_force": "ioc|fok|gtc"},
+      "auth": "HMAC-SHA512 (API-Key, API-Sign, API-Nonce headers)",
+      "rate_limit": "15/sec"
+    },
+    "cancel_order": {
+      "method": "DELETE",
+      "path": "/v1/orders/{uuid}",
+      "auth": "HMAC-SHA512"
+    }
+  },
+  "checklist": [
+    "BithumbClient::place_order() - POST /v1/orders 구현",
+    "BithumbClient::cancel_order() - DELETE /v1/orders/{uuid} 구현",
+    "OrderExecutionProvider for BithumbExchangeProvider impl",
+    "modify_order: cancel + re-place 패턴",
+    "캐시 무효화 (invalidate_cache) 호출",
+    "단위 테스트 작성",
+    "cargo check -p trader-exchange 성공",
+    "cargo test -p trader-exchange 통과",
+    "cargo clippy -p trader-exchange 경고 없음"
+  ]
+}

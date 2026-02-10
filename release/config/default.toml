@@ -1,0 +1,128 @@
+# Trading Bot Default Configuration
+
+[server]
+host = "127.0.0.1"
+port = 3000
+
+[database]
+max_connections = 10
+min_connections = 2
+connection_timeout_secs = 30
+idle_timeout_secs = 300
+max_lifetime_secs = 1800
+
+[redis]
+max_connections = 5
+connection_timeout_secs = 5
+
+[logging]
+level = "info"
+format = "pretty"  # pretty, json, compact
+
+# =====================================================
+# RISK MANAGEMENT
+# =====================================================
+[risk]
+# Maximum position size per trade (as % of account)
+max_position_pct = 5.0
+
+# Maximum total exposure (as % of account)
+max_total_exposure_pct = 70.0
+
+# Maximum daily loss (absolute value in quote currency)
+max_daily_loss = 100000.0
+
+# Maximum daily loss (as % of account)
+max_daily_loss_pct = 3.0
+
+# Default stop-loss percentage
+default_stop_loss_pct = 2.0
+
+# Default take-profit percentage
+default_take_profit_pct = 5.0
+
+# Maximum number of open positions
+max_open_positions = 10
+
+# Volatility threshold for trading pause (ATR %)
+volatility_threshold = 10.0
+
+# =====================================================
+# EXCHANGES
+# =====================================================
+[exchanges.binance]
+enabled = true
+name = "binance"
+testnet = true
+
+# REST API settings
+rest_base_url = "https://api.binance.com"
+rest_testnet_url = "https://testnet.binance.vision"
+
+# WebSocket settings
+ws_base_url = "wss://stream.binance.com:9443/ws"
+ws_testnet_url = "wss://testnet.binance.vision/ws"
+
+# Rate limiting
+rate_limit_per_minute = 1200
+order_rate_limit_per_second = 10
+
+# Reconnection settings
+ws_reconnect_interval_secs = 5
+ws_max_reconnect_attempts = 10
+
+[exchanges.korea_investment]
+enabled = false
+name = "korea_investment"
+paper_trading = true
+
+# REST API settings
+rest_base_url = "https://openapi.koreainvestment.com:9443"
+rest_paper_url = "https://openapivts.koreainvestment.com:29443"
+
+# WebSocket settings
+ws_base_url = "ws://ops.koreainvestment.com:21000"
+ws_paper_url = "ws://ops.koreainvestment.com:31000"
+
+# =====================================================
+# DATA MANAGEMENT
+# =====================================================
+[data]
+# Default timeframes to collect
+default_timeframes = ["1m", "5m", "15m", "1h", "4h", "1d"]
+
+# Maximum klines to fetch per request
+max_klines_per_request = 1000
+
+# Cache TTL for market data (seconds)
+ticker_cache_ttl_secs = 1
+orderbook_cache_ttl_secs = 1
+kline_cache_ttl_secs = 60
+
+# =====================================================
+# STRATEGY ENGINE
+# =====================================================
+[strategy]
+# Plugin directory
+plugin_dir = "./plugins"
+
+# Enable hot reload of strategy configs
+hot_reload = true
+
+# Signal processing interval (milliseconds)
+signal_process_interval_ms = 100
+
+# =====================================================
+# NOTIFICATIONS
+# =====================================================
+[notifications]
+enabled = false
+
+[notifications.telegram]
+enabled = false
+bot_token = ""
+chat_id = ""
+
+[notifications.discord]
+enabled = false
+webhook_url = ""

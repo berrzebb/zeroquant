@@ -951,14 +951,12 @@ mod tests {
         let mut tracker = PerformanceTracker::new(dec!(10000));
 
         // 진입 없이 청산 시도
+        // 분할 매수/매도 전략에서 매칭 실패는 정상 → Ok(None) 반환
         let exit = create_test_trade(Side::Sell, dec!(52000), dec!(0.1), dec!(5));
         let result = tracker.record_trade(&exit, false, None);
 
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            TrackerError::NoMatchingEntry { .. }
-        ));
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
     }
 
     #[test]

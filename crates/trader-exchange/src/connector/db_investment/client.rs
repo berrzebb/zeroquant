@@ -10,8 +10,8 @@ use serde_json::{json, Value};
 use tokio::sync::Mutex;
 
 use trader_core::domain::{
-    ExchangeProvider, MarketDataProvider, StrategyAccountInfo, PendingOrder, 
-    StrategyPositionInfo, OrderStatusType, Side,
+    ExchangeProvider, MarketDataProvider, StrategyAccountInfo, PendingOrder,
+    StrategyPositionInfo, OrderStatusType, Side, OrderResponse,
 };
 use trader_core::ProviderError;
 use trader_core::QuoteData;
@@ -220,7 +220,7 @@ impl DbInvestmentClient {
             }
         });
         let res: UsStockListResponse = self.request(Method::POST, "api/v1/trading/overseas-stock/inquiry/balance-margin", Some(body)).await?;
-        
+
         let mut positions = Vec::new();
         for stock in res.out2 {
             let qty = Decimal::from_str(&stock.qty).unwrap_or_default();
@@ -235,11 +235,306 @@ impl DbInvestmentClient {
         }
         Ok(positions)
     }
+
+    /// 주문 실행
+    ///
+    /// # Arguments
+    ///
+    /// * `symbol` - 종목코드 (예: "005930")
+    /// * `side` - 매수/매도 방향
+    /// * `quantity` - 주문 수량
+    /// * `price` - 주문 가격
+    /// * `order_class` - 호가 유형 ("00": 지정가, "01": 시장가)
+    pub async fn place_order(
+        &self,
+        symbol: &str,
+        side: Side,
+        quantity: u32,
+        price: Decimal,
+        order_class: &str,
+    ) -> Result<OrderResponse, ProviderError> {
+        // 시장 구분 코드 결정 (간단히 1:코스피, 2:코스닥 추정)
+        let market_div_code = if symbol.starts_with('0') || symbol.starts_with('1') {
+            "1" // 코스피
+        } else {
+            "2" // 코스닥
+        };
+
+        // 매수/매도 구분 코드 변환
+        let dvsn_code = match side {
+            Side::Buy => "1",
+            Side::Sell => "2",
+        };
+
+        let body = json!({
+            "In": {
+                "InputCondMrktDivCode": market_div_code,
+                "InputIscd": symbol,
+                "InputQty": quantity.to_string(),
+                "InputPrc": price.to_string(),
+                "InputDvsnCode": dvsn_code,
+                "InputOrdPtnCode": order_class,
+            }
+        });
+
+        // TR 헤더 추가
+        let token = self.get_token().await?;
+        let url = format!("{}/api/v1/trading/kr-stock/order", self.config.base_url);
+
+        let response = self
+            .client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", token))
+            .header("Content-Type", "application/json; charset=utf-8")
+            .header("tr_cd", "CSPAT00600")
+            .header("tr_cont", "N")
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| ProviderError::Network(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(ProviderError::Api(format!(
+                "DB Investment 주문 실패: {}",
+                error_text
+            )));
+        }
+
+        let text = response.text().await.map_err(|e| ProviderError::Network(e.to_string()))?;
+        let res: DbOrderResponseWrapper = serde_json::from_str(&text).map_err(|e| {
+            ProviderError::Parse(format!("주문 응답 파싱 실패: {}. Body: {}", e, text))
+        })?;
+
+        tracing::info!(
+            order_id = %res.out.ord_no,
+            symbol = %symbol,
+            side = ?side,
+            quantity = %quantity,
+            price = %price,
+            "DB증권 주문 성공"
+        );
+
+        Ok(OrderResponse {
+            order_no: res.out.ord_no,
+            order_time: Utc::now().format("%H%M%S").to_string(),
+        })
+    }
+
+    /// 주문 취소
+    ///
+    /// # Arguments
+    ///
+    /// * `order_id` - 취소할 주문번호
+    pub async fn cancel_order(&self, order_id: &str) -> Result<(), ProviderError> {
+        let body = json!({
+            "In": {
+                "InputOrdNo": order_id,
+            }
+        });
+
+        let token = self.get_token().await?;
+        let url = format!("{}/api/v1/trading/kr-stock/order-cancel", self.config.base_url);
+
+        let response = self
+            .client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", token))
+            .header("Content-Type", "application/json; charset=utf-8")
+            .header("tr_cd", "CSPAT00602")
+            .header("tr_cont", "N")
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| ProviderError::Network(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(ProviderError::Api(format!(
+                "DB Investment 주문 취소 실패: {}",
+                error_text
+            )));
+        }
+
+        let text = response.text().await.map_err(|e| ProviderError::Network(e.to_string()))?;
+        let _res: DbCancelOrderResponseWrapper = serde_json::from_str(&text).map_err(|e| {
+            ProviderError::Parse(format!("주문 취소 응답 파싱 실패: {}. Body: {}", e, text))
+        })?;
+
+        tracing::info!(order_id = %order_id, "DB증권 주문 취소 성공");
+
+        Ok(())
+    }
+
+    /// 체결 내역 조회
+    ///
+    /// # Arguments
+    ///
+    /// * `limit` - 조회할 최대 개수
+    pub async fn fetch_execution_history(
+        &self,
+        limit: usize,
+    ) -> Result<Vec<ExecutionRecord>, ProviderError> {
+        let body = json!({
+            "In": {
+                "ExecYn": "1", // 1=체결된 주문만
+                "BnsTpCode": "0", // 0=전체 (매수/매도)
+                "IsuTpCode": "0",
+                "QryTp": "0"
+            }
+        });
+
+        let res: DbExecutionHistoryResponse = self
+            .request(Method::POST, "api/v1/trading/kr-stock/inquiry/transaction-history", Some(body))
+            .await?;
+
+        let mut executions = Vec::new();
+        for record in res.out1.into_iter().take(limit) {
+            let mut ticker = record.isu_no;
+            // A 접두사 제거 (예: A005930 → 005930)
+            if ticker.len() == 7 && ticker.starts_with('A') {
+                ticker = ticker[1..].to_string();
+            }
+
+            let side = if record.bns_tp_code == "1" { Side::Sell } else { Side::Buy };
+
+            executions.push(ExecutionRecord {
+                order_no: record.ord_no,
+                exec_no: record.exec_no.unwrap_or_default(),
+                ticker,
+                side,
+                exec_qty: Decimal::from_str(&record.exec_qty).unwrap_or_default(),
+                exec_prc: Decimal::from_str(&record.exec_prc).unwrap_or_default(),
+                exec_time: record.exec_time.unwrap_or_default(),
+                fee: Decimal::from_str(&record.fee.unwrap_or_default()).unwrap_or_default(),
+            });
+        }
+
+        Ok(executions)
+    }
+
+    /// 주문 정정
+    ///
+    /// # Arguments
+    ///
+    /// * `order_id` - 정정할 주문번호
+    /// * `quantity` - 정정할 수량
+    /// * `price` - 정정할 가격
+    pub async fn modify_order(
+        &self,
+        order_id: &str,
+        quantity: u32,
+        price: Decimal,
+    ) -> Result<OrderResponse, ProviderError> {
+        let body = json!({
+            "In": {
+                "InputOrdNo": order_id,
+                "InputOrdQty": quantity.to_string(),
+                "InputOrdPrc": price.to_string(),
+            }
+        });
+
+        let token = self.get_token().await?;
+        let url = format!("{}/api/v1/trading/kr-stock/order-modify", self.config.base_url);
+
+        let response = self
+            .client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", token))
+            .header("Content-Type", "application/json; charset=utf-8")
+            .header("tr_cd", "CSPAT00601")
+            .header("tr_cont", "N")
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| ProviderError::Network(e.to_string()))?;
+
+        if !response.status().is_success() {
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(ProviderError::Api(format!(
+                "DB Investment 주문 정정 실패: {}",
+                error_text
+            )));
+        }
+
+        let text = response.text().await.map_err(|e| ProviderError::Network(e.to_string()))?;
+        let res: DbModifyOrderResponseWrapper = serde_json::from_str(&text).map_err(|e| {
+            ProviderError::Parse(format!("주문 정정 응답 파싱 실패: {}. Body: {}", e, text))
+        })?;
+
+        tracing::info!(
+            order_id = %res.out.ord_no,
+            quantity = %quantity,
+            price = %price,
+            "DB증권 주문 정정 성공"
+        );
+
+        Ok(OrderResponse {
+            order_no: res.out.ord_no,
+            order_time: Utc::now().format("%H%M%S").to_string(),
+        })
+    }
 }
 
 // ============================================================================
 // Data Structures for Responses
 // ============================================================================
+
+/// 체결 내역 레코드
+#[derive(Debug, Clone)]
+pub struct ExecutionRecord {
+    /// 주문번호
+    pub order_no: String,
+    /// 체결번호
+    pub exec_no: String,
+    /// 종목코드
+    pub ticker: String,
+    /// 매매구분
+    pub side: Side,
+    /// 체결수량
+    pub exec_qty: Decimal,
+    /// 체결가격
+    pub exec_prc: Decimal,
+    /// 체결시각
+    pub exec_time: String,
+    /// 수수료
+    pub fee: Decimal,
+}
+
+#[derive(Debug, Deserialize)]
+struct DbExecutionHistoryResponse {
+    #[serde(rename = "Out1")]
+    out1: Vec<DbExecutionHistoryBlock>,
+}
+
+#[derive(Debug, Deserialize)]
+struct DbExecutionHistoryBlock {
+    #[serde(rename = "OrdNo")]
+    ord_no: String,
+    #[serde(rename = "ExecNo", default)]
+    exec_no: Option<String>,
+    #[serde(rename = "IsuNo")]
+    isu_no: String,
+    #[serde(rename = "BnsTpCode")]
+    bns_tp_code: String,
+    #[serde(rename = "ExecQty")]
+    exec_qty: String,
+    #[serde(rename = "ExecPrc")]
+    exec_prc: String,
+    #[serde(rename = "ExecTime", default)]
+    exec_time: Option<String>,
+    #[serde(rename = "Fee", default)]
+    fee: Option<String>,
+}
 
 #[derive(Debug, Deserialize)]
 struct KrBalanceResponse {
@@ -341,6 +636,60 @@ struct DbQuoteOut {
     prdy_vrss: String,
     #[serde(rename = "PrdyVrssRat")]
     prdy_vrss_rat: String,
+    // 현재가 확장 필드
+    #[serde(rename = "OpenPrice", default)]
+    open_price: String,
+    #[serde(rename = "HighPrice", default)]
+    high_price: String,
+    #[serde(rename = "LowPrice", default)]
+    low_price: String,
+    #[serde(rename = "YdayClpr", default)]
+    yday_clpr: String,
+    #[serde(rename = "AccTrdvol", default)]
+    acc_trdvol: String,
+    #[serde(rename = "AccTrdval", default)]
+    acc_trdval: String,
+}
+
+// 주문 응답 구조체
+#[derive(Debug, Deserialize)]
+struct DbOrderResponseWrapper {
+    #[serde(rename = "Out")]
+    out: DbOrderOut,
+}
+
+#[derive(Debug, Deserialize)]
+struct DbOrderOut {
+    #[serde(rename = "OrdNo")]
+    ord_no: String,
+    #[serde(rename = "OrdSttCd")]
+    _ord_stt_cd: String,
+}
+
+// 주문 정정 응답 구조체
+#[derive(Debug, Deserialize)]
+struct DbModifyOrderResponseWrapper {
+    #[serde(rename = "Out")]
+    out: DbModifyOrderOut,
+}
+
+#[derive(Debug, Deserialize)]
+struct DbModifyOrderOut {
+    #[serde(rename = "OrdNo")]
+    ord_no: String,
+}
+
+// 주문 취소 응답 구조체
+#[derive(Debug, Deserialize)]
+struct DbCancelOrderResponseWrapper {
+    #[serde(rename = "Out")]
+    _out: DbCancelOrderOut,
+}
+
+#[derive(Debug, Deserialize)]
+struct DbCancelOrderOut {
+    #[serde(rename = "OrdNo")]
+    _ord_no: String,
 }
 
 // ============================================================================
@@ -476,12 +825,12 @@ impl MarketDataProvider for DbInvestmentClient {
             current_price: Decimal::from_str(&res.out.prpr).unwrap_or_default(),
             price_change: Decimal::from_str(&res.out.prdy_vrss).unwrap_or_default(),
             change_percent: Decimal::from_str(&res.out.prdy_vrss_rat).unwrap_or_default(),
-            high: Decimal::ZERO,
-            low: Decimal::ZERO,
-            open: Decimal::ZERO,
-            prev_close: Decimal::ZERO,
-            volume: Decimal::ZERO,
-            trading_value: Decimal::ZERO,
+            high: Decimal::from_str(&res.out.high_price).unwrap_or_default(),
+            low: Decimal::from_str(&res.out.low_price).unwrap_or_default(),
+            open: Decimal::from_str(&res.out.open_price).unwrap_or_default(),
+            prev_close: Decimal::from_str(&res.out.yday_clpr).unwrap_or_default(),
+            volume: Decimal::from_str(&res.out.acc_trdvol).unwrap_or_default(),
+            trading_value: Decimal::from_str(&res.out.acc_trdval).unwrap_or_default(),
             timestamp: Utc::now(),
         })
     }

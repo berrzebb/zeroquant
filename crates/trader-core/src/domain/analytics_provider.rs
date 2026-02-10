@@ -328,7 +328,7 @@ pub trait AnalyticsProvider: Send + Sync {
 /// 스크리닝 업데이트 주기.
 ///
 /// 백테스트에서 스크리닝 결과를 얼마나 자주 갱신할지 결정합니다.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ScreeningUpdateFrequency {
     /// 매 캔들마다 (성능 저하 주의)
     EveryCandle,
@@ -337,16 +337,12 @@ pub enum ScreeningUpdateFrequency {
     /// 주간 (월요일)
     Weekly,
     /// 월간 (1일)
+    #[default]
     Monthly,
     /// 사용자 정의 캔들 수마다
     Custom(usize),
 }
 
-impl Default for ScreeningUpdateFrequency {
-    fn default() -> Self {
-        Self::Monthly
-    }
-}
 
 /// 스크리닝 계산 요청 설정.
 ///

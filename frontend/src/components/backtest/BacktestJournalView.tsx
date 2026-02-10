@@ -8,9 +8,9 @@
  * - 거래 통계 요약
  */
 import { createSignal, createMemo, For, Show } from 'solid-js'
-import { List, Clock, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Target, BarChart3 } from 'lucide-solid'
+import { List, Clock, ChevronLeft, ChevronRight, TrendingUp, Target, BarChart3 } from 'lucide-solid'
 import { SymbolDisplay } from '../SymbolDisplay'
-import { formatCurrency, formatPercent, formatDateTime } from '../../utils/format'
+import { formatCurrency, formatDateTime } from '../../utils/format'
 import type { TradeHistoryItem } from '../../api/client'
 
 type ViewMode = 'table' | 'timeline'

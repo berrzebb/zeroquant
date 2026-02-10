@@ -2,7 +2,7 @@ import { createResource, createEffect, For, Show, createMemo, lazy, Suspense } f
 import { createStore } from 'solid-js/store'
 import { useSearchParams, A } from '@solidjs/router'
 import { Play, Calendar, ChartBar, Settings2, RefreshCw, AlertCircle, Info, X, ChevronDown, ChevronUp, LineChart, TrendingUp, TrendingDown, Clock, BarChart3 } from 'lucide-solid'
-import type { EquityDataPoint, DrawdownDataPoint, ChartSyncState, CandlestickDataPoint, TradeMarker, IndicatorFilters, PriceVolume } from '../components/charts'
+import type { EquityDataPoint, DrawdownDataPoint, CandlestickDataPoint, TradeMarker, IndicatorFilters, PriceVolume } from '../components/charts'
 import { useChartSync } from '../hooks/useLightweightChart'
 
 // Lazy load heavy chart components
@@ -24,9 +24,6 @@ const VolumeProfile = lazy(() =>
 const VolumeProfileLegend = lazy(() =>
   import('../components/charts/VolumeProfile').then(m => ({ default: m.VolumeProfileLegend }))
 )
-const BacktestJournalView = lazy(() =>
-  import('../components/backtest/BacktestJournalView').then(m => ({ default: m.BacktestJournalView }))
-)
 import {
   Card,
   CardHeader,
@@ -47,7 +44,6 @@ import {
   type BacktestRequest,
   type BacktestMultiRequest,
   type BacktestResult,
-  type BacktestMultiResult,
   type MultiTimeframeConfig,
   type Timeframe,
   type BacktestStrategy,
@@ -492,11 +488,11 @@ function BacktestResultCard(props: BacktestResultCardProps) {
 
       // 상세 signal_type 필터
       if (signalType) {
-        if (signalFilters.signal_types.includes('entry' as any) && signalType === 'entry') return true
-        if (signalFilters.signal_types.includes('exit' as any) && signalType === 'exit') return true
-        if (signalFilters.signal_types.includes('add_to_position' as any) && signalType === 'add_to_position') return true
-        if (signalFilters.signal_types.includes('reduce_position' as any) && signalType === 'reduce_position') return true
-        if (signalFilters.signal_types.includes('scale' as any) && signalType === 'scale') return true
+        if (signalFilters.signal_types.includes('entry') && signalType === 'entry') return true
+        if (signalFilters.signal_types.includes('exit') && signalType === 'exit') return true
+        if (signalFilters.signal_types.includes('add_to_position') && signalType === 'add_to_position') return true
+        if (signalFilters.signal_types.includes('reduce_position') && signalType === 'reduce_position') return true
+        if (signalFilters.signal_types.includes('scale') && signalType === 'scale') return true
         if (signalFilters.signal_types.includes('alert') && signalType === 'alert') return true
       }
 
@@ -1034,7 +1030,7 @@ export function Backtest() {
   })
 
   // 저장된 백테스트 결과 불러오기
-  const [savedResults, { refetch: refetchSavedResults }] = createResource(async () => {
+  const [savedResults] = createResource(async () => {
     try {
       const response = await listBacktestResults({ limit: 100 })
       // DB 결과를 StoredBacktestResult 형태로 변환

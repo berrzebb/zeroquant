@@ -96,9 +96,7 @@ impl<'a> MigrationValidator<'a> {
                     let issue = ValidationIssue::new(
                         severity,
                         "CASC001",
-                        &format!(
-                            "CASCADE 사용 - 의존 객체가 자동 삭제될 수 있음"
-                        ),
+                        "CASCADE 사용 - 의존 객체가 자동 삭제될 수 있음"                        ,
                     )
                     .with_file(&file.name)
                     .with_line(stmt.line_number)
@@ -431,7 +429,7 @@ pub fn generate_safety_checklist(report: &ValidationReport) -> String {
     checklist.push_str("   □ 데이터베이스 백업 완료\n");
     checklist.push_str("   □ 테스트 환경에서 먼저 실행\n");
     checklist.push_str("   □ 롤백 계획 수립\n");
-    checklist.push_str("\n");
+    checklist.push('\n');
 
     // CASCADE 사용 시 추가 체크
     let cascade_count = report
@@ -447,7 +445,7 @@ pub fn generate_safety_checklist(report: &ValidationReport) -> String {
         ));
         checklist.push_str("   □ CASCADE로 삭제될 의존 객체 목록 확인\n");
         checklist.push_str("   □ 해당 데이터 백업 또는 마이그레이션\n");
-        checklist.push_str("\n");
+        checklist.push('\n');
     }
 
     // 데이터 손실 위험 시
@@ -467,14 +465,14 @@ pub fn generate_safety_checklist(report: &ValidationReport) -> String {
                 checklist.push_str(&format!("   □ '{}' 데이터 백업\n", obj));
             }
         }
-        checklist.push_str("\n");
+        checklist.push('\n');
     }
 
     checklist.push_str("□ 4. 실행 후 확인\n");
     checklist.push_str("   □ 모든 테이블 접근 가능 확인\n");
     checklist.push_str("   □ 주요 쿼리 정상 동작 확인\n");
     checklist.push_str("   □ 애플리케이션 정상 작동 확인\n");
-    checklist.push_str("\n");
+    checklist.push('\n');
 
     checklist.push_str("═══════════════════════════════════════════════════════════════\n");
 

@@ -7,7 +7,7 @@
  * - 섹터별 모멘텀
  * - 자동 갱신 (5분 간격)
  */
-import { createResource, createMemo, onCleanup, createSignal, createEffect } from 'solid-js'
+import { createResource, createMemo, onCleanup } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import {
   getMarketBreadth,

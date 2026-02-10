@@ -93,8 +93,9 @@ export function PresetModal(props: PresetModalProps) {
       setView('list')
       await refetch()
       props.onSuccess?.()
-    } catch (err: any) {
-      if (err?.response?.status === 409) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number } }
+      if (axiosErr?.response?.status === 409) {
         toast.error('이미 존재하는 프리셋 이름입니다')
       } else {
         toast.error('프리셋 저장 실패')
@@ -118,8 +119,9 @@ export function PresetModal(props: PresetModalProps) {
       setView('list')
       await refetch()
       props.onSuccess?.()
-    } catch (err: any) {
-      if (err?.response?.status === 400) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number } }
+      if (axiosErr?.response?.status === 400) {
         toast.error('기본 프리셋은 삭제할 수 없습니다')
       } else {
         toast.error('프리셋 삭제 실패')

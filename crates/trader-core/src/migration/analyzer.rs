@@ -92,7 +92,7 @@ impl MigrationAnalyzer {
 
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |e| e == "sql") {
+            if path.extension().is_some_and(|e| e == "sql") {
                 if let Some(migration) = self.parse_file(&path)? {
                     files.push(migration);
                 }
@@ -516,7 +516,7 @@ impl MigrationAnalyzer {
 
                 // 함수명은 ( 또는 ; 전까지
                 let name = after
-                    .split(|c: char| c == '(' || c == ';')
+                    .split(['(', ';'])
                     .next()?
                     .trim()
                     .trim_matches(|c: char| !c.is_alphanumeric() && c != '_');
@@ -634,7 +634,7 @@ impl MigrationAnalyzer {
     fn clean_object_name(&self, name: &str) -> String {
         // public.table_name → table_name
         let name = if name.contains('.') {
-            name.split('.').last().unwrap_or(name)
+            name.split('.').next_back().unwrap_or(name)
         } else {
             name
         };

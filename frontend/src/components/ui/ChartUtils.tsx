@@ -3,7 +3,7 @@
  *
  * 툴팁, 범례 등 차트에서 공통으로 사용되는 컴포넌트입니다.
  */
-import { type Component, type JSX, For, Show, createMemo } from 'solid-js'
+import { type Component, For, Show, createMemo } from 'solid-js'
 // 중앙화된 포맷 함수 재export (성능 최적화된 버전)
 export {
   formatNumber,

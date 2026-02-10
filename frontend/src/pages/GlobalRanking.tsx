@@ -28,7 +28,6 @@ import {
   RadarChart,
   RankChangeIndicator,
   FavoriteButton,
-  getFavorites,
   ExportButton,
   AutoRefreshToggle,
 } from '../components/ui'

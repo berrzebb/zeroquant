@@ -97,11 +97,6 @@ const REGIME_CONFIG: Record<MarketRegime, { icon: string; color: string; bgColor
 export const RegimeSummaryTable: Component<RegimeSummaryTableProps> = (props) => {
   const showTransitionChart = () => props.showTransitionChart ?? true
 
-  // 현재 레짐 찾기
-  const currentRegimeData = createMemo(() =>
-    props.regimes.find((r) => r.regime === props.currentRegime)
-  )
-
   // 총 기간
   const totalDays = createMemo(() =>
     props.regimes.reduce((sum, r) => sum + r.days, 0)

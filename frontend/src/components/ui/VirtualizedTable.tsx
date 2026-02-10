@@ -207,9 +207,6 @@ export function VirtualizedTable<T>(props: VirtualizedTableProps<T>) {
             <For each={virtualItems()}>
               {(virtualRow) => {
                 const item = props.data[virtualRow.index]
-                const rowKey = props.getRowKey
-                  ? props.getRowKey(item, virtualRow.index)
-                  : virtualRow.index
 
                 return (
                   <div

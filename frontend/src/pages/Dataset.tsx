@@ -1,8 +1,8 @@
 import { createSignal, createEffect, createMemo, For, Show } from 'solid-js'
 import { createQuery, createMutation, useQueryClient } from '@tanstack/solid-query'
 import {
-  Database, Download, Trash2, RefreshCw, TrendingUp, BarChart3,
-  Search, Zap, Loader2, X, Grid2x2, Square
+  Download, RefreshCw, TrendingUp,
+  Search, Zap, Loader2, X
 } from 'lucide-solid'
 import { StatCard, StatCardGrid, PageHeader, Button, DateRangePicker } from '../components/ui'
 import { useToast } from '../components/Toast'

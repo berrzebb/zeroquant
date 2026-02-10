@@ -10,11 +10,10 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use trader_core::domain::{
-    ExchangeProvider, MarketDataProvider, StrategyAccountInfo, PendingOrder, 
-    StrategyPositionInfo, OrderStatusType, Side,
+    ExchangeProvider, MarketDataProvider, StrategyAccountInfo, PendingOrder,
+    StrategyPositionInfo, OrderStatusType, Side, Trade,
 };
-use trader_core::ProviderError;
-use trader_core::QuoteData;
+use trader_core::{ProviderError, QuoteData};
 
 // ============================================================================
 // 설정
@@ -118,6 +117,29 @@ pub struct BithumbOrder {
     pub trades_count: Option<u64>,
 }
 
+/// Bithumb 거래 내역 (§2.7 API 응답).
+#[derive(Debug, Deserialize)]
+pub struct BithumbTrade {
+    /// 마켓 코드 (예: KRW-BTC)
+    pub market: String,
+    /// 주문 ID
+    pub uuid: String,
+    /// 체결 가격
+    pub price: String,
+    /// 체결 수량
+    pub volume: String,
+    /// 체결 대금
+    pub funds: String,
+    /// 매도/매수 (buy, sell)
+    pub side: String,
+    /// 거래 시간 (ISO 8601)
+    pub created_at: String,
+    /// 수수료
+    pub commission: String,
+    /// 수수료율
+    pub ask_fee: String,
+}
+
 // ============================================================================
 // Bithumb 클라이언트
 // ============================================================================
@@ -215,6 +237,135 @@ impl BithumbClient {
         serde_json::from_str::<T>(&text).map_err(|e| {
             ProviderError::Parse(format!("Failed to parse Bithumb response: {}. Body: {}", e, text))
         })
+    }
+}
+
+// ============================================================================
+// 주문 실행 메서드
+// ============================================================================
+
+impl BithumbClient {
+    /// 주문 생성 (POST /v1/orders)
+    pub async fn place_order(
+        &self,
+        market: &str,
+        side: &str,      // "bid"=매수, "ask"=매도
+        ord_type: &str,   // "limit", "price"(시장가 매수), "market"(시장가 매도)
+        volume: Option<&str>,
+        price: Option<&str>,
+    ) -> Result<BithumbOrder, ProviderError> {
+        let mut body = serde_json::json!({
+            "market": market,
+            "side": side,
+            "ord_type": ord_type,
+        });
+
+        // 지정가/시장가 매도: volume 필수
+        if let Some(v) = volume {
+            body["volume"] = serde_json::Value::String(v.to_string());
+        }
+        // 지정가/시장가 매수(price): price 필수
+        if let Some(p) = price {
+            body["price"] = serde_json::Value::String(p.to_string());
+        }
+
+        self.request(Method::POST, "/orders", None, Some(&body)).await
+    }
+
+    /// 주문 취소 (DELETE /v1/order)
+    pub async fn cancel_order(&self, uuid: &str) -> Result<BithumbOrder, ProviderError> {
+        let query = serde_json::json!({
+            "uuid": uuid,
+        });
+        self.request(Method::DELETE, "/order", Some(&query), None).await
+    }
+
+    /// 주문 조회 (GET /v1/order)
+    pub async fn get_order(&self, uuid: &str) -> Result<BithumbOrder, ProviderError> {
+        let query = serde_json::json!({
+            "uuid": uuid,
+        });
+        self.request(Method::GET, "/order", Some(&query), None).await
+    }
+
+    /// 거래 내역 조회 (GET /v1/trades, §2.7 Private API).
+    ///
+    /// # Arguments
+    /// * `market` - 특정 마켓만 조회 (예: KRW-BTC). None이면 전체 조회.
+    /// * `limit` - 조회 개수 (기본값: 100, 최대: 1000)
+    ///
+    /// # Returns
+    /// 체결된 거래 내역 목록을 반환합니다.
+    pub async fn fetch_trades(
+        &self,
+        market: Option<&str>,
+        limit: usize,
+    ) -> Result<Vec<Trade>, ProviderError> {
+        // 파라미터 구성
+        let mut query = serde_json::json!({
+            "limit": limit.min(1000),
+            "order_by": "desc",  // 최신 순
+        });
+
+        if let Some(m) = market {
+            query["market"] = serde_json::Value::String(m.to_string());
+        }
+
+        // API 호출
+        let trades: Vec<BithumbTrade> = self
+            .request(Method::GET, "/trades", Some(&query), None)
+            .await?;
+
+        // Trade 타입으로 변환
+        let mut result = Vec::new();
+        for t in trades {
+            // Side 변환
+            let side = match t.side.as_str() {
+                "buy" => Side::Buy,
+                "sell" => Side::Sell,
+                _ => continue,  // 알 수 없는 side는 스킵
+            };
+
+            // UUID 파싱 (실패 시 스킵)
+            let order_id = match Uuid::parse_str(&t.uuid) {
+                Ok(id) => id,
+                Err(_) => {
+                    tracing::warn!(uuid = %t.uuid, "Bithumb 거래 내역: UUID 파싱 실패");
+                    continue;
+                }
+            };
+
+            // 체결 시간 파싱
+            let executed_at = DateTime::parse_from_rfc3339(&format!("{}+09:00", t.created_at))
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_else(|_| Utc::now());
+
+            // 가격/수량/수수료 파싱
+            let price = Decimal::from_str(&t.price).unwrap_or_default();
+            let quantity = Decimal::from_str(&t.volume).unwrap_or_default();
+            let fee = Decimal::from_str(&t.commission).unwrap_or_default();
+
+            result.push(Trade {
+                id: Uuid::new_v4(),  // 내부 ID 생성
+                order_id,
+                exchange: "bithumb".to_string(),
+                exchange_trade_id: t.uuid.clone(),  // Bithumb은 별도 거래 ID 없음
+                ticker: t.market,
+                side,
+                quantity,
+                price,
+                fee,
+                fee_currency: "KRW".to_string(),
+                executed_at,
+                is_maker: false,  // Bithumb API는 메이커/테이커 구분 없음
+                metadata: serde_json::json!({
+                    "ask_fee": t.ask_fee,
+                    "funds": t.funds,
+                }),
+            });
+        }
+
+        Ok(result)
     }
 }
 

@@ -1,5 +1,27 @@
 import { test, expect } from '@playwright/test';
 
+interface UiSchemaField {
+  key: string;
+  default_value: unknown;
+  show_when?: {
+    field: string;
+    operator: string;
+    value: unknown;
+  };
+}
+
+interface UiSchemaGroup {
+  id: string;
+}
+
+interface StrategySchema {
+  id: string;
+  ui_schema: {
+    fields: UiSchemaField[];
+    groups: UiSchemaGroup[];
+  };
+}
+
 test.describe('Risk Management UI Schema', () => {
   test.beforeEach(async ({ page }) => {
     // API 서버가 실행 중인지 확인
@@ -15,7 +37,7 @@ test.describe('Risk Management UI Schema', () => {
     expect(data.strategies.length).toBeGreaterThan(0);
 
     // RSI 전략에서 리스크 관리 필드 검증
-    const rsiStrategy = data.strategies.find((s: any) => s.id === 'rsi_mean_reversion');
+    const rsiStrategy = data.strategies.find((s: StrategySchema) => s.id === 'rsi_mean_reversion');
     expect(rsiStrategy).toBeDefined();
     expect(rsiStrategy.ui_schema).toBeDefined();
     expect(rsiStrategy.ui_schema.fields).toBeDefined();
@@ -32,7 +54,7 @@ test.describe('Risk Management UI Schema', () => {
     ];
 
     for (const key of riskFieldKeys) {
-      const field = fields.find((f: any) => f.key === key);
+      const field = fields.find((f: UiSchemaField) => f.key === key);
       expect(field, `Field ${key} should exist`).toBeDefined();
     }
   });
@@ -47,7 +69,7 @@ test.describe('Risk Management UI Schema', () => {
       const groups = strategy.ui_schema?.groups || [];
 
       for (const groupId of riskGroupIds) {
-        const group = groups.find((g: any) => g.id === groupId);
+        const group = groups.find((g: UiSchemaGroup) => g.id === groupId);
         expect(group, `Strategy ${strategy.id} should have group ${groupId}`).toBeDefined();
       }
     }
@@ -58,23 +80,23 @@ test.describe('Risk Management UI Schema', () => {
     const data = await response.json();
 
     // RSI 전략 기본값 검증 (보수적 설정)
-    const rsiStrategy = data.strategies.find((s: any) => s.id === 'rsi_mean_reversion');
+    const rsiStrategy = data.strategies.find((s: StrategySchema) => s.id === 'rsi_mean_reversion');
     const rsiFields = rsiStrategy.ui_schema.fields;
 
-    const rsiStopLoss = rsiFields.find((f: any) => f.key === 'stop_loss_pct');
+    const rsiStopLoss = rsiFields.find((f: UiSchemaField) => f.key === 'stop_loss_pct');
     expect(rsiStopLoss.default_value).toBe(3.0);
 
-    const rsiTakeProfit = rsiFields.find((f: any) => f.key === 'take_profit_pct');
+    const rsiTakeProfit = rsiFields.find((f: UiSchemaField) => f.key === 'take_profit_pct');
     expect(rsiTakeProfit.default_value).toBe(5.0);
 
     // Volatility Breakout 전략 기본값 검증 (공격적 설정)
-    const vbStrategy = data.strategies.find((s: any) => s.id === 'volatility_breakout');
+    const vbStrategy = data.strategies.find((s: StrategySchema) => s.id === 'volatility_breakout');
     const vbFields = vbStrategy.ui_schema.fields;
 
-    const vbStopLoss = vbFields.find((f: any) => f.key === 'stop_loss_pct');
+    const vbStopLoss = vbFields.find((f: UiSchemaField) => f.key === 'stop_loss_pct');
     expect(vbStopLoss.default_value).toBe(5.0);
 
-    const vbTakeProfit = vbFields.find((f: any) => f.key === 'take_profit_pct');
+    const vbTakeProfit = vbFields.find((f: UiSchemaField) => f.key === 'take_profit_pct');
     expect(vbTakeProfit.default_value).toBe(10.0);
   });
 
@@ -125,9 +147,9 @@ test.describe('Risk Management UI Schema', () => {
     const data = await response.json();
 
     // trailing_stop_pct 필드의 show_when 조건 확인
-    const rsiStrategy = data.strategies.find((s: any) => s.id === 'rsi_mean_reversion');
+    const rsiStrategy = data.strategies.find((s: StrategySchema) => s.id === 'rsi_mean_reversion');
     const trailingStopPct = rsiStrategy.ui_schema.fields.find(
-      (f: any) => f.key === 'trailing_stop_pct'
+      (f: UiSchemaField) => f.key === 'trailing_stop_pct'
     );
 
     expect(trailingStopPct.show_when).toBeDefined();

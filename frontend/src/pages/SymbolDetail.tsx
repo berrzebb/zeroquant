@@ -13,14 +13,11 @@ import {
   StatCard,
   StatCardGrid,
   EmptyState,
-  ErrorState,
   PageHeader,
   Button,
-  SignalMarkerOverlay,
 } from '../components/ui'
 import { SyncedChartPanel, VolumeProfile, VolumeProfileLegend, ScoreHistoryChart } from '../components/charts'
 import type { CandlestickDataPoint, TradeMarker, PriceVolume } from '../components/charts'
-import type { SignalMarker, SignalIndicators } from '../types'
 import {
   getSymbolSignals,
   getScoreHistory,
@@ -29,13 +26,11 @@ import {
   getKlines,
   type SignalMarkerDto,
   type SymbolSignalsQuery,
-  type ScoreHistorySummary,
   type CandleData,
 } from '../api/client'
-import type { SignalSymbolStats, SignalReturnPoint } from '../types/generated/signals'
 import { SymbolDisplay } from '../components/SymbolDisplay'
 import { createLogger } from '../utils/logger'
-import { formatCurrency, formatNumber, formatDate, formatDateTime } from '../utils/format'
+import { formatCurrency, formatNumber, formatDateTime } from '../utils/format'
 
 const { error: logError } = createLogger('SymbolDetail')
 
@@ -121,21 +116,6 @@ function convertSignalsToMarkers(signals: SignalMarkerDto[]): TradeMarker[] {
     price: parseFloat(signal.price),
     label: signal.side || signal.signal_type,
   })).sort((a, b) => (a.time as string).localeCompare(b.time as string))
-}
-
-function convertToSignalMarker(dto: SignalMarkerDto): SignalMarker {
-  return {
-    id: dto.id,
-    symbol: dto.symbol,
-    timestamp: dto.timestamp,
-    signal_type: dto.signal_type,
-    side: dto.side as 'Buy' | 'Sell' | undefined,
-    price: parseFloat(dto.price),
-    strength: parseFloat(dto.strength),
-    executed: dto.executed,
-    reason: dto.reason,
-    indicators: dto.indicators as SignalIndicators,
-  }
 }
 
 // ==================== 메인 컴포넌트 ====================
@@ -300,11 +280,6 @@ export function SymbolDetail() {
   // 차트용 마커
   const tradeMarkers = createMemo(() => {
     return convertSignalsToMarkers(filteredSignals())
-  })
-
-  // SignalMarkerOverlay용 변환
-  const signalMarkers = createMemo((): SignalMarker[] => {
-    return filteredSignals().map(convertToSignalMarker)
   })
 
   // 신호 통계

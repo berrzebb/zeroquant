@@ -533,10 +533,8 @@ impl LiveExecutor {
         // 포지션 업데이트 또는 제거
         if close_quantity >= position.quantity {
             self.positions.remove(&key);
-        } else {
-            if let Some(pos) = self.positions.get_mut(&key) {
-                pos.quantity -= close_quantity;
-            }
+        } else if let Some(pos) = self.positions.get_mut(&key) {
+            pos.quantity -= close_quantity;
         }
 
         // 거래 기록 생성 (공통 유틸리티)

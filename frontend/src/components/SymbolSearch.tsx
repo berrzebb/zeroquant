@@ -253,7 +253,7 @@ export function SymbolSearch(props: SymbolSearchProps) {
         e.preventDefault()
         setSelectedIndex(prev => len > 0 ? (prev - 1 + len) % len : -1)
         break
-      case 'Enter':
+      case 'Enter': {
         e.preventDefault()
         const idx = selectedIndex()
         if (idx >= 0 && idx < len) {
@@ -263,6 +263,7 @@ export function SymbolSearch(props: SymbolSearchProps) {
           handleSelect(query().trim().toUpperCase())
         }
         break
+      }
       case 'Escape':
         setShowDropdown(false)
         setSelectedIndex(-1)
@@ -310,12 +311,6 @@ export function SymbolSearch(props: SymbolSearchProps) {
   }
 
   const sizes = sizeClasses()
-
-  // 표시할 값 결정
-  const displayValue = () => {
-    if (selectedDisplay()) return selectedDisplay();
-    return singleSelectedValue() || '';
-  }
 
   return (
     <div id={props.id} class="space-y-2">

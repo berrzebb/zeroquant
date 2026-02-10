@@ -4,7 +4,7 @@
  * 전략 목록 조회, 생성, 수정, 삭제, 활성화/비활성화 기능을 제공합니다.
  * 낙관적 업데이트와 에러 롤백을 지원합니다.
  */
-import { createResource, createMemo, batch } from 'solid-js'
+import { createResource, createMemo } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import {
   getStrategies,

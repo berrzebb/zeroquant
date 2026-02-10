@@ -264,6 +264,22 @@ const STRATEGY_CONFIGS: StrategyTestConfig[] = [
   },
 ];
 
+// ==================== 백테스트 결과 타입 ====================
+
+interface BacktestMetrics {
+  total_trades?: number;
+  total_return_pct?: string;
+  max_drawdown_pct?: string;
+  sharpe_ratio?: string;
+}
+
+interface BacktestResult {
+  success: boolean;
+  metrics?: BacktestMetrics;
+  config_summary?: { data_points?: number };
+  equity_curve?: unknown[];
+}
+
 // ==================== 테스트 결과 타입 ====================
 
 interface TestResult {
@@ -335,7 +351,7 @@ async function runBacktest(
   startDate: string,
   endDate: string,
   initialCapital: number
-): Promise<any> {
+): Promise<BacktestResult> {
   console.log(`📊 백테스트 실행: ${config.name}`);
 
   const endpoint = config.category === 'multi' ? '/backtest/run-multi' : '/backtest/run';
@@ -362,7 +378,7 @@ async function runBacktest(
   return response.data;
 }
 
-function validateBacktestResult(result: any, config: StrategyTestConfig): {
+function validateBacktestResult(result: BacktestResult, config: StrategyTestConfig): {
   isValid: boolean;
   issues: string[];
 } {
@@ -430,7 +446,7 @@ async function checkDataAvailability(symbols: string[]): Promise<{
       if (data.length < 100) {
         allAvailable = false;
       }
-    } catch (error) {
+    } catch {
       details[symbol] = { count: 0, range: 'ERROR' };
       allAvailable = false;
     }

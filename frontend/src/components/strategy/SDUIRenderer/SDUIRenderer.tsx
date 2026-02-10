@@ -13,10 +13,8 @@ import {
 } from 'solid-js';
 import { createStore, reconcile } from 'solid-js/store';
 import type {
-  StrategyUISchema,
   RenderableSection,
   ValidationErrors,
-  StrategyValues,
 } from '../../../types/sdui';
 import { useStrategySchema, applyDefaults } from '../../../hooks/useStrategySchema';
 import { Spinner } from '../../ui/Loading';

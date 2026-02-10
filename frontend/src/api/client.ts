@@ -24,12 +24,8 @@ import type {
   ExecutionResponse,
   ExecutionsListResponse,
   PnLSummaryResponse,
-  PositionsSummary,
-  DailyPnLItem,
   DailyPnLResponse,
-  SymbolPnLItem,
   SymbolPnLResponse,
-  SyncResponse as JournalSyncResponseGenerated,
   ListExecutionsQuery,
   // Screening 타입
   ScreeningRequest as GeneratedScreeningRequest,
@@ -41,18 +37,14 @@ import type {
   // Ranking 타입
   RankingResponse as GeneratedRankingResponse,
   RankedSymbol as GeneratedRankedSymbol,
-  RankingQuery as GeneratedRankingQuery,
-  FilterInfo,
   // Strategies 타입
   StrategyListItem,
-  StrategiesListResponse,
   CreateStrategyRequest as GeneratedCreateStrategyRequest,
   CreateStrategyResponse as GeneratedCreateStrategyResponse,
   CloneStrategyRequest as GeneratedCloneStrategyRequest,
   CloneStrategyResponse as GeneratedCloneStrategyResponse,
   // Backtest 타입
   BacktestableStrategy,
-  BacktestStrategiesResponse as GeneratedBacktestStrategiesResponse,
   BacktestMetricsResponse,
   TradeResultItem,
 } from '../types/generated';

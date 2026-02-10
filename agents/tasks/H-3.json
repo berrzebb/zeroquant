@@ -1,0 +1,55 @@
+{
+  "id": "H-3",
+  "title": "LS증권 주문 실행 (OrderExecutionProvider)",
+  "group": "H",
+  "description": "LS증권 국내주식 주문/정정/취소 구현. 매수: CSPAT00601 POST /stock/order, 매도: CSPAT00701 POST /stock/order, 정정: CSPAT00602/00702 POST /stock/order/modify, 취소: CSPAT00603/00703 DELETE /stock/order/{order_number}. KIS Provider 패턴 참조. OrderExecutionProvider trait 구현.",
+  "relevant_crates": ["trader-exchange"],
+  "has_db_changes": false,
+  "depends_on": [],
+  "reference_files": [
+    "crates/trader-exchange/src/connector/ls_sec/client.rs",
+    "crates/trader-exchange/src/provider/ls_sec.rs",
+    "crates/trader-exchange/src/provider/kis.rs",
+    "crates/trader-exchange/src/connector/kis/client_kr.rs",
+    "crates/trader-core/src/domain/exchange_provider.rs",
+    "docs/exchange/ls_openapi_spec.md"
+  ],
+  "api_spec": {
+    "place_order": {
+      "method": "POST",
+      "path": "/stock/order",
+      "tr_code_buy": "CSPAT00601",
+      "tr_code_sell": "CSPAT00701",
+      "body": {"account_number": "string", "symbol": "string", "order_type": "BUY|SELL", "price": "int", "quantity": "int", "order_class": "00(지정가)|01(시장가)|02(조건부)|03(최유리)", "time_in_force": "DAY|IOC|FOK"},
+      "response": {"order_number": "string", "order_status": "ACCEPTED|COMPLETED|REJECTED"},
+      "auth": "Bearer OAuth2 Token"
+    },
+    "modify_order": {
+      "method": "POST",
+      "path": "/stock/order/modify",
+      "tr_code_buy": "CSPAT00602",
+      "tr_code_sell": "CSPAT00702",
+      "body": {"account_number": "string", "order_number": "string", "price": "int", "quantity": "int"}
+    },
+    "cancel_order": {
+      "method": "DELETE",
+      "path": "/stock/order/{order_number}",
+      "tr_code_buy": "CSPAT00603",
+      "tr_code_sell": "CSPAT00703",
+      "params": {"order_number": "string", "account_number": "string"}
+    }
+  },
+  "checklist": [
+    "LsSecClient::place_buy_order() - CSPAT00601 구현",
+    "LsSecClient::place_sell_order() - CSPAT00701 구현",
+    "LsSecClient::cancel_order() - CSPAT00603/00703 구현",
+    "LsSecClient::modify_order() - CSPAT00602/00702 구현",
+    "OrderExecutionProvider for LsSecExchangeProvider impl",
+    "계좌번호 설정에서 가져오기 (LsSecConfig)",
+    "캐시 무효화 (invalidate_cache) 호출",
+    "단위 테스트 작성",
+    "cargo check -p trader-exchange 성공",
+    "cargo test -p trader-exchange 통과",
+    "cargo clippy -p trader-exchange 경고 없음"
+  ]
+}

@@ -445,45 +445,50 @@ mod tests {
     fn test_hammer_detection() {
         let indicator = CandlePatternIndicator::new();
 
-        // 망치형: 하단 그림자 긴 상승 캔들
+        // 망치형: 하락 추세 후 하단 그림자 긴 캔들
+        // 조건: lower_shadow >= body * 2, upper_shadow < body * 0.5
+        // 마지막 캔들의 이전 캔들이 engulfing 조건에 매칭되지 않도록 bullish로 설정
         let open = vec![
-            dec!(100.0),
+            dec!(105.0),
+            dec!(103.0),
+            dec!(101.0),
             dec!(99.0),
-            dec!(98.0),
             dec!(97.0),
-            dec!(96.0),
-            dec!(95.0),
+            dec!(98.0), // body = |100-98| = 2
         ];
         let high = vec![
-            dec!(101.0),
+            dec!(106.0),
+            dec!(104.0),
+            dec!(102.0),
             dec!(100.0),
-            dec!(99.0),
             dec!(98.0),
-            dec!(97.0),
-            dec!(101.0),
+            dec!(100.5), // upper_shadow = 100.5-100 = 0.5 < 2*0.5=1 ✓
         ];
         let low = vec![
+            dec!(103.0),
+            dec!(101.0),
             dec!(99.0),
-            dec!(98.0),
             dec!(97.0),
-            dec!(96.0),
             dec!(95.0),
-            dec!(90.0),
-        ]; // 긴 하단 그림자
+            dec!(90.0), // lower_shadow = min(98,100)-90 = 8 >= 2*2=4 ✓
+        ];
         let close = vec![
-            dec!(100.0),
+            dec!(103.0),
+            dec!(101.0),
             dec!(99.0),
-            dec!(98.0),
             dec!(97.0),
-            dec!(96.0),
+            dec!(97.0), // 이전 캔들: open=97, close=97 → 동일가 (not bullish)
             dec!(100.0),
         ];
+        // 마지막 캔들: open=98 < prev.close=97 아님 (98 > 97) → engulfing 매칭 안 됨
+        // (engulfing은 candle.open < prev.close 요구)
+        // 추세: close[5]=100 vs close[0]=103 → 100 < 103*0.98=100.94 → 하락 추세
 
         let result = indicator
             .detect(&open, &high, &low, &close, CandlePatternParams::default())
             .unwrap();
 
-        // 마지막 캔들이 망치형이어야 함
+        // 마지막 캔들이 망치형이어야 함 (하락 추세에서 Hammer)
         assert!(
             result[5].pattern == CandlePatternType::Hammer
                 || result[5].pattern == CandlePatternType::HangingMan
@@ -495,10 +500,12 @@ mod tests {
         let indicator = CandlePatternIndicator::new();
 
         // 강세 장악형: 하락 캔들 후 큰 상승 캔들
-        let open = vec![dec!(100.0), dec!(98.0)];
+        // 조건: !prev.is_bullish() && candle.is_bullish()
+        //        && candle.open < prev.close && candle.close > prev.open
+        let open = vec![dec!(100.0), dec!(95.0)]; // 현재 시가가 이전 종가(96) 아래
         let high = vec![dec!(100.0), dec!(102.0)];
         let low = vec![dec!(95.0), dec!(94.0)];
-        let close = vec![dec!(96.0), dec!(101.0)]; // 이전 캔들 완전 포함
+        let close = vec![dec!(96.0), dec!(101.0)]; // 현재 종가가 이전 시가(100) 위
 
         let result = indicator
             .detect(&open, &high, &low, &close, CandlePatternParams::default())
@@ -513,10 +520,12 @@ mod tests {
         let indicator = CandlePatternIndicator::new();
 
         // 약세 장악형: 상승 캔들 후 큰 하락 캔들
-        let open = vec![dec!(95.0), dec!(102.0)];
-        let high = vec![dec!(100.0), dec!(105.0)];
-        let low = vec![dec!(95.0), dec!(94.0)];
-        let close = vec![dec!(100.0), dec!(96.0)]; // 이전 캔들 완전 포함
+        // 조건: prev.is_bullish() && !candle.is_bullish()
+        //        && candle.open > prev.close && candle.close < prev.open
+        let open = vec![dec!(95.0), dec!(101.0)]; // 현재 시가가 이전 종가(100) 위
+        let high = vec![dec!(100.0), dec!(102.0)];
+        let low = vec![dec!(95.0), dec!(93.0)];
+        let close = vec![dec!(100.0), dec!(94.0)]; // 현재 종가가 이전 시가(95) 아래
 
         let result = indicator
             .detect(&open, &high, &low, &close, CandlePatternParams::default())

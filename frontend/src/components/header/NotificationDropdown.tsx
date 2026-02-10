@@ -6,7 +6,7 @@
  */
 import { createSignal, createResource, Show, For, onCleanup } from 'solid-js'
 import type { Component, JSX } from 'solid-js'
-import { Bell, Check, X, AlertTriangle, TrendingUp, TrendingDown, Info } from 'lucide-solid'
+import { Bell, AlertTriangle, TrendingUp, TrendingDown, Info } from 'lucide-solid'
 import { getAlertHistory, markAlertAsRead, type AlertHistoryItem } from '../../api/client'
 
 // ==================== 타입 정의 ====================

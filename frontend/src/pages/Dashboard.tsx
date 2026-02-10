@@ -1,30 +1,19 @@
 import { onMount, For, Show, createResource, lazy, Suspense } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Activity,
-  BarChart3,
-  ArrowUpRight,
-  ArrowDownRight,
   RefreshCw,
   AlertCircle,
   Bell,
-  Bot,
   Play,
-  Pause,
   Building2,
   Settings,
 } from 'lucide-solid'
-import { PageLoader, ErrorState, StatCard, StatCardGrid, Card, CardHeader, CardContent, EmptyState } from '../components/ui'
+import { PageLoader, ErrorState, StatCard, StatCardGrid, Card, EmptyState } from '../components/ui'
 import { RankingWidget } from '../components/ranking'
 import { createWebSocket } from '../hooks/createWebSocket'
 import { getPortfolioSummary, getHoldings, getStrategies, getActiveAccount, getMarketOverview } from '../api/client'
-import type { MarketOverviewResponse } from '../api/client'
 // EChart 미사용 컴포넌트는 동기 import
 import { PortfolioEquityChart, MarketBreadthWidget, SectorTreemap } from '../components/charts'
-import type { RegimeData, MarketRegime } from '../components/charts'
 
 // EChart 기반 컴포넌트는 lazy loading (번들 사이즈 최적화)
 const FearGreedGauge = lazy(() =>

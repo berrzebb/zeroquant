@@ -131,7 +131,7 @@ export function ScoreHistoryChart(props: ScoreHistoryChartProps) {
   };
 
   // 통합 차트 훅 사용
-  const { setContainerRef, chart, chartId, colors } = useLightweightChart({
+  const { setContainerRef } = useLightweightChart({
     height: props.height || 200,
     colors: getChartColors(),
     syncState: props.syncState,

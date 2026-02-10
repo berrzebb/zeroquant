@@ -41,7 +41,7 @@
 import { type Component, Show, createEffect, on, createMemo } from 'solid-js';
 import type { IChartApi, ISeriesApi, SeriesType, Time } from 'lightweight-charts';
 import { AreaSeries, LineSeries, HistogramSeries, CandlestickSeries } from 'lightweight-charts';
-import { useLightweightChart, useChartSeries } from '../../hooks/useLightweightChart';
+import { useLightweightChart } from '../../hooks/useLightweightChart';
 import {
   type ChartColors,
   type ChartSyncState,
@@ -143,7 +143,7 @@ export const BaseChart: Component<BaseChartProps> = (props) => {
   // 주의: props를 동적으로 접근하기 위해 콜백을 래핑합니다
   // solid-js에서 훅에 전달되는 값은 생성 시점에 캡처되므로,
   // 최신 props에 접근하려면 함수로 래핑해야 합니다
-  const { setContainerRef, chart, chartId, fitContent } = useLightweightChart({
+  const { setContainerRef, fitContent } = useLightweightChart({
     height: height(),
     colors: props.colors,
     crosshairMode: props.crosshairMode,

@@ -5,10 +5,10 @@
  * 탭 구성: 개요, 지표, 차트
  */
 import { Show, createSignal, createResource, onMount, onCleanup, For } from 'solid-js'
-import { X, Star, Link2, TrendingUp, TrendingDown, BarChart2, Activity, Target, LineChart } from 'lucide-solid'
+import { X, Star, Link2, TrendingUp, BarChart2, Activity, Target, LineChart } from 'lucide-solid'
 import type { ScreeningResultDto, CandleData } from '../../api/client'
 import { getKlines } from '../../api/client'
-import { CHART_COLORS, RouteStateBadge } from '../ui'
+import { RouteStateBadge } from '../ui'
 import { PriceChart, type CandlestickDataPoint, type LineDataPoint } from '../charts/PriceChart'
 import { SyncedChartPanel } from '../charts/SyncedChartPanel'
 import type { SeparateIndicatorData } from '../charts/SubPriceChart'

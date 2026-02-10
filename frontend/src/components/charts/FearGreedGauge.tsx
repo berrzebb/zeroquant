@@ -13,7 +13,7 @@
  */
 import { createResource, createMemo, Show } from 'solid-js'
 import type { Component, JSX } from 'solid-js'
-import { EChart, CHART_COLORS } from '../ui/EChart'
+import { EChart } from '../ui/EChart'
 import { getMarketBreadth } from '../../api/client'
 import { createLogger } from '../../utils/logger'
 import type { EChartsOption } from 'echarts'
@@ -143,7 +143,6 @@ export const FearGreedGauge: Component<FearGreedGaugeProps> = (props) => {
   // ECharts 옵션
   const chartOption = createMemo((): EChartsOption => {
     const value = gaugeValue()
-    const level = currentLevel()
     const info = levelInfo()
 
     return {

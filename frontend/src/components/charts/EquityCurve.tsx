@@ -83,7 +83,6 @@ export interface EquityCurveProps {
 export const EquityCurve: Component<EquityCurveProps> = (props) => {
   // 벤치마크 시리즈 참조
   let benchmarkSeries: ISeriesApi<'Line'> | undefined;
-  let chartInstance: IChartApi | undefined;
 
   // 색상 변환 (기존 API 호환) - undefined 필드는 제외하여 기본값 사용
   const getColors = () => {
@@ -102,8 +101,6 @@ export const EquityCurve: Component<EquityCurveProps> = (props) => {
 
   // 벤치마크 시리즈 생성/업데이트
   const handleChartReady = (chart: IChartApi) => {
-    chartInstance = chart;
-
     // 벤치마크 라인 추가
     if (props.showBenchmark) {
       benchmarkSeries = chart.addSeries(LineSeries, {

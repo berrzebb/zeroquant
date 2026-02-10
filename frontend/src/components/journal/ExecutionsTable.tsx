@@ -85,7 +85,7 @@ export function ExecutionsTable(props: ExecutionsTableProps) {
     const groups: Record<string, JournalExecution[]> = {}
     for (const exec of props.executions) {
       // executed_at 우선, 백테스트 데이터의 timestamp 폴백
-      const dateTime = exec.executed_at || (exec as any).timestamp || ''
+      const dateTime = exec.executed_at || (exec as unknown as Record<string, string>).timestamp || ''
       const date = dateTime.split('T')[0] || 'unknown'
       if (!groups[date]) groups[date] = []
       groups[date].push(exec)
@@ -223,7 +223,7 @@ export function ExecutionsTable(props: ExecutionsTableProps) {
                 {(exec: JournalExecution) => (
                   <tr class="border-b border-gray-800 hover:bg-gray-800/50">
                     <td class="py-3 px-4 text-gray-400 text-xs">
-                      {formatDateTime(exec.executed_at || (exec as any).timestamp || '')}
+                      {formatDateTime(exec.executed_at || (exec as unknown as Record<string, string>).timestamp || '')}
                     </td>
                     <td class="py-3 px-4">
                       <SymbolDisplay
@@ -389,7 +389,7 @@ export function ExecutionsTable(props: ExecutionsTableProps) {
                                   autoFetch={true}
                                 />
                                 <span class="text-xs text-gray-500">
-                                  {formatTime(exec.executed_at || (exec as any).timestamp || '')}
+                                  {formatTime(exec.executed_at || (exec as unknown as Record<string, string>).timestamp || '')}
                                 </span>
                               </div>
 

@@ -268,20 +268,28 @@ mod tests {
     #[test]
     fn test_divergence_detection() {
         let indicator = ObvIndicator::new();
+
+        // 약세 다이버전스: 가격은 전체적으로 상승하지만, 중간에 큰 하락 거래량으로
+        // OBV가 하락하는 구간이 존재해야 함.
+        // lookback=2일 때, close[i] > close[i-2] 이면서 obv[i] < obv[i-2] 이어야 다이버전스.
         let close = vec![
             dec!(100.0),
             dec!(102.0),
-            dec!(104.0),
-            dec!(106.0),
-            dec!(108.0), // 가격은 계속 상승
+            dec!(104.0), // i=2: 박스권 고점
+            dec!(99.0),  // i=3: 큰 하락 (대량 거래)
+            dec!(106.0), // i=4: 가격 회복 (적은 거래량)
         ];
         let volume = vec![
-            dec!(2000.0),
-            dec!(1500.0), // 거래량은 감소
             dec!(1000.0),
-            dec!(800.0),
-            dec!(500.0),
+            dec!(1000.0),
+            dec!(1000.0),
+            dec!(8000.0), // 하락 시 대량 매도 → OBV 급락
+            dec!(500.0),  // 상승 시 적은 거래량 → OBV 소폭 회복
         ];
+
+        // OBV: 0, +1000=1000, +1000=2000, -8000=-6000, +500=-5500
+        // lookback=2, i=4: price=106 vs close[2]=104 → 상승 ✓
+        //                   obv=-5500 vs obv[2]=2000 → 하락 ✓ → 다이버전스!
 
         let obv_results = indicator
             .calculate(&close, &volume, ObvParams::default())

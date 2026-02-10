@@ -9,7 +9,6 @@ import {
   Match,
   Show,
   For,
-  createMemo,
 } from 'solid-js';
 import type { FieldSchema } from '../../../types/sdui';
 import { MultiSymbolInput, MultiTimeframeField, type MultiTimeframeValue } from './fields';
@@ -101,9 +100,6 @@ export interface SDUIFieldProps {
  * ```
  */
 export const SDUIField: Component<SDUIFieldProps> = (props) => {
-  // 필수 마크
-  const requiredMark = createMemo(() => props.field.required ? ' *' : '');
-
   return (
     <div class="mb-4">
       {/* 라벨 */}

@@ -334,7 +334,5 @@ impl AnalyticsProvider for AnalyticsProviderImpl {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     // 테스트는 실제 DB 연결이 필요하므로 integration test로 이동
 }

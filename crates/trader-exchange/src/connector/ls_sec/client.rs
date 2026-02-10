@@ -11,8 +11,8 @@ use rust_decimal::Decimal;
 use std::str::FromStr;
 
 use trader_core::domain::{
-    ExchangeProvider, MarketDataProvider, StrategyAccountInfo, PendingOrder, 
-    StrategyPositionInfo, OrderStatusType, Side,
+    ExchangeProvider, MarketDataProvider, StrategyAccountInfo, PendingOrder,
+    StrategyPositionInfo, OrderStatusType, Side, OrderResponse,
 };
 use trader_core::ProviderError;
 use trader_core::QuoteData;
@@ -146,6 +146,32 @@ struct QuoteResponse {
 }
 
 #[derive(Deserialize, Debug)]
+struct ExecutionHistoryResponse {
+    #[serde(rename = "t0425OutBlock1")]
+    out_block1: Vec<ExecutionBlock>,
+}
+
+#[derive(Deserialize, Debug)]
+struct ExecutionBlock {
+    #[serde(rename = "ordno")]
+    ordno: Value,
+    #[serde(rename = "expcode")]
+    expcode: String,
+    #[serde(rename = "medosu")]
+    medosu: String,
+    #[serde(rename = "cheqty", default)]
+    cheqty: Value,
+    #[serde(rename = "cheprice", default)]
+    cheprice: Value,
+    #[serde(rename = "cheamt", default)]
+    _cheamt: Value,
+    #[serde(rename = "chetime", default)]
+    chetime: Value,
+    #[serde(rename = "cfee", default)]
+    cfee: Value,
+}
+
+#[derive(Deserialize, Debug)]
 struct QuoteOutBlock {
     #[serde(rename = "shcode")]
     _shcode: String,
@@ -155,6 +181,35 @@ struct QuoteOutBlock {
     change: Value,
     #[serde(rename = "diff")]
     diff: Value,
+    // 현재가 확장 필드 (t1101 응답에서 매핑)
+    #[serde(rename = "high", default)]
+    high: Value,
+    #[serde(rename = "low", default)]
+    low: Value,
+    #[serde(rename = "open", default)]
+    open: Value,
+    #[serde(rename = "jnilclose", default)]
+    jnilclose: Value,
+    #[serde(rename = "volume", default)]
+    volume: Value,
+    #[serde(rename = "value", default)]
+    value: Value,
+}
+
+#[derive(Deserialize, Debug)]
+struct LsOrderResponse {
+    #[serde(rename = "CSPAT00601OutBlock2", alias = "CSPAT00701OutBlock2",
+            alias = "CSPAT00602OutBlock2", alias = "CSPAT00702OutBlock2",
+            alias = "CSPAT00603OutBlock2", alias = "CSPAT00703OutBlock2")]
+    out_block2: LsOrderResult,
+}
+
+#[derive(Deserialize, Debug)]
+struct LsOrderResult {
+    #[serde(rename = "OrdNo")]
+    ord_no: Value,
+    #[serde(rename = "OrdTime", default)]
+    ord_time: Value,
 }
 
 impl LsSecClient {
@@ -300,7 +355,7 @@ impl LsSecClient {
             }
         });
         let res: UsPositionsResponse = self.request("overseas-stock/accno", "COSOQ00201", Some(body)).await?;
-        
+
         let mut positions = Vec::new();
         for stock in res.out_block2 {
             let qty = Decimal::from_str(&stock.exec_qty).unwrap_or_default();
@@ -314,6 +369,230 @@ impl LsSecClient {
             ));
         }
         Ok(positions)
+    }
+
+    /// 국내 주식 매수/매도 주문 (CSPAT00601: 매수, CSPAT00701: 매도)
+    pub async fn place_order(
+        &self,
+        symbol: &str,
+        side: Side,
+        quantity: u32,
+        price: Decimal,
+        order_class: &str,  // "00"=지정가, "01"=시장가
+    ) -> Result<OrderResponse, ProviderError> {
+        let (tr_cd, in_block) = match side {
+            Side::Buy => ("CSPAT00601", "CSPAT00601InBlock1"),
+            Side::Sell => ("CSPAT00701", "CSPAT00701InBlock1"),
+        };
+
+        let body = json!({
+            in_block: {
+                "IsuNo": symbol,
+                "OrdQty": quantity,
+                "OrdPrc": price.to_string(),
+                "BnsTpCode": match side { Side::Buy => "2", Side::Sell => "1" },
+                "OrdprcPtnCode": order_class,
+                "MgntrnCode": "000",
+                "LoanDt": "",
+                "OrdCndiTpCode": "0"
+            }
+        });
+
+        let res: LsOrderResponse = self.request("stock/order", tr_cd, Some(body)).await?;
+
+        let order_no = if let Some(s) = res.out_block2.ord_no.as_str() {
+            s.to_string()
+        } else {
+            res.out_block2.ord_no.to_string()
+        };
+        let order_time = if let Some(s) = res.out_block2.ord_time.as_str() {
+            s.to_string()
+        } else {
+            res.out_block2.ord_time.to_string()
+        };
+
+        Ok(OrderResponse { order_no, order_time })
+    }
+
+    /// 국내 주식 주문 취소 (CSPAT00603: 매수취소, CSPAT00703: 매도취소)
+    pub async fn cancel_order(
+        &self,
+        order_no: &str,
+        symbol: &str,
+        original_side: Side,
+        quantity: u32,
+    ) -> Result<OrderResponse, ProviderError> {
+        let (tr_cd, in_block) = match original_side {
+            Side::Buy => ("CSPAT00603", "CSPAT00603InBlock1"),
+            Side::Sell => ("CSPAT00703", "CSPAT00703InBlock1"),
+        };
+
+        let body = json!({
+            in_block: {
+                "OrgOrdNo": order_no,
+                "IsuNo": symbol,
+                "OrdQty": quantity
+            }
+        });
+
+        let res: LsOrderResponse = self.request("stock/order", tr_cd, Some(body)).await?;
+
+        let ord_no = if let Some(s) = res.out_block2.ord_no.as_str() {
+            s.to_string()
+        } else {
+            res.out_block2.ord_no.to_string()
+        };
+        let ord_time = if let Some(s) = res.out_block2.ord_time.as_str() {
+            s.to_string()
+        } else {
+            res.out_block2.ord_time.to_string()
+        };
+
+        Ok(OrderResponse { order_no: ord_no, order_time: ord_time })
+    }
+
+    /// 국내 주식 주문 정정 (CSPAT00602: 매수정정, CSPAT00702: 매도정정)
+    pub async fn modify_order(
+        &self,
+        order_no: &str,
+        symbol: &str,
+        original_side: Side,
+        quantity: u32,
+        price: Decimal,
+    ) -> Result<OrderResponse, ProviderError> {
+        let (tr_cd, in_block) = match original_side {
+            Side::Buy => ("CSPAT00602", "CSPAT00602InBlock1"),
+            Side::Sell => ("CSPAT00702", "CSPAT00702InBlock1"),
+        };
+
+        let body = json!({
+            in_block: {
+                "OrgOrdNo": order_no,
+                "IsuNo": symbol,
+                "OrdQty": quantity,
+                "OrdPrc": price.to_string(),
+                "OrdprcPtnCode": "00"
+            }
+        });
+
+        let res: LsOrderResponse = self.request("stock/order", tr_cd, Some(body)).await?;
+
+        let ord_no = if let Some(s) = res.out_block2.ord_no.as_str() {
+            s.to_string()
+        } else {
+            res.out_block2.ord_no.to_string()
+        };
+        let ord_time = if let Some(s) = res.out_block2.ord_time.as_str() {
+            s.to_string()
+        } else {
+            res.out_block2.ord_time.to_string()
+        };
+
+        Ok(OrderResponse { order_no: ord_no, order_time: ord_time })
+    }
+
+    /// 체결 내역 조회 (t0425)
+    ///
+    /// # Arguments
+    /// * `start_date` - 조회 시작 날짜 (YYYYMMDD)
+    /// * `end_date` - 조회 종료 날짜 (YYYYMMDD)
+    /// * `symbol` - 종목 코드 (선택)
+    ///
+    /// # Returns
+    /// 체결된 거래 목록을 반환합니다.
+    pub async fn fetch_execution_history(
+        &self,
+        start_date: &str,
+        end_date: &str,
+        symbol: Option<&str>,
+    ) -> Result<Vec<trader_core::domain::Trade>, ProviderError> {
+        let body = json!({
+            "t0425InBlock": {
+                "expcode": symbol.unwrap_or(""),
+                "chegb": "0",  // 0=전체, 1=체결, 2=미체결
+                "medosu": "0",  // 0=전체, 1=매도, 2=매수
+                "sortgb": "1",
+                "cts_ordno": "",
+                "startdate": start_date,
+                "enddate": end_date
+            }
+        });
+
+        let res: ExecutionHistoryResponse = self.request("stock/accno", "t0425", Some(body)).await?;
+
+        fn parse_value(v: &Value) -> Decimal {
+            if let Some(s) = v.as_str() {
+                Decimal::from_str(s).unwrap_or_default()
+            } else if let Some(n) = v.as_f64() {
+                Decimal::from_f64_retain(n).unwrap_or_default()
+            } else if let Some(n) = v.as_i64() {
+                Decimal::from(n)
+            } else {
+                Decimal::ZERO
+            }
+        }
+
+        use trader_core::domain::Trade;
+        use uuid::Uuid;
+
+        let mut trades = Vec::new();
+        for exec in res.out_block1 {
+            // 체결 수량이 0이면 건너뛰기
+            let filled_qty = parse_value(&exec.cheqty);
+            if filled_qty.is_zero() {
+                continue;
+            }
+
+            // 종목 코드 정규화 (A 접두사 제거)
+            let mut ticker = exec.expcode;
+            if ticker.len() == 7 && ticker.starts_with('A') {
+                ticker = ticker[1..].to_string();
+            }
+
+            // 매수/매도 판별
+            let side = if exec.medosu.contains("매도") || exec.medosu == "1" {
+                Side::Sell
+            } else {
+                Side::Buy
+            };
+
+            // 주문 ID 파싱
+            let order_id_str = if let Some(s) = exec.ordno.as_str() {
+                s.to_string()
+            } else {
+                exec.ordno.to_string()
+            };
+
+            // 체결 시간 파싱 (HHmmss → DateTime<Utc>)
+            let executed_at = if let Some(time_str) = exec.chetime.as_str() {
+                // 시간만 있으면 오늘 날짜와 결합
+                let today = Utc::now().format("%Y%m%d").to_string();
+                let datetime_str = format!("{}{}", today, time_str);
+
+                chrono::NaiveDateTime::parse_from_str(&datetime_str, "%Y%m%d%H%M%S")
+                    .map(|dt| chrono::DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc))
+                    .unwrap_or_else(|_| Utc::now())
+            } else {
+                Utc::now()
+            };
+
+            // Trade 구조체 생성
+            let trade = Trade::new(
+                Uuid::new_v4(),  // order_id는 실제로는 거래소 주문 ID를 UUID로 변환해야 하지만 임시로 새 UUID 사용
+                "ls_securities",
+                order_id_str.clone(),
+                ticker,
+                side,
+                filled_qty,
+                parse_value(&exec.cheprice),
+            )
+            .with_fee(parse_value(&exec.cfee), "KRW")
+            .with_executed_at(executed_at);
+
+            trades.push(trade);
+        }
+
+        Ok(trades)
     }
 }
 
@@ -457,12 +736,12 @@ impl MarketDataProvider for LsSecClient {
             current_price: parse_num(&res.out_block.price),
             price_change: parse_num(&res.out_block.change),
             change_percent: parse_num(&res.out_block.diff),
-            high: Decimal::ZERO,
-            low: Decimal::ZERO,
-            open: Decimal::ZERO,
-            prev_close: Decimal::ZERO,
-            volume: Decimal::ZERO,
-            trading_value: Decimal::ZERO,
+            high: parse_num(&res.out_block.high),
+            low: parse_num(&res.out_block.low),
+            open: parse_num(&res.out_block.open),
+            prev_close: parse_num(&res.out_block.jnilclose),
+            volume: parse_num(&res.out_block.volume),
+            trading_value: parse_num(&res.out_block.value),
             timestamp: Utc::now(),
         })
     }

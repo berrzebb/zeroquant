@@ -1,0 +1,49 @@
+{
+  "id": "H-1",
+  "title": "Upbit 주문 실행 (OrderExecutionProvider)",
+  "group": "H",
+  "description": "Upbit 거래소에 주문/취소/조회 기능 구현. POST /v1/orders (주문 생성, SHA512 query_hash 인증), DELETE /v1/order (주문 취소, uuid 파라미터), GET /v1/order (주문 조회). modify_order는 cancel+re-place 패턴. KIS Provider 패턴 참조하여 OrderExecutionProvider trait 구현. 캐시 무효화 포함.",
+  "relevant_crates": ["trader-exchange"],
+  "has_db_changes": false,
+  "depends_on": [],
+  "reference_files": [
+    "crates/trader-exchange/src/connector/upbit/client.rs",
+    "crates/trader-exchange/src/provider/upbit.rs",
+    "crates/trader-exchange/src/provider/kis.rs",
+    "crates/trader-core/src/domain/exchange_provider.rs",
+    "docs/exchange/upbit_openapi_spec.md"
+  ],
+  "api_spec": {
+    "place_order": {
+      "method": "POST",
+      "path": "/v1/orders",
+      "body": {"market": "string", "side": "bid|ask", "volume": "string", "price": "string", "ord_type": "limit|price|market|best", "time_in_force": "ioc|fok|post_only", "smp_type": "optional", "identifier": "optional"},
+      "auth": "JWT SHA512 query_hash",
+      "rate_limit": "8/sec"
+    },
+    "cancel_order": {
+      "method": "DELETE",
+      "path": "/v1/order",
+      "params": {"uuid": "string"},
+      "auth": "JWT SHA512 query_hash"
+    },
+    "get_order": {
+      "method": "GET",
+      "path": "/v1/order",
+      "params": {"uuid": "string"},
+      "auth": "JWT SHA512 query_hash"
+    }
+  },
+  "checklist": [
+    "UpbitClient::place_order() - POST /v1/orders 구현",
+    "UpbitClient::cancel_order() - DELETE /v1/order 구현",
+    "UpbitClient::get_order() - GET /v1/order 구현",
+    "OrderExecutionProvider for UpbitExchangeProvider impl",
+    "modify_order: cancel + re-place 패턴",
+    "캐시 무효화 (invalidate_cache) 호출",
+    "단위 테스트 작성",
+    "cargo check -p trader-exchange 성공",
+    "cargo test -p trader-exchange 통과",
+    "cargo clippy -p trader-exchange 경고 없음"
+  ]
+}

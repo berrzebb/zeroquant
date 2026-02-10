@@ -35,7 +35,6 @@ import {
   EmptyState,
   ErrorState,
   PageHeader,
-  Button,
   DateInput,
 } from '../components/ui'
 import type { EquityDataPoint, CandlestickDataPoint, TradeMarker, ChartSyncState, IndicatorFilters, PriceVolume } from '../components/charts'
@@ -229,7 +228,7 @@ export function Simulation() {
   const [status, setStatus] = createSignal<SimulationStatusResponse | null>(null)
   const [positions, setPositions] = createSignal<SimulationPosition[]>([])
   const [trades, setTrades] = createSignal<SimulationTrade[]>([])
-  const [signalMarkers, setSignalMarkers] = createSignal<SimulationSignalMarker[]>([])
+  const [, setSignalMarkers] = createSignal<SimulationSignalMarker[]>([])
   const [isLoading, setIsLoading] = createSignal(false)
   const [error, setError] = createSignal<string | null>(null)
 
@@ -261,7 +260,7 @@ export function Simulation() {
   const [candleData, setCandleData] = createSignal<CandlestickDataPoint[]>([])
   const [rawCandleData, setRawCandleData] = createSignal<CandleItem[]>([])
   const [isLoadingCandles, setIsLoadingCandles] = createSignal(false)
-  const [showPriceChart, setShowPriceChart] = createSignal(false)
+  const [, setShowPriceChart] = createSignal(false)
 
   // 신호 필터 상태
   const [signalFilters, setSignalFilters] = createSignal<IndicatorFilters>({ signal_types: [], indicators: [] })
@@ -379,8 +378,8 @@ export function Simulation() {
     return markers.filter(marker => {
       if (filters.signal_types.includes('buy') && marker.side === 'buy') return true
       if (filters.signal_types.includes('sell') && marker.side === 'sell') return true
-      if (filters.signal_types.includes('entry' as any) && marker.signalType === 'entry') return true
-      if (filters.signal_types.includes('exit' as any) && marker.signalType === 'exit') return true
+      if ((filters.signal_types as string[]).includes('entry') && marker.signalType === 'entry') return true
+      if ((filters.signal_types as string[]).includes('exit') && marker.signalType === 'exit') return true
       return false
     })
   })

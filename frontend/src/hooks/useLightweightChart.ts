@@ -444,7 +444,7 @@ export function useChartSync(options: ChartSyncOptions = {}): ChartSyncReturn {
   };
 
   // 차트에 바인딩할 props 생성 헬퍼
-  const bindChart = (id?: string) => ({
+  const bindChart = (_id?: string) => ({
     syncState,
     onVisibleRangeChange: handleRangeChange,
     onCrosshairMove: handleCrosshairMove,

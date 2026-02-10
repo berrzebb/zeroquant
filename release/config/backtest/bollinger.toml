@@ -1,0 +1,10 @@
+# 볼린저 밴드 전략 백테스트 설정
+name = "Bollinger Band Backtest"
+strategy_type = "bollinger"
+
+[parameters]
+ticker = "005930"                  # 삼성전자
+bollinger_period = 20              # 볼린저 기간
+bollinger_std = 2.0                # 표준편차 배수
+position_size_pct = 0.1            # 포지션 크기 (10%)
+use_rsi_confirmation = false       # RSI 확인 사용 여부

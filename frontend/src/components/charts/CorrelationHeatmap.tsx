@@ -45,19 +45,6 @@ export interface CorrelationHeatmapProps {
 /**
  * 상관관계 값에 따른 색상 계산
  */
-function getCorrelationColor(value: number, colorScale: [string, string, string]): string {
-  // -1 ~ 0 ~ +1 범위를 0 ~ 0.5 ~ 1로 정규화
-  const normalized = (value + 1) / 2
-
-  if (normalized < 0.5) {
-    // -1 ~ 0: 빨강에서 흰색으로
-    return colorScale[0]
-  } else {
-    // 0 ~ +1: 흰색에서 파랑으로
-    return colorScale[2]
-  }
-}
-
 /**
  * 상관관계 해석 텍스트
  */

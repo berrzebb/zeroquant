@@ -244,13 +244,28 @@ export const calculateIndicators = async (request: CalculateIndicatorsRequest): 
 /**
  * API 응답을 변환합니다 (snake_case -> camelCase).
  */
-function transformIndicatorResponse(data: any): IndicatorDataResponse {
+interface RawIndicatorResponse {
+  indicator: string;
+  name: string;
+  symbol: string;
+  params: Record<string, unknown>;
+  series: RawIndicatorSeries[];
+}
+
+interface RawIndicatorSeries {
+  name: string;
+  data: IndicatorPoint[];
+  color?: string;
+  series_type: string;
+}
+
+function transformIndicatorResponse(data: RawIndicatorResponse): IndicatorDataResponse {
   return {
     indicator: data.indicator,
     name: data.name,
     symbol: data.symbol,
     params: data.params,
-    series: data.series.map((s: any) => ({
+    series: data.series.map((s: RawIndicatorSeries) => ({
       name: s.name,
       data: s.data,
       color: s.color,

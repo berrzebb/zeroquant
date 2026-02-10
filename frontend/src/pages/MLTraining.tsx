@@ -35,8 +35,6 @@ import {
   PERIOD_OPTIONS,
   HORIZON_OPTIONS,
   type TrainingRequest,
-  type TrainingJob,
-  type TrainedModel,
   type ModelType,
   type TrainingStatus,
 } from '../api/ml'
@@ -143,7 +141,7 @@ export function MLTraining() {
       } else {
         toast.error('훈련 실패', response.message)
       }
-    } catch (e) {
+    } catch {
       toast.error('오류', '훈련을 시작할 수 없습니다.')
     } finally {
       setIsSubmitting(false)

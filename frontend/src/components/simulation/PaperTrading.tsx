@@ -311,8 +311,8 @@ export function PaperTrading() {
       if (filters.signal_types.includes('buy') && marker.side === 'buy') return true
       if (filters.signal_types.includes('sell') && marker.side === 'sell') return true
       // 상세 signal_type 필터
-      if (filters.signal_types.includes('entry' as any) && marker.signalType === 'entry') return true
-      if (filters.signal_types.includes('exit' as any) && marker.signalType === 'exit') return true
+      if (filters.signal_types.includes('entry') && marker.signalType === 'entry') return true
+      if (filters.signal_types.includes('exit') && marker.signalType === 'exit') return true
       return false
     })
   })

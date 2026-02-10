@@ -84,7 +84,6 @@ export const SectorMomentumBar: Component<SectorMomentumBarProps> = (props) => {
   // ECharts 옵션
   const chartOption = createMemo((): EChartsOption => {
     const sectors = displaySectors()
-    const isTop = activeTab() === 'top'
 
     // 섹터명 (Y축)
     const sectorNames = sectors.map((s) => s.name).reverse()

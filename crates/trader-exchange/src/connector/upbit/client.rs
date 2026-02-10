@@ -117,6 +117,35 @@ pub struct UpbitOrder {
     pub trades_count: Option<u64>,
 }
 
+/// Upbit 체결 완료 주문 상세 (개별 조회 시 trades 배열 포함).
+#[derive(Debug, Deserialize)]
+pub struct UpbitOrderDetail {
+    pub uuid: String,
+    pub side: String,
+    pub ord_type: String,
+    pub price: Option<String>,
+    pub state: String,
+    pub market: String,
+    pub created_at: String,
+    pub volume: Option<String>,
+    pub remaining_volume: Option<String>,
+    pub executed_volume: Option<String>,
+    pub paid_fee: Option<String>,
+    pub trades_count: Option<u64>,
+    pub trades: Option<Vec<UpbitTrade>>,
+}
+
+/// Upbit 개별 체결 내역.
+#[derive(Debug, Deserialize, Clone)]
+pub struct UpbitTrade {
+    pub uuid: String,
+    pub price: String,
+    pub volume: String,
+    pub funds: String,
+    pub created_at: String,
+    pub side: String,
+}
+
 // ============================================================================
 // Upbit 클라이언트
 // ============================================================================
@@ -166,6 +195,8 @@ impl UpbitClient {
         let mut builder = self.client.request(method.clone(), &url);
 
         let mut query_hash = None;
+
+        // GET: 쿼리 파라미터 해싱
         if let Some(q) = query {
             let query_string = serde_urlencoded::to_string(q).unwrap_or_default();
             if !query_string.is_empty() {
@@ -176,8 +207,16 @@ impl UpbitClient {
                 builder = builder.query(q);
             }
         }
-        
+
+        // POST/DELETE: body를 query string으로 변환 후 해싱 (Upbit JWT 인증 규격)
         if let Some(b) = body {
+            let body_query_string = serde_urlencoded::to_string(b).unwrap_or_default();
+            if !body_query_string.is_empty() {
+                use sha2::{Digest, Sha512};
+                let mut hasher = Sha512::new();
+                hasher.update(body_query_string.as_bytes());
+                query_hash = Some(hex::encode(hasher.finalize()));
+            }
             builder = builder.json(b);
         }
 
@@ -204,6 +243,113 @@ impl UpbitClient {
             .json::<T>()
             .await
             .map_err(|e| ProviderError::Parse(e.to_string()))
+    }
+}
+
+// ============================================================================
+// 주문 실행 메서드
+// ============================================================================
+
+impl UpbitClient {
+    /// 주문 생성 (POST /v1/orders)
+    pub async fn place_order(
+        &self,
+        market: &str,
+        side: &str,
+        ord_type: &str,
+        volume: Option<&str>,
+        price: Option<&str>,
+    ) -> Result<UpbitOrder, ProviderError> {
+        let mut body = serde_json::json!({
+            "market": market,
+            "side": side,
+            "ord_type": ord_type,
+        });
+
+        // 지정가/시장가 매도: volume 필수
+        if let Some(v) = volume {
+            body["volume"] = serde_json::Value::String(v.to_string());
+        }
+        // 지정가/시장가 매수(price): price 필수
+        if let Some(p) = price {
+            body["price"] = serde_json::Value::String(p.to_string());
+        }
+
+        self.request(Method::POST, "/orders", None, Some(&body)).await
+    }
+
+    /// 주문 취소 (DELETE /v1/order)
+    pub async fn cancel_order(&self, uuid: &str) -> Result<UpbitOrder, ProviderError> {
+        let query = serde_json::json!({
+            "uuid": uuid,
+        });
+        self.request(Method::DELETE, "/order", Some(&query), None).await
+    }
+
+    /// 주문 조회 (GET /v1/order)
+    pub async fn get_order(&self, uuid: &str) -> Result<UpbitOrder, ProviderError> {
+        let query = serde_json::json!({
+            "uuid": uuid,
+        });
+        self.request(Method::GET, "/order", Some(&query), None).await
+    }
+
+    /// 체결 내역 조회 (완료된 주문 목록).
+    ///
+    /// `/v1/orders/closed?state=done` 엔드포인트를 호출하여 체결 완료된 주문 목록을 조회합니다.
+    ///
+    /// # Arguments
+    /// * `start_date` - 조회 시작 날짜 (YYYYMMDD)
+    /// * `end_date` - 조회 종료 날짜 (YYYYMMDD)
+    /// * `limit` - 조회 개수 (최대 1000, 기본 100)
+    ///
+    /// # Returns
+    /// 완료된 주문 목록 (각 주문은 하나의 Trade로 변환됨)
+    pub async fn fetch_execution_history(
+        &self,
+        start_date: &str,
+        end_date: &str,
+        limit: usize,
+    ) -> Result<Vec<UpbitOrderDetail>, ProviderError> {
+        // YYYYMMDD → ISO 8601 변환
+        let start_time = format!("{}T00:00:00Z",
+            &format!("{}-{}-{}", &start_date[0..4], &start_date[4..6], &start_date[6..8]));
+        let end_time = format!("{}T23:59:59Z",
+            &format!("{}-{}-{}", &end_date[0..4], &end_date[4..6], &end_date[6..8]));
+
+        let query = serde_json::json!({
+            "state": "done",
+            "start_time": start_time,
+            "end_time": end_time,
+            "limit": limit.min(1000),
+            "order_by": "desc",
+        });
+
+        // 완료된 주문 목록 조회
+        let orders: Vec<UpbitOrder> = self
+            .request(Method::GET, "/orders/closed", Some(&query), None)
+            .await?;
+
+        // 각 주문을 UpbitOrderDetail로 변환 (간단 버전: trades 배열 없이)
+        let details: Vec<UpbitOrderDetail> = orders.into_iter().map(|o| {
+            UpbitOrderDetail {
+                uuid: o.uuid,
+                side: o.side,
+                ord_type: o.ord_type,
+                price: o.price,
+                state: o.state,
+                market: o.market,
+                created_at: o.created_at,
+                volume: o.volume,
+                remaining_volume: o.remaining_volume,
+                executed_volume: o.executed_volume,
+                paid_fee: o.paid_fee,
+                trades_count: o.trades_count,
+                trades: None, // 주문 수준 조회에서는 trades 없음
+            }
+        }).collect();
+
+        Ok(details)
     }
 }
 

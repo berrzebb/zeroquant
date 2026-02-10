@@ -7,7 +7,6 @@ import { Show, For, createResource, createSignal, onMount, onCleanup } from 'sol
 import { X, Link2, Play, Square, Check, AlertCircle } from 'lucide-solid'
 import {
   getStrategies,
-  getStrategy,
   updateStrategySymbols,
 } from '../../api/client'
 import type { Strategy } from '../../types'

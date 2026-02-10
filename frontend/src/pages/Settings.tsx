@@ -1,5 +1,5 @@
 import { createSignal, For, Show, createResource, createEffect, onCleanup } from 'solid-js'
-import { Save, Key, Bell, Database, Globe, Moon, Sun, Send, MessageCircle, CheckCircle, XCircle, RefreshCw, Play, Plus, Trash2, TestTube, Building2, Bot, ChevronDown, ChevronRight, BellRing } from 'lucide-solid'
+import { Save, Key, Bell, Database, Globe, Moon, Sun, Send, CheckCircle, XCircle, RefreshCw, Play, Plus, Trash2, TestTube, Building2, BellRing } from 'lucide-solid'
 import { useToast } from '../components/Toast'
 import {
   Card,
@@ -51,7 +51,6 @@ import {
   testNewSmsSettings,
   type TelegramTestResponse,
   type CredentialTestResponse,
-  type ActiveAccount,
 } from '../api/client'
 import type { SupportedExchange } from '../types'
 
@@ -343,7 +342,7 @@ export function Settings() {
         fields: credentialFields()
       })
       setCredentialTestResult(result)
-    } catch (err) {
+    } catch {
       setCredentialTestResult({
         success: false,
         message: '테스트 실패: 서버 연결 오류'
@@ -382,7 +381,7 @@ export function Settings() {
           message: result.message || '저장 실패'
         })
       }
-    } catch (err) {
+    } catch {
       setCredentialTestResult({
         success: false,
         message: '저장 실패: 서버 연결 오류'
@@ -402,7 +401,7 @@ export function Settings() {
       await deleteCredential(id)
       refetchCredentials()
       toast.success('삭제 완료', 'API 키가 삭제되었습니다.')
-    } catch (err) {
+    } catch {
       toast.error('삭제 실패', '서버 연결 오류')
     } finally {
       setDeletingCredentialId(null)
@@ -704,7 +703,7 @@ export function Settings() {
           message: result.message || '저장 실패'
         })
       }
-    } catch (err) {
+    } catch {
       setNotificationTestResult({
         success: false,
         message: '저장 실패: 서버 연결 오류'
@@ -742,7 +741,7 @@ export function Settings() {
       refetchNotificationServices()
       refetchNotificationSettings()
       toast.success('삭제 완료', `${provider?.name || '알림 서비스'}가 삭제되었습니다.`)
-    } catch (err) {
+    } catch {
       toast.error('삭제 실패', '서버 연결 오류')
     } finally {
       setDeletingNotificationId(null)
@@ -792,13 +791,12 @@ export function Settings() {
     dailyReport: false,
     errorAlerts: true,
   })
-  const [telegramSettings, setTelegramSettings] = createSignal({
+  const [, setTelegramSettings] = createSignal({
     botToken: '',
     chatId: '',
     isConnected: false,
   })
-  const [isTelegramTesting, setIsTelegramTesting] = createSignal(false)
-  const [telegramTestResult, setTelegramTestResult] = createSignal<TelegramTestResponse | null>(null)
+  const [, setTelegramTestResult] = createSignal<TelegramTestResponse | null>(null)
   const [selectedTemplate, setSelectedTemplate] = createSignal<string>('')
   const [isTemplateTesting, setIsTemplateTesting] = createSignal(false)
   const [isSaving, setIsSaving] = createSignal(false)
@@ -811,57 +809,6 @@ export function Settings() {
     }
   })
 
-  // 텔레그램 연결 테스트 (직접 입력한 토큰으로)
-  const handleTelegramTest = async () => {
-    const { botToken, chatId } = telegramSettings()
-
-    if (!botToken || !chatId) {
-      setTelegramTestResult({
-        success: false,
-        message: 'Bot Token과 Chat ID를 모두 입력해주세요.'
-      })
-      return
-    }
-
-    setIsTelegramTesting(true)
-    setTelegramTestResult(null)
-
-    try {
-      const result = await testTelegram({ bot_token: botToken, chat_id: chatId })
-      setTelegramTestResult(result)
-      setTelegramSettings(prev => ({ ...prev, isConnected: result.success }))
-    } catch (err) {
-      setTelegramTestResult({
-        success: false,
-        message: '서버 연결에 실패했습니다. 나중에 다시 시도해주세요.'
-      })
-    } finally {
-      setIsTelegramTesting(false)
-    }
-  }
-
-  // 환경변수로 설정된 텔레그램 테스트
-  const handleTelegramEnvTest = async () => {
-    setIsTelegramTesting(true)
-    setTelegramTestResult(null)
-
-    try {
-      const result = await testTelegramEnv()
-      setTelegramTestResult(result)
-      if (result.success) {
-        setTelegramSettings(prev => ({ ...prev, isConnected: true }))
-        refetchNotificationSettings()
-      }
-    } catch (err) {
-      setTelegramTestResult({
-        success: false,
-        message: '서버 연결에 실패했습니다.'
-      })
-    } finally {
-      setIsTelegramTesting(false)
-    }
-  }
-
   // 템플릿 테스트 전송
   const handleTemplateTest = async () => {
     const templateType = selectedTemplate()
@@ -873,7 +820,7 @@ export function Settings() {
     try {
       const result = await testTelegramTemplate({ template_type: templateType })
       setTelegramTestResult(result)
-    } catch (err) {
+    } catch {
       setTelegramTestResult({
         success: false,
         message: '템플릿 테스트 전송에 실패했습니다.'
@@ -891,7 +838,7 @@ export function Settings() {
     try {
       const result = await testAllTelegramTemplates()
       setTelegramTestResult(result)
-    } catch (err) {
+    } catch {
       setTelegramTestResult({
         success: false,
         message: '템플릿 테스트에 실패했습니다.'

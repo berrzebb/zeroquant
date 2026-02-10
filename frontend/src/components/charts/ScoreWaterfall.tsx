@@ -19,7 +19,7 @@
  */
 import { createMemo, Show } from 'solid-js'
 import type { Component, JSX } from 'solid-js'
-import { EChart, CHART_COLORS } from '../ui/EChart'
+import { EChart } from '../ui/EChart'
 import type { EChartsOption } from 'echarts'
 
 /** 워터폴 데이터 항목 */
@@ -153,8 +153,9 @@ export const ScoreWaterfall: Component<ScoreWaterfallProps> = (props) => {
         textStyle: {
           color: '#e5e7eb',
         },
-        formatter: (params: any) => {
-          const idx = params[0].dataIndex
+        formatter: (params: unknown) => {
+          const p = params as Array<{ dataIndex: number }>
+          const idx = p[0].dataIndex
           if (idx === 0) return `${data.categories[idx]}: 0`
           if (idx === data.categories.length - 1) {
             return `${data.categories[idx]}: <b>${calculatedTotal().toFixed(1)}</b>`
@@ -237,8 +238,8 @@ export const ScoreWaterfall: Component<ScoreWaterfallProps> = (props) => {
             position: isHorizontal ? 'right' : 'top',
             color: '#e5e7eb',
             fontSize: 11,
-            formatter: (params: any) => {
-              const idx = params.dataIndex
+            formatter: (params: unknown) => {
+              const idx = (params as { dataIndex: number }).dataIndex
               if (idx === 0) return ''
               if (idx === data.categories.length - 1) {
                 return calculatedTotal().toFixed(1)

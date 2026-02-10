@@ -5,11 +5,10 @@
  */
 import { createSignal, createResource, For, Show } from 'solid-js'
 import { X, ChevronRight, Search, RefreshCw, AlertCircle, Clock } from 'lucide-solid'
-import { createStrategy, getStrategySchema, listCredentials } from '../api/client'
+import { createStrategy, listCredentials } from '../api/client'
 import type { StrategyMetaItem, MultiTimeframeConfig, Timeframe, ExchangeCredential } from '../api/client'
 import { SDUIRenderer } from './strategy/SDUIRenderer/SDUIRenderer'
 import { useToast } from './Toast'
-import { getDefaultTimeframe } from '../utils/format'
 import { MultiTimeframeSelector } from './strategy/MultiTimeframeSelector'
 import { createLogger } from '../utils/logger'
 
@@ -39,7 +38,7 @@ export function AddStrategyModal(props: AddStrategyModalProps) {
   const [selectedCategory, setSelectedCategory] = createSignal<string | null>(null)
 
   // SDUI 폼 값 (SDUIRenderer에서 전달받음)
-  const [formValues, setFormValues] = createSignal<Record<string, unknown>>({})
+  const [, setFormValues] = createSignal<Record<string, unknown>>({})
 
   // 다중 타임프레임 설정 상태
   const [multiTfConfig, setMultiTfConfig] = createSignal<MultiTimeframeConfig | null>(null)

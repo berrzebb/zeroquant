@@ -3,7 +3,7 @@ import { TrendingUp, TrendingDown, Calendar, Database, TestTube, RefreshCw, Down
 import { EquityCurve } from './EquityCurve'
 import type { EquityDataPoint } from './EquityCurve'
 import { getEquityCurve, getPerformance, getBacktestResults, listCredentials, syncJournalExecutions, clearEquityCache } from '../../api/client'
-import type { EquityCurveResponse, PerformanceResponse, BacktestResult, JournalSyncResponse } from '../../api/client'
+import type { BacktestResult, JournalSyncResponse } from '../../api/client'
 import type { ExchangeCredential } from '../../types'
 import { createLogger } from '../../utils/logger'
 import { formatCurrency, formatPercent } from '../../utils/format'

@@ -177,7 +177,7 @@ export function SubPriceChart(props: SubPriceChartProps) {
   };
 
   // 통합 차트 훅 사용
-  const { setContainerRef, chart, chartId, colors } = useLightweightChart({
+  const { setContainerRef } = useLightweightChart({
     height: props.height || 120,
     colors: getChartColors(),
     syncState: props.syncState,
@@ -191,7 +191,7 @@ export function SubPriceChart(props: SubPriceChartProps) {
       timeVisible: true,
       secondsVisible: false,
     },
-    onReady: (chartApi, mergedColors) => {
+    onReady: (chartApi) => {
       chartInstance = chartApi;
       createIndicatorSeries(chartApi);
     },

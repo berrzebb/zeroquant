@@ -1,0 +1,17 @@
+# 매직 스플릿 전략 백테스트 설정
+name = "Magic Split Backtest"
+strategy_type = "magic_split"
+
+[parameters]
+ticker = "005930"                  # 삼성전자
+split_levels = 5                   # 분할 레벨 수
+drop_pct_per_level = 3.0           # 레벨당 하락률 (%)
+amount_per_level = "2000000"       # 레벨당 금액
+take_profit_pct = 5.0              # 익절 비율 (%)
+
+# 리스크 관리 (ExitConfig)
+[parameters.exit_config]
+stop_loss_enabled = true
+stop_loss_pct = 15.0               # 15% 손절
+take_profit_enabled = true
+take_profit_pct = 5.0              # 5% 익절

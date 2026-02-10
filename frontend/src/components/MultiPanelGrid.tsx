@@ -1,4 +1,4 @@
-import { createSignal, createEffect, For, Show, onCleanup, onMount, type JSXElement } from 'solid-js'
+import { createSignal, createEffect, For, Show, onCleanup, type JSXElement } from 'solid-js'
 import { Maximize2, Minimize2, X, GripVertical, Columns, Grid2x2, LayoutGrid, Square, Search, TrendingUp } from 'lucide-solid'
 
 // ==================== 타입 ====================

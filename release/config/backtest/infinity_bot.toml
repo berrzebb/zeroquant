@@ -1,0 +1,19 @@
+# InfinityBot 전략 백테스트 설정
+name = "Infinity Bot Backtest"
+strategy_type = "infinity_bot"
+
+[parameters]
+ticker = "005930"
+total_amount = 10000000
+max_rounds = 50
+round_pct = 2.0
+dip_trigger_pct = 2.0
+take_profit_pct = 3.0
+ma_period = 20
+
+# 리스크 관리 (ExitConfig)
+[parameters.exit_config]
+stop_loss_enabled = true
+stop_loss_pct = 20.0               # 20% 손절 (InfinityBot은 더 넓게)
+take_profit_enabled = true
+take_profit_pct = 3.0              # 3% 익절

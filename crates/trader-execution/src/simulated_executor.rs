@@ -391,10 +391,8 @@ impl SimulatedExecutor {
         if close_quantity >= position.quantity {
             self.positions.remove(&key);
             self.bracket_orders.remove(&key);
-        } else {
-            if let Some(pos) = self.positions.get_mut(&key) {
-                pos.quantity -= close_quantity;
-            }
+        } else if let Some(pos) = self.positions.get_mut(&key) {
+            pos.quantity -= close_quantity;
         }
 
         // 거래 기록 생성 (공통 유틸리티)

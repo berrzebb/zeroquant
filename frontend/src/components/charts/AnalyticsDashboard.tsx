@@ -2,7 +2,6 @@ import { createSignal, createResource, Show, For, createMemo } from 'solid-js'
 import {
   TrendingUp,
   TrendingDown,
-  Calendar,
   Database,
   TestTube,
   RefreshCw,
@@ -11,16 +10,12 @@ import {
 } from 'lucide-solid'
 import { EquityCurve } from './EquityCurve'
 import { DrawdownChart } from './DrawdownChart'
-import { MetricsChart } from './MetricsChart'
 import type { EquityDataPoint, ChartSyncState } from './EquityCurve'
 import type { DrawdownDataPoint } from './DrawdownChart'
-import type { MetricDataPoint } from './MetricsChart'
 import {
   getEquityCurve,
   getPerformance,
   getMonthlyReturns,
-  getCagrChart,
-  getMddChart,
   getDrawdownChart,
   getBacktestResults,
 } from '../../api/client'

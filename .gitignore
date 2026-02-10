@@ -99,7 +99,21 @@ data/
 # =====================================================
 # Project Specific - Tools & MCP
 # =====================================================
-.claude/
+# Claude Code: 팀 공유 가능한 설정은 커밋, 개인 설정은 무시
+# 커밋 대상: settings.json, rules/, agents/, skills/, hooks/, plans/
+# 무시 대상: settings.local.json, agent-memory/, agent-memory-local/
+.claude/settings.local.json
+.claude/agent-memory/
+.claude/agent-memory-local/
+
+# 패키지별 .claude/skills/ 중 개인 파일만 무시
+**/crates/**/.claude/settings.local.json
+**/crates/**/.claude/agent-memory/
+**/crates/**/.claude/agent-memory-local/
+frontend/.claude/settings.local.json
+frontend/.claude/agent-memory/
+frontend/.claude/agent-memory-local/
+
 .playwright-mcp/
 .shrimp-task-manager/
 .mcp.json

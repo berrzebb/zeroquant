@@ -424,22 +424,6 @@ mod tests {
     use super::*;
     use chrono::Utc;
 
-    fn make_kline(close: Decimal) -> Kline {
-        Kline {
-            ticker: "TEST".to_string(),
-            timeframe: Timeframe::D1,
-            open_time: Utc::now(),
-            open: close,
-            high: close + dec!(1),
-            low: close - dec!(1),
-            close,
-            volume: dec!(1000),
-            close_time: Utc::now(),
-            quote_volume: None,
-            num_trades: None,
-        }
-    }
-
     #[test]
     fn test_trend_direction_score() {
         assert_eq!(TrendDirection::StrongUptrend.score(), 2);

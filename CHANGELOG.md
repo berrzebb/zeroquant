@@ -5,6 +5,52 @@
 
 ---
 
+## [0.10.0] - 2026-02-10
+
+> **거래소 주문 실행 및 데이터 완전성 완성**: Upbit, LS증권, DB증권, Bithumb 4개 거래소의 주문 실행 및 체결 내역 조회 기능을 완성했습니다. 모든 거래소가 OrderExecutionProvider를 구현하여 실거래 준비가 완료되었습니다.
+
+### Added
+
+#### P1: 주문 실행 구현 (4개 거래소)
+- **Upbit** — `POST /v1/orders` (시장가/지정가), `DELETE /v1/order` (취소)
+  - `UpbitExchangeProvider` — `OrderExecutionProvider` trait 구현
+  - `place_order()`, `cancel_order()`, `modify_order()` (cancel + re-place)
+- **LS증권** — TR 기반 주문/취소/정정
+  - `CSPAT00601` (매수), `CSPAT00701` (매도)
+  - `CSPAT00603/00703` (취소), `CSPAT00602/00702` (정정)
+  - `LsSecExchangeProvider` — `OrderExecutionProvider` trait 구현
+- **DB증권** — TR 기반 주문/취소/정정
+  - `CSPAT00600` (매수), `CSPAT00800` (매도)
+  - `CSPAT01400/01500` (취소), `CSPAT01200/01300` (정정)
+  - `DbInvestmentExchangeProvider` — `OrderExecutionProvider` trait 구현
+- **Bithumb** — `POST /v1/orders` (시장가/지정가), `DELETE /v1/orders/{uuid}` (취소)
+  - `BithumbExchangeProvider` — `OrderExecutionProvider` trait 구현
+  - `modify_order()` (cancel + re-place)
+
+#### P2: 데이터 완전성 완성
+- **체결 내역 조회** (`fetch_execution_history()`)
+  - Upbit: `GET /v1/orders/closed?state=done`
+  - LS증권: `CSPAQ13700` (주식체결조회)
+  - DB증권: `CSPAQ12300` (주식체결내역조회)
+  - Bithumb: `GET /v1/orders/closed`
+- **현재가 필드 확장**
+  - LS증권: `QuoteOutBlock`에 high/low/open/volume 추가
+  - DB증권: `DbQuoteOut`에 high/low/open/volume 추가
+
+### Fixed
+- **테스트 수정** (5개 테스트 통과)
+  - `test_list_backtest_strategies` — 전략 ID vs 별칭 구분 (rsi_mean_reversion → rsi)
+  - `test_get_holdings_empty` — credential_id 필수 파라미터 요구 (BAD_REQUEST)
+  - `test_get_portfolio_summary_mock` — credential_id 필수 파라미터 요구
+  - `test_filter_entry_only` — SignalMarker strength 기본값(0.0) vs 필터 기본값(0.7) 충돌 해결
+  - `test_filter_strategy_ids` — min_strength 명시적 설정
+
+### Changed
+- **Bithumb Chrono API** — `format()` → `to_rfc3339()` (deprecation 해결)
+- **Clippy 워닝 제로** — Bithumb 커넥터 전체 clippy 경고 수정
+
+---
+
 ## [0.9.1] - 2026-02-10
 
 > **Paper Trading 실시간 가격 + 다중 거래소 MarketStream + 차트 강화**: 포지션 평가액/미실현 손익을 Mock 실시간 캐시 가격으로 계산하고, MarketStream을 다중 거래소 팩토리로 리팩토링했습니다. 프론트엔드에 WebSocket 실시간 시세, 캔들 차트+매매 태그, Kelly Criterion, 상관관계 히트맵, 볼륨 프로파일을 추가했습니다.

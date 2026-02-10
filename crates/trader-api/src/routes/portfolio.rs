@@ -1225,15 +1225,14 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(response.status(), StatusCode::OK);
+        // credential_id 없이 호출 시 BAD_REQUEST 반환 (레거시 환경변수 방식 제거됨)
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
         let body = axum::body::to_bytes(response.into_body(), usize::MAX)
             .await
             .unwrap();
-        let summary: PortfolioSummaryResponse = serde_json::from_slice(&body).unwrap();
-
-        // Mock 데이터 확인
-        assert!(summary.total_value > Decimal::ZERO);
+        let error: ApiError = serde_json::from_slice(&body).unwrap();
+        assert_eq!(error.code, "CREDENTIAL_REQUIRED");
     }
 
     #[tokio::test]
@@ -1255,14 +1254,13 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(response.status(), StatusCode::OK);
+        // credential_id 없이 호출 시 BAD_REQUEST 반환 (레거시 환경변수 방식 제거됨)
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
         let body = axum::body::to_bytes(response.into_body(), usize::MAX)
             .await
             .unwrap();
-        let holdings: HoldingsResponse = serde_json::from_slice(&body).unwrap();
-
-        // KIS 클라이언트 미설정 시 빈 목록
-        assert_eq!(holdings.total_count, 0);
+        let error: ApiError = serde_json::from_slice(&body).unwrap();
+        assert_eq!(error.code, "CREDENTIAL_REQUIRED");
     }
 }

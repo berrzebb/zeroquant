@@ -45,7 +45,6 @@ import type {
 import { useLightweightChart } from '../../hooks/useLightweightChart';
 import {
   sortByTime,
-  mergeChartColors,
   type ChartColors,
   type ChartSyncState,
 } from '../../utils/chartUtils';
@@ -178,7 +177,7 @@ export function PriceChart(props: PriceChartProps) {
   });
 
   // 통합 차트 훅 사용
-  const { setContainerRef, chart, chartId, colors } = useLightweightChart({
+  const { setContainerRef } = useLightweightChart({
     height: props.height || 400,
     colors: getChartColors(),
     syncState: props.syncState,

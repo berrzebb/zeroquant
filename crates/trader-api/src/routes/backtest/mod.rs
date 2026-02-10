@@ -1142,8 +1142,8 @@ mod tests {
         // 최소 3개의 기본 전략이 있어야 함
         assert!(list.total >= 3);
         assert!(list.strategies.iter().any(|s| s.id == "sma_crossover"));
-        assert!(list.strategies.iter().any(|s| s.id == "rsi_mean_reversion"));
-        assert!(list.strategies.iter().any(|s| s.id == "grid_trading"));
+        assert!(list.strategies.iter().any(|s| s.id == "rsi")); // 실제 ID는 "rsi"
+        assert!(list.strategies.iter().any(|s| s.id == "grid")); // 실제 ID는 "grid"
     }
 
     #[tokio::test]

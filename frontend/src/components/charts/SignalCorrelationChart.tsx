@@ -4,7 +4,7 @@
  * 신호 강도와 실제 수익률 간의 상관관계를 산점도로 시각화합니다.
  * 신호의 예측력을 평가하는 데 사용됩니다.
  */
-import { type Component, createMemo, createSignal, Show } from 'solid-js'
+import { type Component, createMemo, Show } from 'solid-js'
 import { EChart, CHART_COLORS } from '../ui/EChart'
 import type { EChartsOption, ScatterSeriesOption } from 'echarts'
 
@@ -59,13 +59,12 @@ function calculateRegression(
   const n = points.length
   if (n < 2) return { slope: 0, intercept: 0, r2: 0 }
 
-  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0, sumYY = 0
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0
   for (const p of points) {
     sumX += p.x
     sumY += p.y
     sumXY += p.x * p.y
     sumXX += p.x * p.x
-    sumYY += p.y * p.y
   }
 
   const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX)
@@ -111,8 +110,6 @@ function calculateCorrelation(points: Array<{ x: number; y: number }>): number {
  * 신호-수익률 상관관계 차트
  */
 export const SignalCorrelationChart: Component<SignalCorrelationChartProps> = (props) => {
-  const [hoveredPoint, setHoveredPoint] = createSignal<SignalDataPoint | null>(null)
-
   // 기본값
   const height = () => props.height ?? 400
   const showRegression = () => props.showRegression ?? true

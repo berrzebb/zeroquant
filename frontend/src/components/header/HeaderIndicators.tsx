@@ -10,7 +10,6 @@ import {
   getMarketOverview,
   type MarketBreadthResponse,
   type MacroEnvironmentResponse,
-  type MarketOverviewResponse,
 } from '../../api/client'
 
 // ==================== 타입 정의 ====================

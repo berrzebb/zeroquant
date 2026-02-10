@@ -10,7 +10,7 @@ use std::fs;
 use super::models::*;
 
 /// 통합 대상 파일 그룹
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ConsolidationGroup {
     /// 그룹 이름 (생성될 파일명)
     pub name: String,
@@ -22,16 +22,6 @@ pub struct ConsolidationGroup {
     pub static_content: Option<String>,
 }
 
-impl Default for ConsolidationGroup {
-    fn default() -> Self {
-        Self {
-            name: String::new(),
-            description: String::new(),
-            source_patterns: Vec::new(),
-            static_content: None,
-        }
-    }
-}
 
 /// 기본 통합 그룹 정의
 pub fn default_consolidation_groups() -> Vec<ConsolidationGroup> {
@@ -181,13 +171,13 @@ impl MigrationConsolidator {
             let mut combined_content = String::new();
 
             // 헤더 추가
-            combined_content.push_str(&format!("-- =============================================================================\n"));
+            combined_content.push_str("-- =============================================================================\n");
             combined_content.push_str(&format!("-- {}\n", group.name));
             combined_content.push_str(&format!("-- {}\n", group.description));
-            combined_content.push_str(&format!("-- =============================================================================\n"));
-            combined_content.push_str(&format!("-- 통합 마이그레이션 파일 (자동 생성)\n"));
+            combined_content.push_str("-- =============================================================================\n");
+            combined_content.push_str("-- 통합 마이그레이션 파일 (자동 생성)\n");
             combined_content.push_str(&format!("-- 원본 파일: {:?}\n", group.source_patterns));
-            combined_content.push_str(&format!("-- =============================================================================\n\n"));
+            combined_content.push_str("-- =============================================================================\n\n");
 
             // 매칭되는 파일들 수집
             for file in files {
@@ -204,9 +194,9 @@ impl MigrationConsolidator {
                     let cleaned = self.clean_file_content(file);
 
                     if !cleaned.is_empty() {
-                        combined_content.push_str(&format!("-- ---------------------------------------------------------------------------\n"));
+                        combined_content.push_str("-- ---------------------------------------------------------------------------\n");
                         combined_content.push_str(&format!("-- Source: {}\n", file.name));
-                        combined_content.push_str(&format!("-- ---------------------------------------------------------------------------\n\n"));
+                        combined_content.push_str("-- ---------------------------------------------------------------------------\n\n");
                         combined_content.push_str(&cleaned);
                         combined_content.push_str("\n\n");
 
@@ -270,7 +260,7 @@ impl MigrationConsolidator {
             }
 
             // 멱등성 보장을 위한 SQL 수정
-            let modified_sql = self.ensure_idempotency(&stmt);
+            let modified_sql = self.ensure_idempotency(stmt);
             result.push_str(&modified_sql);
             result.push_str("\n\n");
         }

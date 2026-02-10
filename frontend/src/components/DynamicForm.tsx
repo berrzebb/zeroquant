@@ -5,8 +5,8 @@
  * 새로운 전략이 추가되어도 프론트엔드 코드 수정 없이 폼이 자동 생성됩니다.
  */
 import { createSignal, For, Show, createMemo } from 'solid-js'
-import { ChevronDown, ChevronRight, HelpCircle, Plus, X } from 'lucide-solid'
-import type { UiSchema, UiField, UiFieldGroup, UiValidation, UiSelectOption, SymbolCategory } from '../api/client'
+import { ChevronDown, ChevronRight, HelpCircle } from 'lucide-solid'
+import type { UiSchema, UiField, UiValidation, UiSelectOption, SymbolCategory } from '../api/client'
 import { SymbolSearch } from './SymbolSearch'
 
 interface DynamicFormProps {

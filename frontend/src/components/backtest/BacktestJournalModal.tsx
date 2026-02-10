@@ -6,9 +6,9 @@
  * - 모든 거래 뷰: 개별 거래 (매수/매도 각각)
  */
 import { createSignal, createMemo, For, Show, type Component } from 'solid-js'
-import { X, TrendingUp, TrendingDown, ArrowRightLeft, List, Clock, BarChart3, Target, ChevronLeft, ChevronRight } from 'lucide-solid'
+import { X, TrendingUp, TrendingDown, ArrowRightLeft, List, BarChart3, ChevronLeft, ChevronRight } from 'lucide-solid'
 import { SymbolDisplay } from '../SymbolDisplay'
-import { formatCurrency, formatPercent, formatDateTime } from '../../utils/format'
+import { formatCurrency, formatDateTime } from '../../utils/format'
 import type { TradeHistoryItem, TradeResultItem } from '../../api/client'
 
 // ==================== 타입 ====================

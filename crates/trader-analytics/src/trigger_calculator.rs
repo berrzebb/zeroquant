@@ -188,11 +188,12 @@ impl TriggerCalculator {
     fn detect_box_breakout(&self, klines: &[Kline]) -> TriggerCalculatorResult<bool> {
         const LOOKBACK: usize = 20;
 
-        if klines.len() < LOOKBACK + 5 {
+        if klines.len() < LOOKBACK + 2 {
             return Ok(false);
         }
 
-        let recent = &klines[klines.len() - LOOKBACK..];
+        // 현재 캔들을 제외한 직전 LOOKBACK개에서 박스권 계산
+        let recent = &klines[klines.len() - LOOKBACK - 1..klines.len() - 1];
         let current = klines.last().unwrap();
 
         // 최고가와 최저가 찾기
@@ -290,7 +291,7 @@ mod tests {
     use super::*;
     use chrono::{TimeZone, Utc};
     use rust_decimal_macros::dec;
-    use trader_core::{Symbol, Timeframe};
+    use trader_core::Timeframe;
 
     fn create_test_kline(
         open: Decimal,

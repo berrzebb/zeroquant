@@ -242,7 +242,7 @@ mod tests {
     use chrono::Utc;
 
     fn create_test_klines(count: usize, base_price: f64, trend: f64) -> Vec<Kline> {
-        use trader_core::{MarketType, Timeframe};
+        use trader_core::Timeframe;
 
         (0..count)
             .map(|i| {

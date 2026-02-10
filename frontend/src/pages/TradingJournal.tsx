@@ -16,7 +16,7 @@
 import { createResource, Show, createMemo, lazy, Suspense, createEffect } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { useSearchParams, useNavigate } from '@solidjs/router'
-import { BookOpen, BarChart3, RefreshCw, LineChart, PieChart, Lightbulb, ArrowLeft } from 'lucide-solid'
+import { BookOpen, BarChart3, LineChart, PieChart, Lightbulb, ArrowLeft } from 'lucide-solid'
 import {
   PageHeader,
   StatCard,
@@ -45,7 +45,7 @@ import {
   getBacktestResult,
   getBacktestStrategies,
 } from '../api/client'
-import type { ExecutionFilter, BacktestResult, BacktestStrategy, SymbolPnLItem } from '../api/client'
+import type { ExecutionFilter, BacktestResult, SymbolPnLItem } from '../api/client'
 
 // Lazy load heavy components
 const PositionsTable = lazy(() =>
@@ -86,7 +86,6 @@ function convertBacktestToPnLSummary(result: BacktestResult) {
   const trades = result.trades
   const pnls = trades.map(t => parseFloat(t.pnl))
   const wins = pnls.filter(p => p > 0)
-  const losses = pnls.filter(p => p < 0)
   const totalPnl = pnls.reduce((a, b) => a + b, 0)
   const totalFees = result.all_trades
     ? result.all_trades.reduce((sum, t) => sum + parseFloat(t.commission), 0)
@@ -420,7 +419,7 @@ function convertBacktestToExecutions(result: BacktestResult) {
   }
 
   // 폴백: 라운드트립에서 추출
-  const executions: any[] = []
+  const executions: Record<string, unknown>[] = []
   result.trades.forEach((trade, i) => {
     executions.push({
       id: `exec-entry-${i}`,
@@ -471,7 +470,7 @@ function convertBacktestToExecutions(result: BacktestResult) {
       })
     }
   })
-  return executions.sort((a, b) => (a.executed_at || '').localeCompare(b.executed_at || ''))
+  return executions.sort((a, b) => (String(a.executed_at || '')).localeCompare(String(b.executed_at || '')))
 }
 
 // ==================== 타입 정의 ====================
@@ -533,16 +532,6 @@ const initialUIState: UIState = {
 }
 
 // ==================== 유틸리티 함수 ====================
-
-/** API 에러 발생 시에도 UI가 동작하도록 안전한 wrapper */
-const safeFetch = <T,>(fetcher: () => Promise<T>, fallback: T) => async (): Promise<T> => {
-  try {
-    return await fetcher()
-  } catch (error) {
-    warn('API fetch failed:', error)
-    return fallback
-  }
-}
 
 /** 필터가 있는 경우의 안전한 wrapper */
 const safeFetchWithArg = <T, A>(fetcher: (arg: A) => Promise<T>, fallback: T) => async (arg: A): Promise<T> => {
@@ -835,9 +824,6 @@ export function TradingJournal() {
 
   /** 페이지 변경 */
   const handlePageChange = (page: number) => setFilters('currentPage', page)
-
-  /** 필터 초기화 */
-  const resetFilters = () => setFilters(initialFilterState)
 
   // 실환경 체결 내역 (API)
   const [liveExecutions, { refetch: refetchExecutions }] = createResource(

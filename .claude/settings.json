@@ -1,0 +1,157 @@
+{
+  "model": "sonnet",
+  "language": "korean",
+  "cleanupPeriodDays": 60,
+  "autoUpdatesChannel": "stable",
+  "alwaysThinkingEnabled": true,
+
+  "permissions": {
+    "allow": [
+      "Edit(*)",
+      "Write(*)",
+      "Bash(cargo *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(podman exec:*)",
+      "Bash(podman ps:*)",
+      "Bash(podman inspect:*)",
+      "Bash(podman compose *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git stash *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(curl *)",
+      "Bash(echo *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(sort *)",
+      "Bash(grep *)",
+      "Bash(findstr *)",
+      "Bash(find *)",
+      "Bash(where *)",
+      "Bash(dir *)",
+      "Bash(tree *)",
+      "Bash(cd *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(iconv *)",
+      "Bash(tee *)",
+      "Bash(netstat *)",
+      "Bash(tasklist *)",
+      "Bash(powershell *)",
+      "Bash(powershell.exe *)",
+      "WebFetch(domain:*)",
+      "WebSearch",
+      "mcp__context7__*",
+      "mcp__serena__*",
+      "mcp__playwright__*",
+      "mcp__chrome-devtools__*",
+      "mcp__sequential-thinking__*"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git checkout *)",
+      "Bash(git reset *)",
+      "Bash(git rebase *)",
+      "Bash(git merge *)",
+      "Bash(podman stop *)",
+      "Bash(podman rm *)",
+      "Bash(podman restart *)",
+      "Bash(rm *)",
+      "Bash(del *)",
+      "Bash(taskkill *)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(**/.env.*)",
+      "Read(**/secrets/**)",
+      "Bash(psql *)",
+      "Bash(redis-cli *)",
+      "Bash(pg_dump *)",
+      "Bash(pg_restore *)",
+      "Bash(shutdown *)",
+      "Bash(reboot *)",
+      "Bash(format *)",
+      "Bash(rm -rf / *)",
+      "Bash(rm -rf /*)"
+    ],
+    "defaultMode": "acceptEdits"
+  },
+
+  "enableAllProjectMcpServers": true,
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -ExecutionPolicy Bypass -File .claude/hooks/pre-bash-guard.ps1",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -ExecutionPolicy Bypass -File .claude/hooks/pre-edit-rust-rules.ps1",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "powershell.exe -ExecutionPolicy Bypass -File .claude/hooks/pre-edit-ts-rules.ps1",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -ExecutionPolicy Bypass -File .claude/hooks/post-edit-rust-check.ps1",
+            "timeout": 30000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -ExecutionPolicy Bypass -File .claude/hooks/pre-commit-check.ps1",
+            "timeout": 120000
+          }
+        ]
+      }
+    ]
+  },
+
+  "attribution": {
+    "commit": "Co-Authored-By: Claude <noreply@anthropic.com>",
+    "pr": ""
+  },
+
+  "env": {
+    "RUST_BACKTRACE": "1",
+    "RUST_LOG": "info,trader_api=info",
+    "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "1",
+    "MCP_TIMEOUT": "30000",
+    "MAX_MCP_OUTPUT_TOKENS": "25000",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "BASH_MAX_OUTPUT_LENGTH": "20000",
+    "SLASH_COMMAND_TOOL_CHAR_BUDGET": "20000"
+  }
+}

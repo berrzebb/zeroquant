@@ -6603,7 +6603,7 @@ dependencies = [
 
 [[package]]
 name = "trader-analytics"
-version = "0.1.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6631,7 +6631,7 @@ dependencies = [
 
 [[package]]
 name = "trader-api"
-version = "0.1.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "argon2",
@@ -6678,7 +6678,7 @@ dependencies = [
 
 [[package]]
 name = "trader-cli"
-version = "0.1.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -6732,7 +6732,7 @@ dependencies = [
 
 [[package]]
 name = "trader-core"
-version = "0.1.0"
+version = "0.10.0"
 dependencies = [
  "aes-gcm",
  "async-trait",
@@ -6758,7 +6758,7 @@ dependencies = [
 
 [[package]]
 name = "trader-data"
-version = "0.1.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6783,7 +6783,7 @@ dependencies = [
 
 [[package]]
 name = "trader-exchange"
-version = "0.1.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6818,7 +6818,7 @@ dependencies = [
 
 [[package]]
 name = "trader-execution"
-version = "0.1.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6838,7 +6838,7 @@ dependencies = [
 
 [[package]]
 name = "trader-notification"
-version = "0.1.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6859,7 +6859,7 @@ dependencies = [
 
 [[package]]
 name = "trader-risk"
-version = "0.1.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6876,7 +6876,7 @@ dependencies = [
 
 [[package]]
 name = "trader-strategy"
-version = "0.1.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -6900,7 +6900,7 @@ dependencies = [
 
 [[package]]
 name = "trader-strategy-macro"
-version = "0.1.0"
+version = "0.10.0"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -259,8 +259,6 @@ const MARKET_CAP_PRESETS = [
 
 export function Screening() {
   const toast = useToast()
-  const PAGE_SIZE = 100 // 서버에서 한 번에 가져올 개수
-
   // ==================== Store 기반 상태 관리 ====================
   const [customFilter, setCustomFilter] = createStore<CustomFilterState>({ ...DEFAULT_CUSTOM_FILTER })
   const [filters, setFilters] = createStore<ClientFilterState>({ ...initialClientFilter })
@@ -269,18 +267,11 @@ export function Screening() {
 
   // 서버 측 무한 스크롤 상태 (프리셋)
   const [presetResults, setPresetResults] = createSignal<ScreeningResultDto[]>([])
-  const [presetOffset, setPresetOffset] = createSignal(0)
+  const [, setPresetOffset] = createSignal(0)
   const [presetTotal, setPresetTotal] = createSignal(0)
   const [presetLoading, setPresetLoading] = createSignal(false)
   const [presetLoadingMore, setPresetLoadingMore] = createSignal(false)
   const [presetFilterSummary, setPresetFilterSummary] = createSignal('')
-
-  // 모멘텀 무한 스크롤 상태
-  const [momentumResults, setMomentumResults] = createSignal<any[]>([])
-  const [momentumOffset, setMomentumOffset] = createSignal(0)
-  const [momentumTotal, setMomentumTotal] = createSignal(0)
-  const [momentumLoading, setMomentumLoading] = createSignal(false)
-  const [momentumLoadingMore, setMomentumLoadingMore] = createSignal(false)
 
   // ==================== 가상 스크롤 설정 ====================
   // 대용량 데이터(1000+)에서 60fps 성능 유지
@@ -701,7 +692,8 @@ export function Screening() {
 
   // 데이터 변경 시 범위 재계산
   createEffect(() => {
-    sortedResults().length // 의존성 추적
+    const _len = sortedResults().length // 의존성 추적
+    void _len
     updateVisibleRange()
   })
 

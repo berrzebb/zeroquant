@@ -215,7 +215,10 @@ mod tests {
 
     #[test]
     fn test_filter_entry_only() {
-        let filter = SignalAlertFilter::new().entry_only();
+        // min_strength 제거하여 모든 강도 허용
+        let filter = SignalAlertFilter::new()
+            .entry_only()
+            .with_min_strength(0.0);
 
         let entry_marker = SignalMarker::new(
             "BTC/USDT".to_string(),
@@ -241,7 +244,10 @@ mod tests {
 
     #[test]
     fn test_filter_strategy_ids() {
-        let filter = SignalAlertFilter::new().with_strategies(vec!["rsi_strategy".to_string()]);
+        // min_strength 제거하여 모든 강도 허용
+        let filter = SignalAlertFilter::new()
+            .with_strategies(vec!["rsi_strategy".to_string()])
+            .with_min_strength(0.0);
 
         let matching_marker = SignalMarker::new(
             "BTC/USDT".to_string(),

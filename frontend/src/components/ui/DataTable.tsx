@@ -13,7 +13,7 @@ export interface Column<T> {
   width?: string
   align?: 'left' | 'center' | 'right'
   sortable?: boolean
-  render?: (value: any, row: T, index: number) => JSX.Element
+  render?: (value: unknown, row: T, index: number) => JSX.Element
 }
 
 interface DataTableProps<T> {
@@ -38,7 +38,7 @@ const alignStyles = {
   right: 'text-right',
 }
 
-export function DataTable<T extends Record<string, any>>(props: DataTableProps<T>) {
+export function DataTable<T extends Record<string, unknown>>(props: DataTableProps<T>) {
   const [localSortField, setLocalSortField] = createSignal(props.sortField || '')
   const [localSortOrder, setLocalSortOrder] = createSignal<'asc' | 'desc'>(props.sortOrder || 'asc')
 

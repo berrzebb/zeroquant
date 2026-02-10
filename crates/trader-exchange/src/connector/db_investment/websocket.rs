@@ -19,6 +19,12 @@ pub struct DbInvestmentWebSocket {
     rx: Option<mpsc::Receiver<DbWsMessage>>,
 }
 
+impl Default for DbInvestmentWebSocket {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DbInvestmentWebSocket {
     pub fn new() -> Self {
         let (tx, rx) = mpsc::channel(100);

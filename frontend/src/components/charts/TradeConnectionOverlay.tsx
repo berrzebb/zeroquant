@@ -180,7 +180,8 @@ export const TradeConnectionOverlay: Component<TradeConnectionOverlayProps> = (p
         {/* 배경색 영역 */}
         <Show when={showBackground()}>
           <For each={tradeCoordinates()}>
-            {({ trade, x1, y1, x2, y2 }) => {
+            {(coord) => {
+              const { trade, x1, x2 } = coord
               const minX = Math.min(x1, x2)
               const rectWidth = Math.abs(x2 - x1)
               const color = getPnLColor(trade.pnl, true)

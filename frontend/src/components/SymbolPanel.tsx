@@ -115,11 +115,6 @@ export function SymbolPanel(props: SymbolPanelProps) {
   const [newIndicatorType, setNewIndicatorType] = createSignal<IndicatorType>('rsi')
   const [newIndicatorParams, setNewIndicatorParams] = createSignal<Record<string, unknown>>({})
 
-  // 패널 내 심볼 검색 (자동완성)
-  const [panelSearch, setPanelSearch] = createSignal('')
-  const [showAutocomplete, setShowAutocomplete] = createSignal(false)
-  const [selectedIndex, setSelectedIndex] = createSignal(-1)
-
   // 테이블 무한 스크롤 상태
   const [visibleRows, setVisibleRows] = createSignal(50)
   const ROWS_PER_LOAD = 50
@@ -187,16 +182,6 @@ export function SymbolPanel(props: SymbolPanelProps) {
       ind.id === id ? { ...ind, enabled: !ind.enabled } : ind
     ))
   }
-
-  // 자동완성 심볼 목록 (캐시된 심볼만 필터링)
-  const autocompleteSymbols = createMemo(() => {
-    const term = panelSearch().toUpperCase().trim()
-    if (!term) return []
-    // 캐시된 심볼 중 검색어와 매칭되는 것만 표시 (최대 8개)
-    return props.cachedSymbols
-      .filter(s => s.toUpperCase().includes(term))
-      .slice(0, 8)
-  })
 
   // 캔들 데이터 쿼리
   const candlesQuery = createQuery(() => ({
@@ -508,40 +493,6 @@ export function SymbolPanel(props: SymbolPanelProps) {
     return base
   }
   const subChartHeight = () => props.compact ? 80 : 100
-
-  // 심볼 선택 핸들러
-  const handleSelectSymbol = (symbol: string) => {
-    props.onSymbolChange(symbol)
-    setPanelSearch('')
-    setShowAutocomplete(false)
-    setSelectedIndex(-1)
-  }
-
-  // 키보드 네비게이션 핸들러
-  const handleKeyDown = (e: KeyboardEvent) => {
-    const symbols = autocompleteSymbols()
-    const len = symbols.length
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setSelectedIndex(prev => (prev + 1) % len)
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setSelectedIndex(prev => (prev - 1 + len) % len)
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      const idx = selectedIndex()
-      if (idx >= 0 && idx < len) {
-        handleSelectSymbol(symbols[idx])
-      } else if (panelSearch().trim()) {
-        // 검색어가 있으면 그대로 사용 (새 심볼 다운로드용)
-        handleSelectSymbol(panelSearch().trim().toUpperCase())
-      }
-    } else if (e.key === 'Escape') {
-      setShowAutocomplete(false)
-      setSelectedIndex(-1)
-    }
-  }
 
   // 빈 패널 안내 UI (헤더에서 심볼 검색)
   const EmptyPanelUI = () => (

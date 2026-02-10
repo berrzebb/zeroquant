@@ -201,16 +201,16 @@ impl YahooFundamentalFetcher {
 
         // SummaryDetail (PER, 배당, 52주 고저, 거래량, 베타, 시가총액)
         if let Some(ref sd) = summary_data.summary_detail {
-            data.per = sd.trailing_pe.and_then(|v| Decimal::from_f64_retain(v));
-            data.forward_per = sd.forward_pe.and_then(|v| Decimal::from_f64_retain(v));
+            data.per = sd.trailing_pe.and_then(Decimal::from_f64_retain);
+            data.forward_per = sd.forward_pe.and_then(Decimal::from_f64_retain);
             data.dividend_yield = sd.dividend_yield.and_then(|v| Decimal::from_f64_retain(v * 100.0));
-            data.week_52_high = sd.fifty_two_week_high.and_then(|v| Decimal::from_f64_retain(v));
-            data.week_52_low = sd.fifty_two_week_low.and_then(|v| Decimal::from_f64_retain(v));
+            data.week_52_high = sd.fifty_two_week_high.and_then(Decimal::from_f64_retain);
+            data.week_52_low = sd.fifty_two_week_low.and_then(Decimal::from_f64_retain);
             data.avg_volume_10d = sd.average_volume_10days.map(|v| v as i64);
             data.avg_volume_3m = sd.average_volume.map(|v| v as i64);
-            data.beta = sd.beta.and_then(|v| Decimal::from_f64_retain(v));
+            data.beta = sd.beta.and_then(Decimal::from_f64_retain);
             // 시가총액 (u64 → Decimal)
-            data.market_cap = sd.market_cap.map(|v| Decimal::from(v));
+            data.market_cap = sd.market_cap.map(Decimal::from);
             // 통화
             if let Some(ref c) = sd.currency {
                 data.currency = c.clone();
@@ -220,33 +220,33 @@ impl YahooFundamentalFetcher {
         // FinancialData (매출, 수익성 지표)
         if let Some(ref fd) = summary_data.financial_data {
             // total_revenue는 i64 타입
-            data.revenue = fd.total_revenue.map(|v| Decimal::from(v));
+            data.revenue = fd.total_revenue.map(Decimal::from);
             data.roe = fd.return_on_equity.and_then(|v| Decimal::from_f64_retain(v * 100.0));
             data.roa = fd.return_on_assets.and_then(|v| Decimal::from_f64_retain(v * 100.0));
             data.gross_margin = fd.gross_margins.and_then(|v| Decimal::from_f64_retain(v * 100.0));
             data.operating_margin = fd.operating_margins.and_then(|v| Decimal::from_f64_retain(v * 100.0));
             data.net_profit_margin = fd.profit_margins.and_then(|v| Decimal::from_f64_retain(v * 100.0));
-            data.debt_to_equity = fd.debt_to_equity.and_then(|v| Decimal::from_f64_retain(v));
-            data.current_ratio = fd.current_ratio.and_then(|v| Decimal::from_f64_retain(v));
-            data.quick_ratio = fd.quick_ratio.and_then(|v| Decimal::from_f64_retain(v));
+            data.debt_to_equity = fd.debt_to_equity.and_then(Decimal::from_f64_retain);
+            data.current_ratio = fd.current_ratio.and_then(Decimal::from_f64_retain);
+            data.quick_ratio = fd.quick_ratio.and_then(Decimal::from_f64_retain);
             data.revenue_growth_yoy = fd.revenue_growth.and_then(|v| Decimal::from_f64_retain(v * 100.0));
             data.earnings_growth_yoy = fd.earnings_growth.and_then(|v| Decimal::from_f64_retain(v * 100.0));
         }
 
         // DefaultKeyStatistics (EPS, BPS, PBR, PSR, 주식수, 순이익)
         if let Some(ref ks) = summary_data.default_key_statistics {
-            data.eps = ks.trailing_eps.and_then(|v| Decimal::from_f64_retain(v));
-            data.forward_eps = ks.forward_eps.and_then(|v| Decimal::from_f64_retain(v));
-            data.bps = ks.book_value.and_then(|v| Decimal::from_f64_retain(v));
-            data.pbr = ks.price_to_book.and_then(|v| Decimal::from_f64_retain(v));
+            data.eps = ks.trailing_eps.and_then(Decimal::from_f64_retain);
+            data.forward_eps = ks.forward_eps.and_then(Decimal::from_f64_retain);
+            data.bps = ks.book_value.and_then(Decimal::from_f64_retain);
+            data.pbr = ks.price_to_book.and_then(Decimal::from_f64_retain);
             data.shares_outstanding = ks.shares_outstanding.map(|v| v as i64);
             data.float_shares = ks.float_shares.map(|v| v as i64);
             // net_income_to_common은 i64 타입
-            data.net_income = ks.net_income_to_common.map(|v| Decimal::from(v));
+            data.net_income = ks.net_income_to_common.map(Decimal::from);
 
             // beta가 아직 없으면 여기서도 시도
             if data.beta.is_none() {
-                data.beta = ks.beta.and_then(|v| Decimal::from_f64_retain(v));
+                data.beta = ks.beta.and_then(Decimal::from_f64_retain);
             }
         }
 

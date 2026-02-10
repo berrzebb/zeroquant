@@ -62,6 +62,10 @@ const RECONNECT_DELAY_SECS: u64 = 5;
 /// Ping 간격 (초).
 const PING_INTERVAL_SECS: u64 = 30;
 
+/// 구독 등록 간격 (밀리초).
+/// 거래소 규정: 건당 등록은 0.2초 이상 간격 권장.
+const SUBSCRIBE_INTERVAL_MS: u64 = 200;
+
 /// 해외 주식 실시간 체결 데이터.
 #[derive(Debug, Clone)]
 pub struct UsRealtimeTrade {
@@ -275,11 +279,17 @@ impl KisUsWebSocket {
 
         info!("KIS US WebSocket 연결 성공");
 
+        // 접속 안정화 대기 (서버 초기화 완료 대기)
+        tokio::time::sleep(Duration::from_millis(SUBSCRIBE_INTERVAL_MS)).await;
+
         // 기존 구독 복원
         let trades = self.subscribed_trades.clone();
         let orderbooks = self.subscribed_orderbooks.clone();
 
-        for sub_info in &trades {
+        for (i, sub_info) in trades.iter().enumerate() {
+            if i > 0 {
+                tokio::time::sleep(Duration::from_millis(SUBSCRIBE_INTERVAL_MS)).await;
+            }
             let tr_key = Self::make_tr_key(&sub_info.exchange_code, &sub_info.symbol);
             let msg =
                 self.create_subscribe_message(&approval_key, tr_id::WS_US_TRADE, &tr_key, true);
@@ -293,7 +303,11 @@ impl KisUsWebSocket {
             );
         }
 
-        for sub_info in &orderbooks {
+        for (i, sub_info) in orderbooks.iter().enumerate() {
+            // 체결가 구독이 있었으면 첫 호가 구독 전에도 간격 필요
+            if i > 0 || !trades.is_empty() {
+                tokio::time::sleep(Duration::from_millis(SUBSCRIBE_INTERVAL_MS)).await;
+            }
             let tr_key = Self::make_tr_key(&sub_info.exchange_code, &sub_info.symbol);
             let msg =
                 self.create_subscribe_message(&approval_key, tr_id::WS_US_ORDERBOOK, &tr_key, true);
@@ -353,7 +367,6 @@ impl KisUsWebSocket {
                                 error!("US 동적 구독 전송 실패 ({}/{}): {}", tid, tr_key, e);
                             } else {
                                 info!("US 동적 구독 성공: {}/{}", tid, tr_key);
-                                // tr_key에서 심볼과 거래소 코드 추출하여 구독 목록에 추가
                                 if tr_key.len() > 4 {
                                     let excd = tr_key[1..4].to_string();
                                     let sym = tr_key[4..].to_string();
@@ -364,6 +377,8 @@ impl KisUsWebSocket {
                                     }
                                 }
                             }
+                            // 구독 등록 간격 준수 (0.2초)
+                            tokio::time::sleep(Duration::from_millis(SUBSCRIBE_INTERVAL_MS)).await;
                         }
                         UsWsCommand::Unsubscribe { tr_id: tid, tr_key } => {
                             let msg = self.create_subscribe_message(&approval_key, &tid, &tr_key, false);
@@ -381,6 +396,8 @@ impl KisUsWebSocket {
                                     }
                                 }
                             }
+                            // 구독 해제 간격 준수 (0.2초)
+                            tokio::time::sleep(Duration::from_millis(SUBSCRIBE_INTERVAL_MS)).await;
                         }
                     }
                 }
@@ -390,6 +407,36 @@ impl KisUsWebSocket {
                         error!("Ping 전송 실패: {}", e);
                         break;
                     }
+                }
+            }
+        }
+
+        // 접속 해제 전 구독 해제 시도 (best-effort)
+        {
+            let all_trades = self.subscribed_trades.clone();
+            let all_orderbooks = self.subscribed_orderbooks.clone();
+            let total = all_trades.len() + all_orderbooks.len();
+            if total > 0 {
+                debug!("US 접속 해제 전 구독 해제 시도: {} 건", total);
+                for (i, sub_info) in all_trades.iter().enumerate() {
+                    if i > 0 {
+                        tokio::time::sleep(Duration::from_millis(SUBSCRIBE_INTERVAL_MS)).await;
+                    }
+                    let tr_key = Self::make_tr_key(&sub_info.exchange_code, &sub_info.symbol);
+                    let msg = self.create_subscribe_message(
+                        &approval_key, tr_id::WS_US_TRADE, &tr_key, false,
+                    );
+                    let _ = write.send(Message::Text(msg)).await;
+                }
+                for (i, sub_info) in all_orderbooks.iter().enumerate() {
+                    if i > 0 || !all_trades.is_empty() {
+                        tokio::time::sleep(Duration::from_millis(SUBSCRIBE_INTERVAL_MS)).await;
+                    }
+                    let tr_key = Self::make_tr_key(&sub_info.exchange_code, &sub_info.symbol);
+                    let msg = self.create_subscribe_message(
+                        &approval_key, tr_id::WS_US_ORDERBOOK, &tr_key, false,
+                    );
+                    let _ = write.send(Message::Text(msg)).await;
                 }
             }
         }

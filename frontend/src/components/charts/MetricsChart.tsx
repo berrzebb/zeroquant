@@ -38,7 +38,7 @@ const defaultSeriesColors = [
 export function MetricsChart(props: MetricsChartProps) {
   let containerRef: HTMLDivElement | undefined
   let chart: IChartApi | undefined
-  let seriesMap: Map<string, ISeriesApi<'Line'>> = new Map()
+  const seriesMap: Map<string, ISeriesApi<'Line'>> = new Map()
 
   const defaultColors = {
     background: 'transparent',

@@ -1,0 +1,21 @@
+# Grid 전략 백테스트 설정
+name = "Grid Trading Backtest"
+strategy_type = "grid"
+
+[parameters]
+ticker = "005930"
+amount = 1000000
+spacing_pct = 2.0
+levels = 10
+use_atr = false
+atr_period = 14
+max_positions = 10
+warmup_candles = 5   # 초기 5캔들 관찰 후 거래 시작
+reset_threshold_pct = 10.0  # 10% 이탈 시 그리드 재설정
+
+# 리스크 관리 (ExitConfig)
+[parameters.exit_config]
+stop_loss_enabled = true
+stop_loss_pct = 15.0        # 15% 손절
+take_profit_enabled = true
+take_profit_pct = 3.0       # 3% 익절 (그리드 기본값)

@@ -4,7 +4,7 @@
  * CSV/Excel 형식으로 데이터를 내보내는 기능을 제공합니다.
  * UTF-8 BOM을 사용하여 한글 인코딩을 지원합니다.
  */
-import { type Component, type JSX, Show } from 'solid-js'
+import { type JSX, Show } from 'solid-js'
 
 export interface ExportColumn<T> {
   /** 컬럼 헤더 */
