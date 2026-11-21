@@ -3,6 +3,8 @@
 //! 이 모듈은 여러 전략에서 공통적으로 사용되는 기술적 지표 계산 함수를 제공합니다.
 //! 모든 함수는 거래소 중립적이며, OHLCV 데이터만을 입력으로 받습니다.
 
+use fin_primitives::signals::indicators::Ema;
+use fin_primitives::signals::{BarInput, Signal, SignalValue};
 use rust_decimal::{prelude::ToPrimitive, Decimal};
 use rust_decimal_macros::dec;
 
@@ -188,23 +190,26 @@ pub fn calculate_macd(
         return None;
     }
 
-    let fast_ema = calculate_ema(prices, fast_period)?;
-    let slow_ema = calculate_ema(prices, slow_period)?;
-    let macd = fast_ema - slow_ema;
+    // 단일 패스 스트리밍 EMA (O(n))
+    let mut fast = Ema::new("macd_fast", fast_period).ok()?;
+    let mut slow = Ema::new("macd_slow", slow_period).ok()?;
+    let mut sig = Ema::new("macd_signal", signal_period).ok()?;
+    let (mut macd, mut signal) = (None, None);
 
-    // MACD 라인의 히스토리 계산 (시그널 EMA를 위해)
-    let mut macd_values = Vec::new();
-    for i in slow_period..prices.len() {
-        let window = &prices[0..=i];
-        if let (Some(f), Some(s)) = (
-            calculate_ema(window, fast_period),
-            calculate_ema(window, slow_period),
-        ) {
-            macd_values.push(f - s);
+    for &price in prices {
+        let bar = BarInput::from_close(price);
+        let f = fast.update(&bar).ok()?;
+        let s = slow.update(&bar).ok()?;
+        if let (SignalValue::Scalar(f), SignalValue::Scalar(s)) = (f, s) {
+            let line = f - s;
+            macd = Some(line);
+            if let SignalValue::Scalar(v) = sig.update(&BarInput::from_close(line)).ok()? {
+                signal = Some(v);
+            }
         }
     }
 
-    let signal = calculate_ema(&macd_values, signal_period)?;
+    let (macd, signal) = (macd?, signal?);
     let histogram = macd - signal;
 
     Some(MacdResult {
@@ -334,6 +339,29 @@ mod tests {
 
         let macd = calculate_macd(&prices, 12, 26, 9);
         assert!(macd.is_some());
+    }
+
+    #[test]
+    fn test_calculate_macd_matches_prefix_emas() {
+        let prices: Vec<Decimal> = (0..120)
+            .map(|i| Decimal::from(100 + (i * 7) % 13) + Decimal::from(i) / dec!(10))
+            .collect();
+        let m = calculate_macd(&prices, 12, 26, 9).unwrap();
+
+        // MACD line equals fast EMA minus slow EMA over the full series.
+        let expected_macd =
+            calculate_ema(&prices, 12).unwrap() - calculate_ema(&prices, 26).unwrap();
+        assert!((m.macd - expected_macd).abs() < dec!(0.0000000001));
+
+        // Signal equals the EMA of every MACD point from the first slow-EMA bar on.
+        let line: Vec<Decimal> = (25..prices.len())
+            .map(|i| {
+                calculate_ema(&prices[..=i], 12).unwrap()
+                    - calculate_ema(&prices[..=i], 26).unwrap()
+            })
+            .collect();
+        assert!((m.signal - calculate_ema(&line, 9).unwrap()).abs() < dec!(0.0000000001));
+        assert_eq!(m.histogram, m.macd - m.signal);
     }
 
     #[test]
