@@ -35,6 +35,7 @@ async-trait = { workspace = true }
 
 # Technical Analysis
 ta = { workspace = true }
+fin-primitives = { version = "4.0.1", default-features = false, features = ["indicators"] }
 
 # Plugin loading
 libloading = { workspace = true }
